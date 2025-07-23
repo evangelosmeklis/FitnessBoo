@@ -120,10 +120,18 @@ struct OnboardingView: View {
     private func completeOnboarding() {
         Task {
             if let user = await viewModel.createUser() {
-                // Save user to persistence layer
-                print("User created successfully: \(user)")
-                await MainActor.run {
-                    hasCompletedOnboarding = true
+                do {
+                    try await DataService.shared.saveUser(user)
+                    print("User created successfully: \(user)")
+                    await MainActor.run {
+                        hasCompletedOnboarding = true
+                    }
+                } catch {
+                    print("Failed to save user: \(error)")
+                    await MainActor.run {
+                        viewModel.errorMessage = error.localizedDescription
+                        viewModel.showingError = true
+                    }
                 }
             } else {
                 print("Failed to create user")
