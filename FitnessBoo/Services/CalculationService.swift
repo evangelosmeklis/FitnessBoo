@@ -1,0 +1,209 @@
+//
+//  CalculationService.swift
+//  FitnessBoo
+//
+//  Created by Kiro on 23/7/25.
+//
+
+import Foundation
+
+/// Protocol defining calculation service interface
+protocol CalculationServiceProtocol {
+    func calculateBMR(age: Int, weight: Double, height: Double, gender: Gender) -> Double
+    func calculateDailyCalorieNeeds(bmr: Double, activityLevel: ActivityLevel) -> Double
+    func calculateMaintenanceCalories(bmr: Double, activityLevel: ActivityLevel) -> Double
+    func calculateCalorieTargetForGoal(dailyCalorieNeeds: Double, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double
+    func calculateCalorieTarget(bmr: Double, activityLevel: ActivityLevel, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double
+    func calculateProteinTarget(weight: Double, goalType: GoalType) -> Double
+    func calculateWeightLossCalories(maintenanceCalories: Double, weeklyWeightLoss: Double) -> Double
+    func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double
+    func validateUserData(age: Int, weight: Double, height: Double) throws
+}
+
+/// Service responsible for all fitness and nutrition calculations
+class CalculationService: CalculationServiceProtocol {
+    
+    // MARK: - BMR Calculations
+    
+    /// Calculate Basal Metabolic Rate using Mifflin-St Jeor Equation
+    /// - Parameters:
+    ///   - age: Age in years
+    ///   - weight: Weight in kilograms
+    ///   - height: Height in centimeters
+    ///   - gender: User's gender
+    /// - Returns: BMR in calories per day
+    func calculateBMR(age: Int, weight: Double, height: Double, gender: Gender) -> Double {
+        let baseCalculation = (10 * weight) + (6.25 * height) - (5 * Double(age))
+        
+        switch gender {
+        case .male:
+            return baseCalculation + 5
+        case .female:
+            return baseCalculation - 161
+        case .other:
+            // Use average of male and female calculations for inclusive approach
+            let maleBMR = baseCalculation + 5
+            let femaleBMR = baseCalculation - 161
+            return (maleBMR + femaleBMR) / 2
+        }
+    }
+    
+    // MARK: - Daily Calorie Calculations
+    
+    /// Calculate daily calorie needs based on BMR and activity level
+    /// - Parameters:
+    ///   - bmr: Basal Metabolic Rate
+    ///   - activityLevel: User's activity level
+    /// - Returns: Total daily energy expenditure in calories
+    func calculateDailyCalorieNeeds(bmr: Double, activityLevel: ActivityLevel) -> Double {
+        return bmr * activityLevel.multiplier
+    }
+    
+    /// Calculate maintenance calories (same as daily calorie needs)
+    /// - Parameters:
+    ///   - bmr: Basal Metabolic Rate
+    ///   - activityLevel: User's activity level
+    /// - Returns: Maintenance calories per day
+    func calculateMaintenanceCalories(bmr: Double, activityLevel: ActivityLevel) -> Double {
+        return calculateDailyCalorieNeeds(bmr: bmr, activityLevel: activityLevel)
+    }
+    
+    /// Calculate daily calorie target based on fitness goals
+    /// - Parameters:
+    ///   - dailyCalorieNeeds: Maintenance calories
+    ///   - goalType: Type of fitness goal
+    ///   - weeklyWeightChangeGoal: Target weight change per week in kg (positive for gain, negative for loss)
+    /// - Returns: Daily calorie target
+    func calculateCalorieTargetForGoal(dailyCalorieNeeds: Double, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double {
+        switch goalType {
+        case .maintainWeight:
+            return dailyCalorieNeeds
+        case .loseWeight, .gainWeight:
+            // 1 kg of body weight ≈ 7700 calories
+            let dailyCalorieAdjustment = (weeklyWeightChangeGoal * 7700) / 7
+            return dailyCalorieNeeds + dailyCalorieAdjustment
+        case .gainMuscle:
+            // Muscle gain typically requires moderate surplus
+            return dailyCalorieNeeds + 300
+        }
+    }
+    
+    // MARK: - Protein Calculations
+    
+    /// Calculate daily protein target based on weight and goals
+    /// - Parameters:
+    ///   - weight: Body weight in kilograms
+    ///   - goalType: Type of fitness goal
+    /// - Returns: Daily protein target in grams
+    func calculateProteinTarget(weight: Double, goalType: GoalType) -> Double {
+        switch goalType {
+        case .maintainWeight:
+            return weight * 0.8 // 0.8g per kg for maintenance
+        case .loseWeight:
+            return weight * 1.2 // Higher protein to preserve muscle during weight loss
+        case .gainWeight:
+            return weight * 1.0 // 1.0g per kg for healthy weight gain
+        case .gainMuscle:
+            return weight * 1.6 // Higher protein for muscle building
+        }
+    }
+    
+    /// Calculate calorie target combining BMR, activity level, and goals
+    /// - Parameters:
+    ///   - bmr: Basal Metabolic Rate
+    ///   - activityLevel: User's activity level
+    ///   - goalType: Type of fitness goal
+    ///   - weeklyWeightChangeGoal: Target weight change per week in kg
+    /// - Returns: Daily calorie target
+    func calculateCalorieTarget(bmr: Double, activityLevel: ActivityLevel, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double {
+        let maintenanceCalories = calculateMaintenanceCalories(bmr: bmr, activityLevel: activityLevel)
+        return calculateCalorieTargetForGoal(dailyCalorieNeeds: maintenanceCalories, goalType: goalType, weeklyWeightChangeGoal: weeklyWeightChangeGoal)
+    }
+    
+    /// Calculate calories for weight loss
+    /// - Parameters:
+    ///   - maintenanceCalories: Daily maintenance calories
+    ///   - weeklyWeightLoss: Target weight loss per week in kg
+    /// - Returns: Daily calorie target for weight loss
+    func calculateWeightLossCalories(maintenanceCalories: Double, weeklyWeightLoss: Double) -> Double {
+        let dailyDeficit = (weeklyWeightLoss * 7700) / 7 // 7700 calories per kg
+        return maintenanceCalories - dailyDeficit
+    }
+    
+    /// Calculate calories for weight gain
+    /// - Parameters:
+    ///   - maintenanceCalories: Daily maintenance calories
+    ///   - weeklyWeightGain: Target weight gain per week in kg
+    /// - Returns: Daily calorie target for weight gain
+    func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double {
+        let dailySurplus = (weeklyWeightGain * 7700) / 7 // 7700 calories per kg
+        return maintenanceCalories + dailySurplus
+    }
+    
+    // MARK: - Validation
+    
+    /// Validate user input data for calculations
+    /// - Parameters:
+    ///   - age: Age in years
+    ///   - weight: Weight in kg
+    ///   - height: Height in cm
+    /// - Throws: ValidationError if data is invalid
+    func validateUserData(age: Int, weight: Double, height: Double) throws {
+        guard age > 0 && age < 150 else {
+            throw ValidationError.invalidAge
+        }
+        guard weight > 0 && weight < 1000 else {
+            throw ValidationError.invalidWeight
+        }
+        guard height > 0 && height < 300 else {
+            throw ValidationError.invalidHeight
+        }
+    }
+    
+    // MARK: - Goal Validation
+    
+    /// Validate weight change goals for health safety
+    /// - Parameter weeklyWeightChangeGoal: Target weight change per week in kg
+    /// - Returns: Validated and potentially adjusted goal
+    func validateWeightChangeGoal(_ weeklyWeightChangeGoal: Double) -> Double {
+        let maxWeeklyLoss = -1.0 // Maximum 1kg loss per week
+        let maxWeeklyGain = 0.5  // Maximum 0.5kg gain per week
+        
+        if weeklyWeightChangeGoal < maxWeeklyLoss {
+            return maxWeeklyLoss
+        } else if weeklyWeightChangeGoal > maxWeeklyGain {
+            return maxWeeklyGain
+        }
+        
+        return weeklyWeightChangeGoal
+    }
+}
+
+// MARK: - Extensions for Unit Conversions
+
+extension CalculationService {
+    
+    /// Convert weight from pounds to kilograms
+    /// - Parameter pounds: Weight in pounds
+    /// - Returns: Weight in kilograms
+    func poundsToKilograms(_ pounds: Double) -> Double {
+        return pounds * 0.453592
+    }
+    
+    /// Convert height from feet and inches to centimeters
+    /// - Parameters:
+    ///   - feet: Height in feet
+    ///   - inches: Additional inches
+    /// - Returns: Height in centimeters
+    func feetAndInchesToCentimeters(feet: Int, inches: Double) -> Double {
+        let totalInches = Double(feet) * 12 + inches
+        return totalInches * 2.54
+    }
+    
+    /// Convert height from inches to centimeters
+    /// - Parameter inches: Height in inches
+    /// - Returns: Height in centimeters
+    func inchesToCentimeters(_ inches: Double) -> Double {
+        return inches * 2.54
+    }
+}
