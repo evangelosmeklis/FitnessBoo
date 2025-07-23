@@ -271,6 +271,9 @@ class MockCalculationService: CalculationServiceProtocol {
     func calculateCalorieTargetForGoal(dailyCalorieNeeds: Double, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double { return 1800 }
     func calculateCalorieTarget(bmr: Double, activityLevel: ActivityLevel, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double { return 1800 }
     func calculateProteinTarget(weight: Double, goalType: GoalType) -> Double { return 100 }
+    func calculateProteinGoal(for user: User?) -> Double { return 100 }
+    func calculateCarbGoal(for user: User?) -> Double { return 200 }
+    func calculateFatGoal(for user: User?) -> Double { return 65 }
     func calculateWeightLossCalories(maintenanceCalories: Double, weeklyWeightLoss: Double) -> Double { return 1500 }
     func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double { return 2200 }
     func validateUserData(age: Int, weight: Double, height: Double) throws { }

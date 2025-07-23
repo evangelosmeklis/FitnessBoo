@@ -8,9 +8,10 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @StateObject private var viewModel = UserProfileViewModel()
+    @StateObject private var viewModel = UserProfileViewModel(dataService: DataService.shared)
     @State private var currentStep = 0
-    @State private var showingDashboard = false
+
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     private let totalSteps = 5
     
@@ -82,11 +83,7 @@ struct OnboardingView: View {
             } message: {
                 Text(viewModel.errorMessage)
             }
-            .fullScreenCover(isPresented: $showingDashboard) {
-                // TODO: Replace with actual dashboard view
-                Text("Dashboard - Setup Complete!")
-                    .font(.title)
-            }
+
         }
     }
     
@@ -123,9 +120,13 @@ struct OnboardingView: View {
     private func completeOnboarding() {
         Task {
             if let user = await viewModel.createUser() {
-                // TODO: Save user to persistence layer
+                // Save user to persistence layer
                 print("User created successfully: \(user)")
-                showingDashboard = true
+                await MainActor.run {
+                    hasCompletedOnboarding = true
+                }
+            } else {
+                print("Failed to create user")
             }
         }
     }

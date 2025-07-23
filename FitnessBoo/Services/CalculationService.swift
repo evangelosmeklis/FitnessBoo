@@ -15,6 +15,9 @@ protocol CalculationServiceProtocol {
     func calculateCalorieTargetForGoal(dailyCalorieNeeds: Double, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double
     func calculateCalorieTarget(bmr: Double, activityLevel: ActivityLevel, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double
     func calculateProteinTarget(weight: Double, goalType: GoalType) -> Double
+    func calculateProteinGoal(for user: User?) -> Double
+    func calculateCarbGoal(for user: User?) -> Double
+    func calculateFatGoal(for user: User?) -> Double
     func calculateWeightLossCalories(maintenanceCalories: Double, weeklyWeightLoss: Double) -> Double
     func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double
     func validateUserData(age: Int, weight: Double, height: Double) throws
@@ -106,6 +109,25 @@ class CalculationService: CalculationServiceProtocol {
         case .gainMuscle:
             return weight * 1.6 // Higher protein for muscle building
         }
+    }
+    
+    func calculateProteinGoal(for user: User?) -> Double {
+        guard let user = user else { return 50.0 } // Default protein goal
+        return calculateProteinTarget(weight: user.weight, goalType: .maintainWeight)
+    }
+    
+    func calculateCarbGoal(for user: User?) -> Double {
+        guard let user = user else { return 200.0 } // Default carb goal
+        // Carbs should be about 45-65% of total calories, using 50% as default
+        let dailyCalories = user.dailyCalorieNeeds
+        return (dailyCalories * 0.5) / 4 // 4 calories per gram of carbs
+    }
+    
+    func calculateFatGoal(for user: User?) -> Double {
+        guard let user = user else { return 65.0 } // Default fat goal
+        // Fat should be about 20-35% of total calories, using 30% as default
+        let dailyCalories = user.dailyCalorieNeeds
+        return (dailyCalories * 0.3) / 9 // 9 calories per gram of fat
     }
     
     /// Calculate calorie target combining BMR, activity level, and goals

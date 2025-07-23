@@ -55,6 +55,11 @@ struct User: Codable, Identifiable {
         return bmr * activityLevel.multiplier
     }
     
+    /// Get daily calorie goal (same as daily calorie needs for now)
+    var dailyCalorieGoal: Double {
+        return dailyCalorieNeeds
+    }
+    
     /// Validate user data
     func validate() throws {
         guard age > 0 && age < 150 else {

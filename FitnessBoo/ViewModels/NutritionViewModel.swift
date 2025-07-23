@@ -11,6 +11,7 @@ import Combine
 @MainActor
 class NutritionViewModel: ObservableObject {
     @Published var dailyNutrition: DailyNutrition?
+    @Published var todaysNutrition: DailyNutrition?
     @Published var foodEntries: [FoodEntry] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -150,6 +151,13 @@ class NutritionViewModel: ObservableObject {
     
     func refreshData() async {
         await loadDailyNutrition(for: currentDate)
+    }
+    
+    func loadTodaysNutrition() {
+        Task {
+            await loadDailyNutrition(for: Date())
+            todaysNutrition = dailyNutrition
+        }
     }
     
     // MARK: - Private Methods

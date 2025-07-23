@@ -15,6 +15,7 @@ class GoalViewModel: ObservableObject {
     @Published var targetDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
     @Published var weeklyWeightChangeGoal: Double = -0.5
     @Published var currentGoal: FitnessGoal?
+    @Published var activeGoals: [FitnessGoal] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var showingError = false
@@ -225,6 +226,20 @@ class GoalViewModel: ObservableObject {
             return "+\(formattedValue) kg/week"
         case .maintainWeight:
             return "±\(formattedValue) kg/week"
+        }
+    }
+    
+    func loadGoals() {
+        Task {
+            do {
+                guard let user = try await dataService.fetchUser() else { return }
+                let goals = try await dataService.fetchAllGoals(for: user)
+                activeGoals = goals.filter { $0.isActive }
+                currentGoal = activeGoals.first
+            } catch {
+                errorMessage = "Failed to load goals: \(error.localizedDescription)"
+                showingError = true
+            }
         }
     }
 }

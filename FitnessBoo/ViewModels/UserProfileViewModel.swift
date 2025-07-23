@@ -25,9 +25,14 @@ class UserProfileViewModel: ObservableObject {
     @Published var showingError = false
     @Published var errorMessage = ""
     
+    // Current user data
+    @Published var currentUser: User?
+    
+    private let dataService: DataServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    init() {
+    init(dataService: DataServiceProtocol) {
+        self.dataService = dataService
         setupValidation()
     }
     
@@ -139,5 +144,16 @@ class UserProfileViewModel: ObservableObject {
         isLoading = false
         showingError = false
         errorMessage = ""
+    }
+    
+    func loadCurrentUser() {
+        Task {
+            do {
+                currentUser = try await dataService.fetchUser()
+            } catch {
+                errorMessage = "Failed to load user: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
     }
 }
