@@ -266,6 +266,9 @@ class DataService: DataServiceProtocol {
             throw DataServiceError.userNotFound
         }
         
+        var nutritionToSave = nutrition
+        nutritionToSave.recalculateTotals()
+        
         try await withCheckedThrowingContinuation { continuation in
             context.perform {
                 do {
@@ -279,7 +282,7 @@ class DataService: DataServiceProtocol {
                     
                     // Check if daily nutrition already exists for this date
                     let calendar = Calendar.current
-                    let startOfDay = calendar.startOfDay(for: nutrition.date)
+                    let startOfDay = calendar.startOfDay(for: nutritionToSave.date)
                     let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
                     
                     let request: NSFetchRequest<DailyNutritionEntity> = DailyNutritionEntity.fetchRequest()
@@ -295,18 +298,18 @@ class DataService: DataServiceProtocol {
                         dailyNutritionEntity = existing
                     } else {
                         dailyNutritionEntity = DailyNutritionEntity(context: self.context)
-                        dailyNutritionEntity.id = nutrition.id
+                        dailyNutritionEntity.id = nutritionToSave.id
                         dailyNutritionEntity.user = userEntity
                     }
                     
                     // Update daily nutrition properties
                     dailyNutritionEntity.date = startOfDay
-                    dailyNutritionEntity.totalCalories = nutrition.totalCalories
-                    dailyNutritionEntity.totalProtein = nutrition.totalProtein
-                    dailyNutritionEntity.calorieTarget = nutrition.calorieTarget
-                    dailyNutritionEntity.proteinTarget = nutrition.proteinTarget
-                    dailyNutritionEntity.caloriesFromExercise = nutrition.caloriesFromExercise
-                    dailyNutritionEntity.netCalories = nutrition.netCalories
+                    dailyNutritionEntity.totalCalories = nutritionToSave.totalCalories
+                    dailyNutritionEntity.totalProtein = nutritionToSave.totalProtein
+                    dailyNutritionEntity.calorieTarget = nutritionToSave.calorieTarget
+                    dailyNutritionEntity.proteinTarget = nutritionToSave.proteinTarget
+                    dailyNutritionEntity.caloriesFromExercise = nutritionToSave.caloriesFromExercise
+                    dailyNutritionEntity.netCalories = nutritionToSave.netCalories
                     
                     try self.saveContext()
                     continuation.resume()

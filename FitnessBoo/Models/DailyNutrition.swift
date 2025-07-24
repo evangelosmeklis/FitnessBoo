@@ -40,6 +40,8 @@ struct DailyNutrition: Codable, Identifiable {
         self.proteinTarget = proteinTarget
         self.caloriesFromExercise = caloriesFromExercise
         self.netCalories = netCalories
+        
+        recalculateTotals()
     }
     
     /// Add a food entry and recalculate totals
@@ -63,7 +65,7 @@ struct DailyNutrition: Codable, Identifiable {
     }
     
     /// Recalculate total calories and protein from all entries
-    private mutating func recalculateTotals() {
+    mutating func recalculateTotals() {
         totalCalories = entries.reduce(0) { $0 + $1.calories }
         totalProtein = entries.reduce(0) { $0 + ($1.protein ?? 0) }
         calculateNetCalories()

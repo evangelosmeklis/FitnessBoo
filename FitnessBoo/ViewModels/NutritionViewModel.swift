@@ -112,14 +112,20 @@ class NutritionViewModel: ObservableObject {
     
     func addFoodEntry(_ entry: FoodEntry) async {
         do {
-            // Validate the entry
             try entry.validate()
             
-            // Save to data service first
+            // Save the food entry to the database
             try await dataService.saveFoodEntry(entry)
             
-            // Force reload the data to get the latest from database
-            await loadDailyNutrition(for: currentDate)
+            // Update the local daily nutrition object
+            if var currentNutrition = dailyNutrition {
+                currentNutrition.addEntry(entry)
+                try await dataService.saveDailyNutrition(currentNutrition)
+                self.dailyNutrition = currentNutrition
+            } else {
+                // If no daily nutrition exists, fetch it (which will create it)
+                await loadDailyNutrition(for: currentDate)
+            }
             
             errorMessage = nil
         } catch {
@@ -129,14 +135,17 @@ class NutritionViewModel: ObservableObject {
     
     func updateFoodEntry(_ entry: FoodEntry) async {
         do {
-            // Validate the entry
             try entry.validate()
             
-            // Update in data service
+            // Update the food entry in the database
             try await dataService.updateFoodEntry(entry)
             
-            // Force reload the data to get the latest from database
-            await loadDailyNutrition(for: currentDate)
+            // Update the local daily nutrition object
+            if var currentNutrition = dailyNutrition {
+                currentNutrition.updateEntry(entry)
+                try await dataService.saveDailyNutrition(currentNutrition)
+                self.dailyNutrition = currentNutrition
+            }
             
             errorMessage = nil
         } catch {
@@ -146,11 +155,15 @@ class NutritionViewModel: ObservableObject {
     
     func deleteFoodEntry(_ entry: FoodEntry) async {
         do {
-            // Delete from data service
+            // Delete the food entry from the database
             try await dataService.deleteFoodEntry(entry)
             
-            // Force reload the data to get the latest from database
-            await loadDailyNutrition(for: currentDate)
+            // Update the local daily nutrition object
+            if var currentNutrition = dailyNutrition {
+                currentNutrition.removeEntry(withId: entry.id)
+                try await dataService.saveDailyNutrition(currentNutrition)
+                self.dailyNutrition = currentNutrition
+            }
             
             errorMessage = nil
         } catch {
