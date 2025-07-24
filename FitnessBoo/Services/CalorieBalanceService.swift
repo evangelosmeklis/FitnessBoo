@@ -236,11 +236,23 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
     }
     
     private func getCaloriesConsumedForDate(_ date: Date) async -> Double {
-        // Get nutrition data for the date
+        // Get nutrition data for the date from food entries
         do {
-            let dailyNutrition = try await dataService.fetchDailyNutrition(for: date)
-            return dailyNutrition?.totalCalories ?? 0.0
+            // First try to get daily nutrition summary
+            if let dailyNutrition = try await dataService.fetchDailyNutrition(for: date) {
+                return dailyNutrition.totalCalories
+            }
+            
+            // Fallback to calculating from individual food entries
+            let user = try await dataService.fetchUser()
+            if let user = user {
+                let foodEntries = try await dataService.fetchFoodEntries(for: date, user: user)
+                return foodEntries.reduce(0) { $0 + $1.calories }
+            }
+            
+            return 0.0
         } catch {
+            print("Error fetching calories consumed: \(error)")
             return 0.0
         }
     }

@@ -149,6 +149,12 @@ struct GoalSettingView: View {
                 .onTapGesture {
                     viewModel.selectedGoalType = goalType
                     updateWeightChangeForGoalType(goalType)
+                    
+                    // Clear target weight for maintain weight goal
+                    if goalType == .maintainWeight {
+                        viewModel.targetWeight = ""
+                        viewModel.errorMessage = nil
+                    }
                 }
             }
         } header: {
@@ -171,17 +177,29 @@ struct GoalSettingView: View {
                             Spacer()
                             Button("Done") {
                                 isTargetWeightFocused = false
+                                validateTargetWeight()
                             }
                         }
                     }
+                    .onChange(of: viewModel.targetWeight) { _ in
+                        validateTargetWeight()
+                    }
                 Text("kg")
                     .foregroundColor(.secondary)
+            }
+            
+            // Show validation error if any
+            if let validationError = getTargetWeightValidationError() {
+                Text(validationError)
+                    .font(.caption)
+                    .foregroundColor(.red)
             }
         } header: {
             Text("Target")
         } footer: {
             if let user = user, !viewModel.targetWeight.isEmpty,
-               let targetWeight = Double(viewModel.targetWeight) {
+               let targetWeight = Double(viewModel.targetWeight),
+               getTargetWeightValidationError() == nil {
                 let difference = abs(targetWeight - user.weight)
                 let direction = targetWeight > user.weight ? "gain" : "lose"
                 Text("You need to \(direction) \(difference, specifier: "%.1f") kg")
@@ -359,17 +377,39 @@ struct GoalSettingView: View {
     }
     
     private func hasValidInput() -> Bool {
-        // For goals that require target weight, ensure it's provided and valid
-        if viewModel.selectedGoalType != .maintainWeight {
-            guard !viewModel.targetWeight.isEmpty,
-                  let targetWeight = Double(viewModel.targetWeight),
-                  targetWeight > 0 else {
-                return false
-            }
+        // Basic validation
+        guard viewModel.validateCurrentGoal() else {
+            return false
         }
         
-        // Always allow saving if validation passes
+        // Target weight validation for non-maintain goals
+        if viewModel.selectedGoalType != .maintainWeight {
+            guard let user = user else { return false }
+            let validation = viewModel.validateTargetWeight(currentWeight: user.weight)
+            return validation.isValid
+        }
+        
         return true
+    }
+    
+    private func validateTargetWeight() {
+        guard let user = user else { return }
+        let validation = viewModel.validateTargetWeight(currentWeight: user.weight)
+        
+        if !validation.isValid {
+            viewModel.errorMessage = validation.errorMessage
+        } else {
+            // Clear error if validation passes
+            if viewModel.errorMessage?.contains("Target weight") == true {
+                viewModel.errorMessage = nil
+            }
+        }
+    }
+    
+    private func getTargetWeightValidationError() -> String? {
+        guard let user = user else { return nil }
+        let validation = viewModel.validateTargetWeight(currentWeight: user.weight)
+        return validation.isValid ? nil : validation.errorMessage
     }
 }
 

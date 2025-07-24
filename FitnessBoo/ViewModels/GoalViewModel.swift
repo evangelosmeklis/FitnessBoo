@@ -178,23 +178,7 @@ class GoalViewModel: ObservableObject {
         }
     }
     
-    func validateCurrentGoal() -> Bool {
-        do {
-            let targetWeightValue = targetWeight.isEmpty ? nil : Double(targetWeight)
-            let tempGoal = FitnessGoal(
-                type: selectedGoalType,
-                targetWeight: targetWeightValue,
-                targetDate: targetDate,
-                weeklyWeightChangeGoal: weeklyWeightChangeGoal
-            )
-            
-            try tempGoal.validate()
-            return true
-            
-        } catch {
-            return false
-        }
-    }
+
     
     // MARK: - Helper Methods
     
@@ -241,5 +225,64 @@ class GoalViewModel: ObservableObject {
                 showingError = true
             }
         }
+    }
+    
+    // MARK: - Validation Methods
+    
+    func validateCurrentGoal() -> Bool {
+        // For maintain weight, no target weight needed
+        if selectedGoalType == .maintainWeight {
+            return true
+        }
+        
+        // For other goals, target weight is required
+        guard !targetWeight.isEmpty,
+              let targetWeightValue = Double(targetWeight),
+              targetWeightValue > 0 else {
+            return false
+        }
+        
+        return true
+    }
+    
+    func validateTargetWeight(currentWeight: Double) -> (isValid: Bool, errorMessage: String?) {
+        // For maintain weight, no validation needed
+        if selectedGoalType == .maintainWeight {
+            return (true, nil)
+        }
+        
+        guard !targetWeight.isEmpty else {
+            return (false, "Target weight is required")
+        }
+        
+        guard let targetWeightValue = Double(targetWeight) else {
+            return (false, "Please enter a valid weight")
+        }
+        
+        guard targetWeightValue > 0 else {
+            return (false, "Target weight must be greater than 0")
+        }
+        
+        // Validate logical constraints
+        switch selectedGoalType {
+        case .loseWeight:
+            if targetWeightValue >= currentWeight {
+                return (false, "Target weight must be lower than current weight (\(String(format: "%.1f", currentWeight)) kg) for weight loss")
+            }
+        case .gainWeight, .gainMuscle:
+            if targetWeightValue <= currentWeight {
+                return (false, "Target weight must be higher than current weight (\(String(format: "%.1f", currentWeight)) kg) for weight gain")
+            }
+        case .maintainWeight:
+            break // Already handled above
+        }
+        
+        // Check for reasonable weight change (not more than 50kg difference)
+        let weightDifference = abs(targetWeightValue - currentWeight)
+        if weightDifference > 50 {
+            return (false, "Target weight seems unrealistic. Please choose a target within 50kg of your current weight")
+        }
+        
+        return (true, nil)
     }
 }

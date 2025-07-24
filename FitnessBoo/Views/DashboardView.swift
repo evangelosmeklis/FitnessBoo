@@ -295,6 +295,23 @@ struct DashboardView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+                
+                Button("Test Calorie Balance") {
+                    Task {
+                        if let balance = await calorieBalanceService.getCurrentBalance() {
+                            print("Calorie Balance Debug:")
+                            print("- Consumed: \(balance.caloriesConsumed)")
+                            print("- Resting: \(balance.restingEnergyBurned)")
+                            print("- Active: \(balance.activeEnergyBurned)")
+                            print("- Total Burned: \(balance.totalEnergyExpended)")
+                            print("- Balance: \(balance.balance)")
+                            print("- Using HealthKit: \(balance.isUsingHealthKitData)")
+                        } else {
+                            print("No calorie balance data available")
+                        }
+                    }
+                }
+                .buttonStyle(.bordered)
             }
         }
         .padding()
