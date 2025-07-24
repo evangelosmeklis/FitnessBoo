@@ -63,6 +63,9 @@ struct DashboardView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
                 loadData()
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DayChanged"))) { _ in
+                loadData()
+            }
         }
     }
     

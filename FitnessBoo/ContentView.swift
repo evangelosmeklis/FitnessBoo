@@ -49,6 +49,11 @@ struct ContentView: View {
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
+            
+            HistoryView(dataService: dataService)
+                .tabItem {
+                    Label("History", systemImage: "calendar")
+                }
         }
         .onAppear {
             requestHealthKitAuthorizationIfNeeded()
@@ -78,6 +83,8 @@ struct ContentView: View {
         case .active:
             // App became active - refresh HealthKit data
             refreshHealthKitData()
+            // Check if the day has changed
+            checkForDayChange()
         case .inactive:
             // App became inactive - could pause background sync if needed
             break
@@ -100,6 +107,15 @@ struct ContentView: View {
                 // Continue silently - background sync will retry
             }
         }
+    }
+    
+    private func checkForDayChange() {
+        let lastOpened = UserDefaults.standard.object(forKey: "lastOpenedDate") as? Date ?? Date()
+        if !Calendar.current.isDateInToday(lastOpened) {
+            // Day has changed, reset metrics
+            NotificationCenter.default.post(name: NSNotification.Name("DayChanged"), object: nil)
+        }
+        UserDefaults.standard.set(Date(), forKey: "lastOpenedDate")
     }
 }
 
