@@ -78,7 +78,7 @@ struct FoodEntryView: View {
                             .tag(mealType)
                         }
                     }
-                    .pickerStyle(SegmentedPickerStyle())
+                    .pickerStyle(MenuPickerStyle())
                 }
                 
                 Section(header: Text("Notes (Optional)")) {
