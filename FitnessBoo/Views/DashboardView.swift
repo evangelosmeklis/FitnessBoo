@@ -49,6 +49,12 @@ struct DashboardView: View {
             .onAppear {
                 loadData()
             }
+            .refreshable {
+                loadData()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
+                loadData()
+            }
         }
     }
     
@@ -103,7 +109,7 @@ struct DashboardView: View {
                     ProgressRow(
                         title: "Calories",
                         current: nutrition.totalCalories,
-                        target: userProfileViewModel.currentUser?.dailyCalorieGoal ?? 2000,
+                        target: goalViewModel.currentGoal?.dailyCalorieTarget ?? 2000,
                         unit: "kcal",
                         color: .orange
                     )
@@ -111,7 +117,7 @@ struct DashboardView: View {
                     ProgressRow(
                         title: "Protein",
                         current: nutrition.totalProtein,
-                        target: calculationService.calculateProteinGoal(for: userProfileViewModel.currentUser),
+                        target: goalViewModel.currentGoal?.dailyProteinTarget ?? 100,
                         unit: "g",
                         color: .red
                     )

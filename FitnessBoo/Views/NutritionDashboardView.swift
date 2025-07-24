@@ -72,6 +72,11 @@ struct NutritionDashboardView: View {
                     await nutritionViewModel.refreshData()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
+                Task {
+                    await nutritionViewModel.refreshData()
+                }
+            }
         }
     }
     
@@ -153,56 +158,7 @@ struct NutritionDashboardView: View {
             }
             
             // Debug info
-            VStack {
-                HStack {
-                    Text("Debug: \(nutritionViewModel.foodEntries.count) food entries loaded")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                    
-                    Button("Refresh") {
-                        Task {
-                            await nutritionViewModel.refreshData()
-                        }
-                    }
-                    .font(.caption)
-                }
-                
-                HStack {
-                    Button("Test Add Food") {
-                        Task {
-                            let testEntry = FoodEntry(
-                                calories: 100,
-                                protein: 10,
-                                mealType: .snack,
-                                notes: "Test entry"
-                            )
-                            await nutritionViewModel.addFoodEntry(testEntry)
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundColor(.blue)
-                    
-                    Button("Create Test User") {
-                        Task {
-                            let testUser = User(
-                                age: 30,
-                                weight: 70.0,
-                                height: 175.0,
-                                gender: .male,
-                                activityLevel: .moderatelyActive
-                            )
-                            do {
-                                try await DataService.shared.saveUser(testUser)
-                                print("✅ Test user created successfully!")
-                            } catch {
-                                print("❌ Failed to create test user: \(error)")
-                            }
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundColor(.green)
-                }
-            }
+
             
             if nutritionViewModel.foodEntries.isEmpty {
                 emptyStateView
@@ -216,6 +172,11 @@ struct NutritionDashboardView: View {
                                 entries: entries,
                                 onEntryTapped: { entry in
                                     selectedEntry = entry
+                                },
+                                onEntryDeleted: { entry in
+                                    Task {
+                                        await nutritionViewModel.deleteFoodEntry(entry)
+                                    }
                                 }
                             )
                         }
@@ -307,6 +268,7 @@ struct MealSection: View {
     let mealType: MealType
     let entries: [FoodEntry]
     let onEntryTapped: (FoodEntry) -> Void
+    let onEntryDeleted: (FoodEntry) -> Void
     
     private var totalCalories: Double {
         entries.reduce(0) { $0 + $1.calories }
@@ -344,6 +306,11 @@ struct MealSection: View {
             ForEach(entries) { entry in
                 FoodEntryRow(entry: entry) {
                     onEntryTapped(entry)
+                }
+                .swipeActions(edge: .trailing) {
+                    Button("Delete", role: .destructive) {
+                        onEntryDeleted(entry)
+                    }
                 }
             }
         }

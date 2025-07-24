@@ -55,9 +55,15 @@ struct GoalSettingView: View {
                                 }
                                 
                                 if !viewModel.showingError {
+                                    // Notify other views that goal was updated
+                                    NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+                                    
                                     // Show success message
                                     showSuccessMessage = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                        showSuccessMessage = false
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                                         dismiss()
                                     }
                                 }

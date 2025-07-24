@@ -37,15 +37,17 @@ struct FitnessGoal: Codable, Identifiable {
         let baseDailyCalories = user.dailyCalorieNeeds
         
         // Calculate calorie adjustment based on weight change goal
-        // 1 pound of fat = approximately 3500 calories
         // 1 kg of fat = approximately 7700 calories
         let caloriesPerKg = 7700.0
         let dailyCalorieAdjustment = (weeklyWeightChangeGoal * caloriesPerKg) / 7.0
         
         switch type {
         case .loseWeight:
-            dailyCalorieTarget = baseDailyCalories - abs(dailyCalorieAdjustment)
+            // For weight loss, subtract calories but ensure minimum of 1200 calories
+            let targetCalories = baseDailyCalories + dailyCalorieAdjustment // dailyCalorieAdjustment is negative
+            dailyCalorieTarget = max(targetCalories, 1200) // Never go below 1200 calories
         case .gainWeight, .gainMuscle:
+            // For weight gain, add calories
             dailyCalorieTarget = baseDailyCalories + abs(dailyCalorieAdjustment)
         case .maintainWeight:
             dailyCalorieTarget = baseDailyCalories
