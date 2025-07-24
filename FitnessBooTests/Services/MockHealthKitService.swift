@@ -17,21 +17,32 @@ class MockHealthKitService: HealthKitServiceProtocol {
     var mockAuthorizationStatus: HKAuthorizationStatus = .notDetermined
     var mockWorkouts: [WorkoutData] = []
     var mockActiveEnergy: Double = 0
+    var mockRestingEnergy: Double = 0
     var mockWeight: Double? = nil
     var shouldThrowError = false
     var errorToThrow: Error = HealthKitError.healthKitNotAvailable
+    var mockLastSyncDate: Date?
+    var isBackgroundSyncActive = false
     
     // MARK: - Publishers
     private let weightSubject = PassthroughSubject<Double, Never>()
     private let workoutsSubject = PassthroughSubject<[WorkoutData], Never>()
+    private let energySubject = PassthroughSubject<(resting: Double, active: Double), Never>()
+    private let syncStatusSubject = CurrentValueSubject<SyncStatus, Never>(.idle)
     
     // MARK: - Call Tracking
     var requestAuthorizationCalled = false
     var fetchWorkoutsCalled = false
     var fetchActiveEnergyCalled = false
+    var fetchRestingEnergyCalled = false
+    var fetchTotalEnergyExpendedCalled = false
     var fetchWeightCalled = false
     var observeWeightChangesCalled = false
     var observeWorkoutsCalled = false
+    var observeEnergyChangesCalled = false
+    var manualRefreshCalled = false
+    var startBackgroundSyncCalled = false
+    var stopBackgroundSyncCalled = false
     
     // MARK: - Protocol Implementation
     var isHealthKitAvailable: Bool {
@@ -40,6 +51,14 @@ class MockHealthKitService: HealthKitServiceProtocol {
     
     var authorizationStatus: HKAuthorizationStatus {
         return mockAuthorizationStatus
+    }
+    
+    var syncStatus: AnyPublisher<SyncStatus, Never> {
+        return syncStatusSubject.eraseToAnyPublisher()
+    }
+    
+    var lastSyncDate: Date? {
+        return mockLastSyncDate
     }
     
     func requestAuthorization() async throws {
@@ -76,6 +95,26 @@ class MockHealthKitService: HealthKitServiceProtocol {
         return mockActiveEnergy
     }
     
+    func fetchRestingEnergy(for date: Date) async throws -> Double {
+        fetchRestingEnergyCalled = true
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        return mockRestingEnergy
+    }
+    
+    func fetchTotalEnergyExpended(for date: Date) async throws -> Double {
+        fetchTotalEnergyExpendedCalled = true
+        
+        if shouldThrowError {
+            throw errorToThrow
+        }
+        
+        return mockActiveEnergy + mockRestingEnergy
+    }
+    
     func fetchWeight() async throws -> Double? {
         fetchWeightCalled = true
         
@@ -96,6 +135,34 @@ class MockHealthKitService: HealthKitServiceProtocol {
         return workoutsSubject.eraseToAnyPublisher()
     }
     
+    func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never> {
+        observeEnergyChangesCalled = true
+        return energySubject.eraseToAnyPublisher()
+    }
+    
+    func manualRefresh() async throws {
+        manualRefreshCalled = true
+        
+        if shouldThrowError {
+            syncStatusSubject.send(.failed(errorToThrow))
+            throw errorToThrow
+        }
+        
+        // Simulate successful sync
+        mockLastSyncDate = Date()
+        syncStatusSubject.send(.success(mockLastSyncDate!))
+    }
+    
+    func startBackgroundSync() {
+        startBackgroundSyncCalled = true
+        isBackgroundSyncActive = true
+    }
+    
+    func stopBackgroundSync() {
+        stopBackgroundSyncCalled = true
+        isBackgroundSyncActive = false
+    }
+    
     // MARK: - Test Helper Methods
     func simulateWeightChange(_ weight: Double) {
         mockWeight = weight
@@ -107,21 +174,57 @@ class MockHealthKitService: HealthKitServiceProtocol {
         workoutsSubject.send(workouts)
     }
     
+    func simulateEnergyUpdate(resting: Double, active: Double) {
+        mockRestingEnergy = resting
+        mockActiveEnergy = active
+        energySubject.send((resting: resting, active: active))
+    }
+    
+    func simulateSyncStatusChange(_ status: SyncStatus) {
+        syncStatusSubject.send(status)
+    }
+    
+    func simulateBackgroundSync() {
+        guard isBackgroundSyncActive else { return }
+        
+        // Simulate successful background sync
+        mockLastSyncDate = Date()
+        syncStatusSubject.send(.success(mockLastSyncDate!))
+        
+        // Trigger data updates
+        if let weight = mockWeight {
+            weightSubject.send(weight)
+        }
+        workoutsSubject.send(mockWorkouts)
+        energySubject.send((resting: mockRestingEnergy, active: mockActiveEnergy))
+    }
+    
     func reset() {
         mockIsHealthKitAvailable = true
         mockAuthorizationStatus = .notDetermined
         mockWorkouts = []
         mockActiveEnergy = 0
+        mockRestingEnergy = 0
         mockWeight = nil
         shouldThrowError = false
         errorToThrow = HealthKitError.healthKitNotAvailable
+        mockLastSyncDate = nil
+        isBackgroundSyncActive = false
         
         requestAuthorizationCalled = false
         fetchWorkoutsCalled = false
         fetchActiveEnergyCalled = false
+        fetchRestingEnergyCalled = false
+        fetchTotalEnergyExpendedCalled = false
         fetchWeightCalled = false
         observeWeightChangesCalled = false
         observeWorkoutsCalled = false
+        observeEnergyChangesCalled = false
+        manualRefreshCalled = false
+        startBackgroundSyncCalled = false
+        stopBackgroundSyncCalled = false
+        
+        syncStatusSubject.send(.idle)
     }
     
     // MARK: - Mock Data Generators

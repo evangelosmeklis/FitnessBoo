@@ -409,4 +409,425 @@ final class HealthKitServiceTests: XCTestCase {
             XCTFail("Expected success after recovery")
         }
     }
-}
+} 
+   
+    // MARK: - Background Sync Tests
+    
+    func testStartBackgroundSync() {
+        // Given
+        XCTAssertFalse(mockHealthKitService.isBackgroundSyncActive)
+        
+        // When
+        mockHealthKitService.startBackgroundSync()
+        
+        // Then
+        XCTAssertTrue(mockHealthKitService.startBackgroundSyncCalled)
+        XCTAssertTrue(mockHealthKitService.isBackgroundSyncActive)
+    }
+    
+    func testStopBackgroundSync() {
+        // Given
+        mockHealthKitService.startBackgroundSync()
+        XCTAssertTrue(mockHealthKitService.isBackgroundSyncActive)
+        
+        // When
+        mockHealthKitService.stopBackgroundSync()
+        
+        // Then
+        XCTAssertTrue(mockHealthKitService.stopBackgroundSyncCalled)
+        XCTAssertFalse(mockHealthKitService.isBackgroundSyncActive)
+    }
+    
+    func testManualRefreshSuccess() async throws {
+        // Given
+        mockHealthKitService.shouldThrowError = false
+        XCTAssertNil(mockHealthKitService.lastSyncDate)
+        
+        // When
+        try await mockHealthKitService.manualRefresh()
+        
+        // Then
+        XCTAssertTrue(mockHealthKitService.manualRefreshCalled)
+        XCTAssertNotNil(mockHealthKitService.lastSyncDate)
+    }
+    
+    func testManualRefreshError() async {
+        // Given
+        mockHealthKitService.shouldThrowError = true
+        mockHealthKitService.errorToThrow = HealthKitError.syncFailed("Network unavailable")
+        
+        // When/Then
+        do {
+            try await mockHealthKitService.manualRefresh()
+            XCTFail("Expected sync error to be thrown")
+        } catch let error as HealthKitError {
+            XCTAssertEqual(error, HealthKitError.syncFailed("Network unavailable"))
+            XCTAssertTrue(mockHealthKitService.manualRefreshCalled)
+        } catch {
+            XCTFail("Expected HealthKitError, got \(error)")
+        }
+    }
+    
+    // MARK: - Sync Status Tests
+    
+    func testSyncStatusObservation() {
+        // Given
+        let expectation = XCTestExpectation(description: "Sync status observed")
+        var receivedStatuses: [SyncStatus] = []
+        
+        // When
+        mockHealthKitService.syncStatus
+            .sink { status in
+                receivedStatuses.append(status)
+                if receivedStatuses.count >= 3 {
+                    expectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Simulate status changes
+        mockHealthKitService.simulateSyncStatusChange(.syncing)
+        mockHealthKitService.simulateSyncStatusChange(.success(Date()))
+        
+        // Then
+        wait(for: [expectation], timeout: 2.0)
+        XCTAssertEqual(receivedStatuses.count, 3) // idle (initial) + syncing + success
+        
+        if case .idle = receivedStatuses[0] {} else {
+            XCTFail("Expected initial status to be idle")
+        }
+        if case .syncing = receivedStatuses[1] {} else {
+            XCTFail("Expected second status to be syncing")
+        }
+        if case .success = receivedStatuses[2] {} else {
+            XCTFail("Expected third status to be success")
+        }
+    }
+    
+    func testSyncStatusProperties() {
+        // Test idle status
+        let idleStatus = SyncStatus.idle
+        XCTAssertFalse(idleStatus.isActive)
+        XCTAssertNil(idleStatus.lastSyncDate)
+        XCTAssertNil(idleStatus.error)
+        
+        // Test syncing status
+        let syncingStatus = SyncStatus.syncing
+        XCTAssertTrue(syncingStatus.isActive)
+        XCTAssertNil(syncingStatus.lastSyncDate)
+        XCTAssertNil(syncingStatus.error)
+        
+        // Test success status
+        let successDate = Date()
+        let successStatus = SyncStatus.success(successDate)
+        XCTAssertFalse(successStatus.isActive)
+        XCTAssertEqual(successStatus.lastSyncDate, successDate)
+        XCTAssertNil(successStatus.error)
+        
+        // Test failed status
+        let testError = HealthKitError.syncFailed("Test error")
+        let failedStatus = SyncStatus.failed(testError)
+        XCTAssertFalse(failedStatus.isActive)
+        XCTAssertNil(failedStatus.lastSyncDate)
+        XCTAssertNotNil(failedStatus.error)
+    }
+    
+    // MARK: - Data Source Priority Tests
+    
+    func testDataSourcePriorityValues() {
+        XCTAssertEqual(DataSourcePriority.healthKit.rawValue, 1)
+        XCTAssertEqual(DataSourcePriority.appleWatch.rawValue, 2)
+        XCTAssertEqual(DataSourcePriority.thirdPartyApp.rawValue, 3)
+        XCTAssertEqual(DataSourcePriority.manualEntry.rawValue, 4)
+    }
+    
+    func testDataSourcePriorityDisplayNames() {
+        XCTAssertEqual(DataSourcePriority.healthKit.displayName, "Health App")
+        XCTAssertEqual(DataSourcePriority.appleWatch.displayName, "Apple Watch")
+        XCTAssertEqual(DataSourcePriority.thirdPartyApp.displayName, "Third Party App")
+        XCTAssertEqual(DataSourcePriority.manualEntry.displayName, "Manual Entry")
+    }
+    
+    // MARK: - Conflict Resolution Tests
+    
+    func testConflictResolutionStrategy() {
+        let strategies: [ConflictResolutionStrategy] = [
+            .mostRecentFromHighestPriority,
+            .mostRecent,
+            .highestPriority,
+            .userChoice
+        ]
+        
+        // Ensure all strategies are testable
+        XCTAssertEqual(strategies.count, 4)
+    }
+    
+    // MARK: - Background Sync Integration Tests
+    
+    func testBackgroundSyncDataUpdates() {
+        // Given
+        let weightExpectation = XCTestExpectation(description: "Weight updated via background sync")
+        let workoutExpectation = XCTestExpectation(description: "Workouts updated via background sync")
+        
+        var receivedWeight: Double?
+        var receivedWorkouts: [WorkoutData]?
+        
+        // Set up observers
+        mockHealthKitService.observeWeightChanges()
+            .sink { weight in
+                receivedWeight = weight
+                weightExpectation.fulfill()
+            }
+            .store(in: &cancellables)
+        
+        mockHealthKitService.observeWorkouts()
+            .sink { workouts in
+                receivedWorkouts = workouts
+                workoutExpectation.fulfill()
+            }
+            .store(in: &cancellables)
+        
+        // When
+        mockHealthKitService.startBackgroundSync()
+        mockHealthKitService.mockWeight = 68.5
+        mockHealthKitService.mockWorkouts = MockHealthKitService.createMockWorkouts()
+        mockHealthKitService.simulateBackgroundSync()
+        
+        // Then
+        wait(for: [weightExpectation, workoutExpectation], timeout: 2.0)
+        XCTAssertEqual(receivedWeight, 68.5)
+        XCTAssertEqual(receivedWorkouts?.count, 3)
+        XCTAssertNotNil(mockHealthKitService.lastSyncDate)
+    }
+    
+    func testSyncReliabilityWithRetries() async {
+        // Given - Service that fails initially but succeeds on retry
+        var attemptCount = 0
+        mockHealthKitService.shouldThrowError = true
+        mockHealthKitService.errorToThrow = HealthKitError.syncFailed("Temporary network error")
+        
+        // When - First attempt fails
+        do {
+            try await mockHealthKitService.manualRefresh()
+            XCTFail("Expected first attempt to fail")
+        } catch {
+            attemptCount += 1
+        }
+        
+        // When - Service recovers and retry succeeds
+        mockHealthKitService.shouldThrowError = false
+        
+        do {
+            try await mockHealthKitService.manualRefresh()
+            attemptCount += 1
+        } catch {
+            XCTFail("Expected retry to succeed")
+        }
+        
+        // Then
+        XCTAssertEqual(attemptCount, 2)
+        XCTAssertNotNil(mockHealthKitService.lastSyncDate)
+    }
+    
+    // MARK: - Performance Tests
+    
+    func testSyncPerformanceWithLargeDataset() {
+        // Given
+        let largeWorkoutSet = (0..<100).map { index in
+            MockHealthKitService.createMockWorkout(
+                type: "Running",
+                startDate: Date().addingTimeInterval(TimeInterval(-index * 3600)),
+                energyBurned: Double(200 + index)
+            )
+        }
+        
+        mockHealthKitService.mockWorkouts = largeWorkoutSet
+        
+        // When - Measure sync performance
+        measure {
+            mockHealthKitService.simulateBackgroundSync()
+        }
+        
+        // Then - Verify data integrity
+        XCTAssertEqual(mockHealthKitService.mockWorkouts.count, 100)
+    }
+    
+    // MARK: - Error Recovery Tests
+    
+    func testSyncErrorRecovery() {
+        // Given
+        let errorExpectation = XCTestExpectation(description: "Sync error observed")
+        let successExpectation = XCTestExpectation(description: "Sync success observed")
+        
+        var statusUpdates: [SyncStatus] = []
+        
+        mockHealthKitService.syncStatus
+            .sink { status in
+                statusUpdates.append(status)
+                
+                if case .failed = status {
+                    errorExpectation.fulfill()
+                } else if case .success = status {
+                    successExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // When - Simulate error then recovery
+        let testError = HealthKitError.syncFailed("Network timeout")
+        mockHealthKitService.simulateSyncStatusChange(.failed(testError))
+        
+        let successDate = Date()
+        mockHealthKitService.simulateSyncStatusChange(.success(successDate))
+        
+        // Then
+        wait(for: [errorExpectation, successExpectation], timeout: 2.0)
+        XCTAssertTrue(statusUpdates.count >= 3) // idle + failed + success
+        
+        // Verify error status
+        let failedStatus = statusUpdates.first { status in
+            if case .failed = status { return true }
+            return false
+        }
+        XCTAssertNotNil(failedStatus)
+        
+        // Verify success status
+        let successStatus = statusUpdates.first { status in
+            if case .success = status { return true }
+            return false
+        }
+        XCTAssertNotNil(successStatus)
+    }
+    
+    // MARK: - Enhanced Error Tests
+    
+    func testEnhancedHealthKitErrors() {
+        let enhancedErrors: [HealthKitError] = [
+            .syncFailed("Network error"),
+            .conflictResolutionFailed("Multiple sources"),
+            .backgroundSyncUnavailable
+        ]
+        
+        for error in enhancedErrors {
+            XCTAssertNotNil(error.errorDescription)
+            XCTAssertNotNil(error.recoverySuggestion)
+            XCTAssertFalse(error.errorDescription!.isEmpty)
+            XCTAssertFalse(error.recoverySuggestion!.isEmpty)
+        }
+    }
+    
+    // MARK: - Complete Sync Workflow Tests
+    
+    func testCompleteSyncWorkflow() async throws {
+        // Given - Fresh service setup
+        mockHealthKitService.reset()
+        
+        let syncStatusExpectation = XCTestExpectation(description: "Sync status progression")
+        var statusProgression: [SyncStatus] = []
+        
+        mockHealthKitService.syncStatus
+            .sink { status in
+                statusProgression.append(status)
+                if statusProgression.count >= 3 { // idle -> syncing -> success
+                    syncStatusExpectation.fulfill()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // When - Complete workflow
+        // 1. Request authorization (triggers initial sync)
+        try await mockHealthKitService.requestAuthorization()
+        
+        // 2. Start background sync
+        mockHealthKitService.startBackgroundSync()
+        
+        // 3. Perform manual refresh
+        try await mockHealthKitService.manualRefresh()
+        
+        // Then - Verify workflow completion
+        wait(for: [syncStatusExpectation], timeout: 3.0)
+        
+        XCTAssertTrue(mockHealthKitService.requestAuthorizationCalled)
+        XCTAssertTrue(mockHealthKitService.startBackgroundSyncCalled)
+        XCTAssertTrue(mockHealthKitService.manualRefreshCalled)
+        XCTAssertTrue(mockHealthKitService.isBackgroundSyncActive)
+        XCTAssertNotNil(mockHealthKitService.lastSyncDate)
+        
+        // Verify status progression
+        XCTAssertTrue(statusProgression.count >= 3)
+        if case .idle = statusProgression[0] {} else {
+            XCTFail("Expected initial status to be idle")
+        }
+    }    
+
+    // MARK: - Energy Fetching Tests
+    
+    func testFetchRestingEnergySuccess() async throws {
+        // Given
+        let expectedRestingEnergy = 1600.0
+        mockHealthKitService.mockRestingEnergy = expectedRestingEnergy
+        
+        // When
+        let restingEnergy = try await mockHealthKitService.fetchRestingEnergy(for: Date())
+        
+        // Then
+        XCTAssertTrue(mockHealthKitService.fetchRestingEnergyCalled)
+        XCTAssertEqual(restingEnergy, expectedRestingEnergy)
+    }
+    
+    func testFetchTotalEnergyExpendedSuccess() async throws {
+        // Given
+        mockHealthKitService.mockActiveEnergy = 400.0
+        mockHealthKitService.mockRestingEnergy = 1600.0
+        
+        // When
+        let totalEnergy = try await mockHealthKitService.fetchTotalEnergyExpended(for: Date())
+        
+        // Then
+        XCTAssertTrue(mockHealthKitService.fetchTotalEnergyExpendedCalled)
+        XCTAssertEqual(totalEnergy, 2000.0)
+    }
+    
+    func testObserveEnergyChanges() {
+        // Given
+        let expectation = XCTestExpectation(description: "Energy changes observed")
+        var receivedEnergyData: (resting: Double, active: Double)?
+        
+        // When
+        mockHealthKitService.observeEnergyChanges()
+            .sink { energyData in
+                receivedEnergyData = energyData
+                expectation.fulfill()
+            }
+            .store(in: &cancellables)
+        
+        // Simulate energy change
+        mockHealthKitService.simulateEnergyChange(active: 450.0, resting: 1550.0)
+        
+        // Then
+        wait(for: [expectation], timeout: 1.0)
+        XCTAssertTrue(mockHealthKitService.observeEnergyChangesCalled)
+        XCTAssertEqual(receivedEnergyData?.active, 450.0)
+        XCTAssertEqual(receivedEnergyData?.resting, 1550.0)
+    }
+    
+    func testEnergyDataIntegration() async throws {
+        // Given
+        mockHealthKitService.mockActiveEnergy = 350.0
+        mockHealthKitService.mockRestingEnergy = 1450.0
+        
+        // When - Fetch both energy types
+        async let activeEnergy = mockHealthKitService.fetchActiveEnergy(for: Date())
+        async let restingEnergy = mockHealthKitService.fetchRestingEnergy(for: Date())
+        async let totalEnergy = mockHealthKitService.fetchTotalEnergyExpended(for: Date())
+        
+        let (active, resting, total) = try await (activeEnergy, restingEnergy, totalEnergy)
+        
+        // Then
+        XCTAssertEqual(active, 350.0)
+        XCTAssertEqual(resting, 1450.0)
+        XCTAssertEqual(total, 1800.0)
+        XCTAssertTrue(mockHealthKitService.fetchActiveEnergyCalled)
+        XCTAssertTrue(mockHealthKitService.fetchRestingEnergyCalled)
+        XCTAssertTrue(mockHealthKitService.fetchTotalEnergyExpendedCalled)
+    }

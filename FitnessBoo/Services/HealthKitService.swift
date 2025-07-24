@@ -9,16 +9,79 @@ import Foundation
 import HealthKit
 import Combine
 
+// MARK: - Sync Status
+enum SyncStatus {
+    case idle
+    case syncing
+    case success(Date)
+    case failed(Error)
+    
+    var isActive: Bool {
+        if case .syncing = self { return true }
+        return false
+    }
+    
+    var lastSyncDate: Date? {
+        if case .success(let date) = self { return date }
+        return nil
+    }
+    
+    var error: Error? {
+        if case .failed(let error) = self { return error }
+        return nil
+    }
+}
+
+// MARK: - Data Source Priority
+enum DataSourcePriority: Int, CaseIterable {
+    case healthKit = 1
+    case appleWatch = 2
+    case thirdPartyApp = 3
+    case manualEntry = 4
+    
+    var displayName: String {
+        switch self {
+        case .healthKit: return "Health App"
+        case .appleWatch: return "Apple Watch"
+        case .thirdPartyApp: return "Third Party App"
+        case .manualEntry: return "Manual Entry"
+        }
+    }
+}
+
+// MARK: - Sync Configuration
+struct SyncConfiguration {
+    let backgroundSyncInterval: TimeInterval = 300 // 5 minutes
+    let maxRetryAttempts: Int = 3
+    let retryDelay: TimeInterval = 30
+    let conflictResolutionStrategy: ConflictResolutionStrategy = .mostRecentFromHighestPriority
+}
+
+enum ConflictResolutionStrategy {
+    case mostRecentFromHighestPriority
+    case mostRecent
+    case highestPriority
+    case userChoice
+}
+
 // MARK: - HealthKit Service Protocol
 protocol HealthKitServiceProtocol {
     func requestAuthorization() async throws
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData]
     func fetchActiveEnergy(for date: Date) async throws -> Double
+    func fetchRestingEnergy(for date: Date) async throws -> Double
+    func fetchTotalEnergyExpended(for date: Date) async throws -> Double
     func fetchWeight() async throws -> Double?
     func observeWeightChanges() -> AnyPublisher<Double, Never>
     func observeWorkouts() -> AnyPublisher<[WorkoutData], Never>
+    func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never>
+    func manualRefresh() async throws
+    func startBackgroundSync()
+    func stopBackgroundSync()
     var isHealthKitAvailable: Bool { get }
     var authorizationStatus: HKAuthorizationStatus { get }
+    var syncStatus: AnyPublisher<SyncStatus, Never> { get }
+    var lastSyncDate: Date? { get }
 }
 
 // MARK: - HealthKit Service Implementation
@@ -28,10 +91,22 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
     // MARK: - Properties
     private let healthStore = HKHealthStore()
     private var cancellables = Set<AnyCancellable>()
+    private let syncConfiguration = SyncConfiguration()
     
     // Publishers for reactive updates
     private let weightSubject = PassthroughSubject<Double, Never>()
     private let workoutsSubject = PassthroughSubject<[WorkoutData], Never>()
+    private let energySubject = PassthroughSubject<(resting: Double, active: Double), Never>()
+    private let syncStatusSubject = CurrentValueSubject<SyncStatus, Never>(.idle)
+    
+    // Background sync management
+    private var backgroundSyncTimer: Timer?
+    private var isBackgroundSyncActive = false
+    private var retryCount = 0
+    
+    // Sync tracking
+    @Published private var _lastSyncDate: Date?
+    private var observerQueries: [HKObserverQuery] = []
     
     // MARK: - Public Properties
     var isHealthKitAvailable: Bool {
@@ -43,6 +118,14 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             return .notDetermined
         }
         return healthStore.authorizationStatus(for: bodyMassType)
+    }
+    
+    var syncStatus: AnyPublisher<SyncStatus, Never> {
+        return syncStatusSubject.eraseToAnyPublisher()
+    }
+    
+    var lastSyncDate: Date? {
+        return _lastSyncDate
     }
     
     // MARK: - Data Types
@@ -85,6 +168,8 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             throw HealthKitError.healthKitNotAvailable
         }
         
+        syncStatusSubject.send(.syncing)
+        
         do {
             try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             
@@ -100,13 +185,15 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             
             // Start observing changes after authorization
             startObservingHealthData()
+            startBackgroundSync()
+            
+            // Perform initial sync
+            try await performInitialSync()
             
         } catch {
-            if error is HealthKitError {
-                throw error
-            } else {
-                throw HealthKitError.authorizationFailed(error.localizedDescription)
-            }
+            let healthKitError = error as? HealthKitError ?? HealthKitError.authorizationFailed(error.localizedDescription)
+            syncStatusSubject.send(.failed(healthKitError))
+            throw healthKitError
         }
     }
     
@@ -180,6 +267,51 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
         }
     }
     
+    func fetchRestingEnergy(for date: Date) async throws -> Double {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.healthKitNotAvailable
+        }
+        
+        guard let basalEnergyType = HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: date)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? Date()
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: basalEnergyType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                
+                if let error = error {
+                    continuation.resume(throwing: HealthKitError.dataFetchFailed(error.localizedDescription))
+                    return
+                }
+                
+                let totalEnergy = statistics?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0.0
+                continuation.resume(returning: totalEnergy)
+            }
+            
+            healthStore.execute(query)
+        }
+    }
+    
+    func fetchTotalEnergyExpended(for date: Date) async throws -> Double {
+        async let activeEnergy = fetchActiveEnergy(for: date)
+        async let restingEnergy = fetchRestingEnergy(for: date)
+        
+        let (active, resting) = try await (activeEnergy, restingEnergy)
+        return active + resting
+    }
+    
+
+    
     func fetchWeight() async throws -> Double? {
         guard isHealthKitAvailable else {
             throw HealthKitError.healthKitNotAvailable
@@ -226,10 +358,206 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
         return workoutsSubject.eraseToAnyPublisher()
     }
     
-    // MARK: - Private Methods
+    func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never> {
+        return energySubject.eraseToAnyPublisher()
+    }
+    
+    // MARK: - Background Sync Management
+    func startBackgroundSync() {
+        guard !isBackgroundSyncActive else { return }
+        
+        isBackgroundSyncActive = true
+        backgroundSyncTimer = Timer.scheduledTimer(withTimeInterval: syncConfiguration.backgroundSyncInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.performBackgroundSync()
+            }
+        }
+    }
+    
+    func stopBackgroundSync() {
+        isBackgroundSyncActive = false
+        backgroundSyncTimer?.invalidate()
+        backgroundSyncTimer = nil
+    }
+    
+    func manualRefresh() async throws {
+        syncStatusSubject.send(.syncing)
+        
+        do {
+            try await performFullSync()
+            let now = Date()
+            _lastSyncDate = now
+            syncStatusSubject.send(.success(now))
+            retryCount = 0
+        } catch {
+            syncStatusSubject.send(.failed(error))
+            throw error
+        }
+    }
+    
+    // MARK: - Private Sync Methods
+    private func performInitialSync() async throws {
+        try await performFullSync()
+        let now = Date()
+        _lastSyncDate = now
+        syncStatusSubject.send(.success(now))
+    }
+    
+    private func performBackgroundSync() async {
+        guard isBackgroundSyncActive else { return }
+        
+        do {
+            try await performIncrementalSync()
+            let now = Date()
+            _lastSyncDate = now
+            syncStatusSubject.send(.success(now))
+            retryCount = 0
+        } catch {
+            retryCount += 1
+            syncStatusSubject.send(.failed(error))
+            
+            if retryCount < syncConfiguration.maxRetryAttempts {
+                // Schedule retry
+                DispatchQueue.main.asyncAfter(deadline: .now() + syncConfiguration.retryDelay) {
+                    Task { @MainActor in
+                        await self.performBackgroundSync()
+                    }
+                }
+            }
+        }
+    }
+    
+    private func performFullSync() async throws {
+        // Sync last 30 days of data
+        let endDate = Date()
+        let startDate = Calendar.current.date(byAdding: .day, value: -30, to: endDate) ?? endDate
+        
+        async let workouts = fetchWorkouts(from: startDate, to: endDate)
+        async let weight = fetchWeight()
+        async let activeEnergy = fetchActiveEnergy(for: endDate)
+        async let restingEnergy = fetchRestingEnergy(for: endDate)
+        
+        let (fetchedWorkouts, fetchedWeight, fetchedActive, fetchedResting) = try await (workouts, weight, activeEnergy, restingEnergy)
+        
+        // Process and resolve conflicts
+        let resolvedWorkouts = try await resolveWorkoutConflicts(fetchedWorkouts)
+        let resolvedWeight = try await resolveWeightConflicts(fetchedWeight)
+        
+        // Notify observers
+        workoutsSubject.send(resolvedWorkouts)
+        if let weight = resolvedWeight {
+            weightSubject.send(weight)
+        }
+        energySubject.send((resting: fetchedResting, active: fetchedActive))
+    }
+    
+    private func performIncrementalSync() async throws {
+        let endDate = Date()
+        let startDate = _lastSyncDate ?? Calendar.current.date(byAdding: .hour, value: -1, to: endDate) ?? endDate
+        
+        // Only sync recent data
+        async let recentWorkouts = fetchWorkouts(from: startDate, to: endDate)
+        async let currentWeight = fetchWeight()
+        async let currentActiveEnergy = fetchActiveEnergy(for: endDate)
+        async let currentRestingEnergy = fetchRestingEnergy(for: endDate)
+        
+        let (workouts, weight, activeEnergy, restingEnergy) = try await (recentWorkouts, currentWeight, currentActiveEnergy, currentRestingEnergy)
+        
+        if !workouts.isEmpty {
+            let resolvedWorkouts = try await resolveWorkoutConflicts(workouts)
+            workoutsSubject.send(resolvedWorkouts)
+        }
+        
+        if let weight = weight {
+            let resolvedWeight = try await resolveWeightConflicts(weight)
+            if let weight = resolvedWeight {
+                weightSubject.send(weight)
+            }
+        }
+        
+        // Always update energy data for real-time tracking
+        energySubject.send((resting: restingEnergy, active: activeEnergy))
+    }
+    
+    // MARK: - Conflict Resolution
+    private func resolveWorkoutConflicts(_ newWorkouts: [WorkoutData]) async throws -> [WorkoutData] {
+        // For now, implement simple strategy: prefer HealthKit data over manual entries
+        // In a real implementation, this would integrate with Core Data to check existing data
+        
+        var resolvedWorkouts: [WorkoutData] = []
+        
+        for workout in newWorkouts {
+            let priority = getDataSourcePriority(for: workout.source)
+            
+            // Check for conflicts (workouts at similar times)
+            let conflictingWorkouts = newWorkouts.filter { other in
+                other.id != workout.id &&
+                abs(other.startDate.timeIntervalSince(workout.startDate)) < 300 && // Within 5 minutes
+                other.workoutType == workout.workoutType
+            }
+            
+            if conflictingWorkouts.isEmpty {
+                resolvedWorkouts.append(workout)
+            } else {
+                // Apply conflict resolution strategy
+                let bestWorkout = applyConflictResolution(workout, conflicts: conflictingWorkouts)
+                if !resolvedWorkouts.contains(where: { $0.id == bestWorkout.id }) {
+                    resolvedWorkouts.append(bestWorkout)
+                }
+            }
+        }
+        
+        return resolvedWorkouts
+    }
+    
+    private func resolveWeightConflicts(_ newWeight: Double?) async throws -> Double? {
+        // Simple implementation - in real app would check against stored data
+        return newWeight
+    }
+    
+    private func applyConflictResolution(_ primary: WorkoutData, conflicts: [WorkoutData]) -> WorkoutData {
+        let allWorkouts = [primary] + conflicts
+        
+        switch syncConfiguration.conflictResolutionStrategy {
+        case .mostRecentFromHighestPriority:
+            return allWorkouts
+                .sorted { getDataSourcePriority(for: $0.source).rawValue < getDataSourcePriority(for: $1.source).rawValue }
+                .sorted { $0.startDate > $1.startDate }
+                .first ?? primary
+            
+        case .mostRecent:
+            return allWorkouts.max { $0.startDate < $1.startDate } ?? primary
+            
+        case .highestPriority:
+            return allWorkouts.min { getDataSourcePriority(for: $0.source).rawValue < getDataSourcePriority(for: $1.source).rawValue } ?? primary
+            
+        case .userChoice:
+            // For now, default to highest priority - in real app would present UI choice
+            return allWorkouts.min { getDataSourcePriority(for: $0.source).rawValue < getDataSourcePriority(for: $1.source).rawValue } ?? primary
+        }
+    }
+    
+    private func getDataSourcePriority(for sourceName: String) -> DataSourcePriority {
+        if sourceName.lowercased().contains("health") {
+            return .healthKit
+        } else if sourceName.lowercased().contains("watch") {
+            return .appleWatch
+        } else if sourceName == "Manual Entry" {
+            return .manualEntry
+        } else {
+            return .thirdPartyApp
+        }
+    }
+    
+    // MARK: - Observer Management
     private func startObservingHealthData() {
+        // Clear existing observers
+        observerQueries.forEach { healthStore.stop($0) }
+        observerQueries.removeAll()
+        
         observeWeightData()
         observeWorkoutData()
+        observeEnergyData()
     }
     
     private func observeWeightData() {
@@ -241,7 +569,10 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             Task { @MainActor in
                 do {
                     if let weight = try await self?.fetchWeight() {
-                        self?.weightSubject.send(weight)
+                        let resolvedWeight = try await self?.resolveWeightConflicts(weight)
+                        if let weight = resolvedWeight {
+                            self?.weightSubject.send(weight)
+                        }
                     }
                 } catch {
                     // Handle error silently for observer
@@ -249,6 +580,7 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             }
         }
         
+        observerQueries.append(query)
         healthStore.execute(query)
     }
     
@@ -261,14 +593,70 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
                     let today = Date()
                     let startOfDay = Calendar.current.startOfDay(for: today)
                     let workouts = try await self?.fetchWorkouts(from: startOfDay, to: today) ?? []
-                    self?.workoutsSubject.send(workouts)
+                    let resolvedWorkouts = try await self?.resolveWorkoutConflicts(workouts) ?? []
+                    self?.workoutsSubject.send(resolvedWorkouts)
                 } catch {
                     // Handle error silently for observer
                 }
             }
         }
         
+        observerQueries.append(query)
         healthStore.execute(query)
+    }
+    
+    private func observeEnergyData() {
+        // Observe active energy changes
+        guard let activeEnergyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return }
+        
+        let activeEnergyQuery = HKObserverQuery(sampleType: activeEnergyType, predicate: nil) { [weak self] _, _, error in
+            guard error == nil else { return }
+            
+            Task { @MainActor in
+                do {
+                    let today = Date()
+                    let activeEnergy = try await self?.fetchActiveEnergy(for: today) ?? 0.0
+                    let restingEnergy = try await self?.fetchRestingEnergy(for: today) ?? 0.0
+                    self?.energySubject.send((resting: restingEnergy, active: activeEnergy))
+                } catch {
+                    // Handle error silently for observer
+                }
+            }
+        }
+        
+        observerQueries.append(activeEnergyQuery)
+        healthStore.execute(activeEnergyQuery)
+        
+        // Observe resting energy changes
+        guard let restingEnergyType = HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned) else { return }
+        
+        let restingEnergyQuery = HKObserverQuery(sampleType: restingEnergyType, predicate: nil) { [weak self] _, _, error in
+            guard error == nil else { return }
+            
+            Task { @MainActor in
+                do {
+                    let today = Date()
+                    let activeEnergy = try await self?.fetchActiveEnergy(for: today) ?? 0.0
+                    let restingEnergy = try await self?.fetchRestingEnergy(for: today) ?? 0.0
+                    self?.energySubject.send((resting: restingEnergy, active: activeEnergy))
+                } catch {
+                    // Handle error silently for observer
+                }
+            }
+        }
+        
+        observerQueries.append(restingEnergyQuery)
+        healthStore.execute(restingEnergyQuery)
+    }
+    
+    deinit {
+        // Clean up background sync
+        isBackgroundSyncActive = false
+        backgroundSyncTimer?.invalidate()
+        backgroundSyncTimer = nil
+        
+        // Stop observer queries
+        observerQueries.forEach { healthStore.stop($0) }
     }
 }
 
@@ -280,6 +668,9 @@ enum HealthKitError: LocalizedError {
     case dataTypeNotAvailable
     case dataFetchFailed(String)
     case permissionDenied
+    case syncFailed(String)
+    case conflictResolutionFailed(String)
+    case backgroundSyncUnavailable
     
     var errorDescription: String? {
         switch self {
@@ -295,6 +686,12 @@ enum HealthKitError: LocalizedError {
             return "Failed to fetch health data: \(message)"
         case .permissionDenied:
             return "Health data access permission was denied"
+        case .syncFailed(let message):
+            return "Data synchronization failed: \(message)"
+        case .conflictResolutionFailed(let message):
+            return "Failed to resolve data conflicts: \(message)"
+        case .backgroundSyncUnavailable:
+            return "Background sync is not available"
         }
     }
     
@@ -310,6 +707,12 @@ enum HealthKitError: LocalizedError {
             return "Please try again. If the problem persists, check your internet connection."
         case .permissionDenied:
             return "You can enable health data access in Settings > Privacy & Security > Health > FitnessBoo."
+        case .syncFailed:
+            return "Try refreshing manually or check your network connection."
+        case .conflictResolutionFailed:
+            return "Data conflicts detected. Please review and resolve manually in settings."
+        case .backgroundSyncUnavailable:
+            return "Enable background app refresh for continuous data sync."
         }
     }
 }
