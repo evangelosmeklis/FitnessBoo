@@ -53,9 +53,6 @@ struct DashboardView: View {
                     
                     // Quick actions
                     quickActionsSection
-                    
-                    // Debug section (remove in production)
-                    debugSection
                 }
                 .padding()
             }
@@ -64,7 +61,7 @@ struct DashboardView: View {
                 loadData()
             }
             .refreshable {
-                loadData()
+                await refreshAllData()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
                 loadData()
@@ -266,58 +263,30 @@ struct DashboardView: View {
         calorieBalanceService.startRealTimeTracking()
     }
     
-    private var debugSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Debug - HealthKit")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            Button("Request HealthKit Permissions") {
-                Task {
-                    do {
-                        try await healthKitService.requestAuthorization()
-                        print("HealthKit authorization completed")
-                    } catch {
-                        print("HealthKit authorization failed: \(error)")
-                    }
-                }
-            }
-            .buttonStyle(.bordered)
-            
-            let status = (healthKitService as? HealthKitService)?.checkHealthKitStatus()
-            if let status = status {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Available: \(status.available ? "Yes" : "No")")
-                        .font(.caption)
-                    Text("Authorized: \(status.authorized ? "Yes" : "No")")
-                        .font(.caption)
-                    Text("Message: \(status.message)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Button("Test Calorie Balance") {
-                    Task {
-                        if let balance = await calorieBalanceService.getCurrentBalance() {
-                            print("Calorie Balance Debug:")
-                            print("- Consumed: \(balance.caloriesConsumed)")
-                            print("- Resting: \(balance.restingEnergyBurned)")
-                            print("- Active: \(balance.activeEnergyBurned)")
-                            print("- Total Burned: \(balance.totalEnergyExpended)")
-                            print("- Balance: \(balance.balance)")
-                            print("- Using HealthKit: \(balance.isUsingHealthKitData)")
-                        } else {
-                            print("No calorie balance data available")
-                        }
-                    }
-                }
-                .buttonStyle(.bordered)
-            }
+    private func refreshAllData() async {
+        // Refresh HealthKit data first
+        do {
+            try await healthKitService.manualRefresh()
+        } catch {
+            print("HealthKit refresh failed: \(error)")
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        
+        // Refresh all view models
+        await MainActor.run {
+            userProfileViewModel.loadCurrentUser()
+            nutritionViewModel.loadTodaysNutrition()
+            goalViewModel.loadGoals()
+        }
+        
+        // Refresh energy data
+        await energyViewModel.refreshEnergyData()
+        
+        // Restart calorie balance tracking to get fresh data
+        calorieBalanceService.stopRealTimeTracking()
+        calorieBalanceService.startRealTimeTracking()
     }
+    
+
 }
 
 struct StatCard: View {

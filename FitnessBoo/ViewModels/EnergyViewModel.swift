@@ -63,6 +63,29 @@ class EnergyViewModel: ObservableObject {
         await fetchTodaysEnergyData()
     }
     
+    func forceRefreshFromHealthKit() async {
+        // Clear any cached data and force fresh fetch
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let today = Date()
+            
+            // Force fresh data from HealthKit
+            async let activeEnergyTask = healthKitService.fetchActiveEnergy(for: today)
+            async let restingEnergyTask = healthKitService.fetchRestingEnergy(for: today)
+            
+            let (fetchedActiveEnergy, fetchedRestingEnergy) = try await (activeEnergyTask, restingEnergyTask)
+            
+            updateEnergyData(resting: fetchedRestingEnergy, active: fetchedActiveEnergy)
+            
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        
+        isLoading = false
+    }
+    
     // MARK: - Private Methods
     private func setupObservers() {
         // Observe real-time energy changes
