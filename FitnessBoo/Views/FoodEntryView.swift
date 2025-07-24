@@ -154,7 +154,10 @@ struct FoodEntryView: View {
                 
                 await MainActor.run {
                     isLoading = false
-                    dismiss()
+                    // Show a brief success message before dismissing
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        dismiss()
+                    }
                 }
             } catch {
                 await MainActor.run {

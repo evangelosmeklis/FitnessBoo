@@ -82,6 +82,7 @@ class DataService: DataServiceProtocol {
     // MARK: - User Operations
     
     func saveUser(_ user: User) async throws {
+        print("💾 DataService: Starting to save user \(user.id) with weight \(user.weight)")
         try await withCheckedThrowingContinuation { continuation in
             context.perform {
                 do {
@@ -94,10 +95,12 @@ class DataService: DataServiceProtocol {
                     
                     if let existing = existingUsers.first {
                         userEntity = existing
+                        print("💾 DataService: Updating existing user")
                     } else {
                         userEntity = UserEntity(context: self.context)
                         userEntity.id = user.id
                         userEntity.createdAt = user.createdAt
+                        print("💾 DataService: Creating new user entity")
                     }
                     
                     // Update user properties
@@ -110,9 +113,12 @@ class DataService: DataServiceProtocol {
                     userEntity.bmr = user.bmr
                     userEntity.updatedAt = user.updatedAt
                     
-                    try self.saveContext()
+                    print("💾 DataService: Saving user context...")
+                    try self.context.save()
+                    print("💾 DataService: User saved successfully!")
                     continuation.resume()
                 } catch {
+                    print("💾 DataService: Error saving user: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -120,6 +126,7 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchUser() async throws -> User? {
+        print("👤 DataService: Fetching user...")
         return try await withCheckedThrowingContinuation { continuation in
             context.perform {
                 do {
@@ -128,14 +135,18 @@ class DataService: DataServiceProtocol {
                     request.fetchLimit = 1
                     
                     let userEntities = try self.context.fetch(request)
+                    print("👤 DataService: Found \(userEntities.count) user entities")
                     
                     if let userEntity = userEntities.first {
                         let user = self.convertToUser(from: userEntity)
+                        print("👤 DataService: Converted user with ID \(user.id) and weight \(user.weight)")
                         continuation.resume(returning: user)
                     } else {
+                        print("👤 DataService: No user entities found")
                         continuation.resume(returning: nil)
                     }
                 } catch {
+                    print("👤 DataService: Error fetching user: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -145,6 +156,7 @@ class DataService: DataServiceProtocol {
     // MARK: - Food Entry Operations
     
     func saveFoodEntry(_ entry: FoodEntry, for user: User) async throws {
+        print("💾 DataService: Starting to save food entry for user \(user.id)")
         try await withCheckedThrowingContinuation { continuation in
             context.perform {
                 do {
@@ -152,35 +164,32 @@ class DataService: DataServiceProtocol {
                     let userRequest: NSFetchRequest<UserEntity> = UserEntity.fetchRequest()
                     userRequest.predicate = NSPredicate(format: "id == %@", user.id as CVarArg)
                     
-                    guard let userEntity = try self.context.fetch(userRequest).first else {
+                    let userEntities = try self.context.fetch(userRequest)
+                    print("💾 DataService: Found \(userEntities.count) user entities")
+                    
+                    guard let userEntity = userEntities.first else {
+                        print("💾 DataService: No user entity found!")
                         throw DataServiceError.userNotFound
                     }
                     
-                    // Check if food entry already exists
-                    let request: NSFetchRequest<FoodEntryEntity> = FoodEntryEntity.fetchRequest()
-                    request.predicate = NSPredicate(format: "id == %@", entry.id as CVarArg)
-                    
-                    let existingEntries = try self.context.fetch(request)
-                    let foodEntryEntity: FoodEntryEntity
-                    
-                    if let existing = existingEntries.first {
-                        foodEntryEntity = existing
-                    } else {
-                        foodEntryEntity = FoodEntryEntity(context: self.context)
-                        foodEntryEntity.id = entry.id
-                        foodEntryEntity.user = userEntity
-                    }
-                    
-                    // Update food entry properties
+                    print("💾 DataService: Creating new food entry entity")
+                    // Always create a new food entry (don't check for existing)
+                    let foodEntryEntity = FoodEntryEntity(context: self.context)
+                    foodEntryEntity.id = entry.id
+                    foodEntryEntity.user = userEntity
                     foodEntryEntity.calories = entry.calories
                     foodEntryEntity.protein = entry.protein ?? 0
                     foodEntryEntity.timestamp = entry.timestamp
                     foodEntryEntity.mealType = entry.mealType?.rawValue
                     foodEntryEntity.notes = entry.notes
                     
-                    try self.saveContext()
+                    print("💾 DataService: Saving context...")
+                    // Force save the context
+                    try self.context.save()
+                    print("💾 DataService: Food entry saved successfully!")
                     continuation.resume()
                 } catch {
+                    print("💾 DataService: Error saving food entry: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -188,12 +197,15 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchFoodEntries(for date: Date, user: User) async throws -> [FoodEntry] {
+        print("📖 DataService: Fetching food entries for user \(user.id) on date \(date)")
         return try await withCheckedThrowingContinuation { continuation in
             context.perform {
                 do {
                     let calendar = Calendar.current
                     let startOfDay = calendar.startOfDay(for: date)
                     let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+                    
+                    print("📖 DataService: Date range: \(startOfDay) to \(endOfDay)")
                     
                     let request: NSFetchRequest<FoodEntryEntity> = FoodEntryEntity.fetchRequest()
                     request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
@@ -203,10 +215,14 @@ class DataService: DataServiceProtocol {
                     request.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntryEntity.timestamp, ascending: true)]
                     
                     let foodEntryEntities = try self.context.fetch(request)
+                    print("📖 DataService: Found \(foodEntryEntities.count) food entry entities")
+                    
                     let foodEntries = foodEntryEntities.compactMap { self.convertToFoodEntry(from: $0) }
+                    print("📖 DataService: Converted to \(foodEntries.count) food entries")
                     
                     continuation.resume(returning: foodEntries)
                 } catch {
+                    print("📖 DataService: Error fetching food entries: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -238,9 +254,12 @@ class DataService: DataServiceProtocol {
     // MARK: - Simplified Food Entry Operations (for NutritionViewModel)
     
     func saveFoodEntry(_ entry: FoodEntry) async throws {
+        print("🔄 DataService: Simplified saveFoodEntry called")
         guard let user = try await fetchUser() else {
+            print("🔄 DataService: No user found!")
             throw DataServiceError.userNotFound
         }
+        print("🔄 DataService: Found user \(user.id), calling full saveFoodEntry")
         try await saveFoodEntry(entry, for: user)
     }
     
@@ -325,6 +344,16 @@ class DataService: DataServiceProtocol {
                     let startOfDay = calendar.startOfDay(for: date)
                     let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
                     
+                    // Always fetch food entries for this date
+                    let foodRequest: NSFetchRequest<FoodEntryEntity> = FoodEntryEntity.fetchRequest()
+                    foodRequest.predicate = NSPredicate(format: "timestamp >= %@ AND timestamp < %@ AND user.id == %@", 
+                                                      startOfDay as NSDate, endOfDay as NSDate, user.id as CVarArg)
+                    foodRequest.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntryEntity.timestamp, ascending: true)]
+                    
+                    let foodEntities = try self.context.fetch(foodRequest)
+                    let foodEntries = foodEntities.compactMap { self.convertToFoodEntry(from: $0) }
+                    
+                    // Try to fetch existing daily nutrition
                     let request: NSFetchRequest<DailyNutritionEntity> = DailyNutritionEntity.fetchRequest()
                     request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                         NSPredicate(format: "user.id == %@", user.id as CVarArg),
@@ -335,18 +364,24 @@ class DataService: DataServiceProtocol {
                     let nutritionEntities = try self.context.fetch(request)
                     
                     if let nutritionEntity = nutritionEntities.first {
-                        // Fetch food entries for this date synchronously
-                        let foodRequest: NSFetchRequest<FoodEntryEntity> = FoodEntryEntity.fetchRequest()
-                        let calendar = Calendar.current
-                        let startOfDay = calendar.startOfDay(for: date)
-                        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
-                        
-                        foodRequest.predicate = NSPredicate(format: "timestamp >= %@ AND timestamp < %@ AND user.id == %@", 
-                                                          startOfDay as NSDate, endOfDay as NSDate, user.id as CVarArg)
-                        
-                        let foodEntities = try self.context.fetch(foodRequest)
-                        let foodEntries = foodEntities.compactMap { self.convertToFoodEntry(from: $0) }
                         let nutrition = self.convertToDailyNutrition(from: nutritionEntity, with: foodEntries)
+                        continuation.resume(returning: nutrition)
+                    } else if !foodEntries.isEmpty {
+                        // If we have food entries but no daily nutrition record, create one
+                        let totalCalories = foodEntries.reduce(0) { $0 + $1.calories }
+                        let totalProtein = foodEntries.reduce(0) { $0 + ($1.protein ?? 0) }
+                        
+                        let nutrition = DailyNutrition(
+                            id: UUID(),
+                            date: startOfDay,
+                            totalCalories: totalCalories,
+                            totalProtein: totalProtein,
+                            entries: foodEntries,
+                            calorieTarget: 2000, // Default target, will be updated
+                            proteinTarget: 100,   // Default target, will be updated
+                            caloriesFromExercise: 0,
+                            netCalories: totalCalories
+                        )
                         continuation.resume(returning: nutrition)
                     } else {
                         continuation.resume(returning: nil)
@@ -475,7 +510,7 @@ class DataService: DataServiceProtocol {
                     goalEntity.dailyProteinTarget = goal.dailyProteinTarget
                     goalEntity.isActive = goal.isActive
                     
-                    try self.saveContext()
+                    try self.context.save()
                     continuation.resume()
                 } catch {
                     continuation.resume(throwing: error)
@@ -598,13 +633,28 @@ extension DataService {
             preferredUnits: UnitSystem(rawValue: entity.preferredUnits ?? "metric") ?? .metric
         )
         
-        // Update with stored values
-        user.bmr = entity.bmr
-        if let createdAt = entity.createdAt {
-            user.createdAt = createdAt
-        }
-        if let updatedAt = entity.updatedAt {
-            user.updatedAt = updatedAt
+        // Update with stored values including the ID
+        if let storedId = entity.id {
+            user = User(
+                id: storedId,
+                age: Int(entity.age),
+                weight: entity.weight,
+                height: entity.height,
+                gender: Gender(rawValue: entity.gender ?? "other") ?? .other,
+                activityLevel: ActivityLevel(rawValue: entity.activityLevel ?? "sedentary") ?? .sedentary,
+                preferredUnits: UnitSystem(rawValue: entity.preferredUnits ?? "metric") ?? .metric,
+                bmr: entity.bmr,
+                createdAt: entity.createdAt ?? Date(),
+                updatedAt: entity.updatedAt ?? Date()
+            )
+        } else {
+            user.bmr = entity.bmr
+            if let createdAt = entity.createdAt {
+                user.createdAt = createdAt
+            }
+            if let updatedAt = entity.updatedAt {
+                user.updatedAt = updatedAt
+            }
         }
         
         return user
@@ -700,18 +750,7 @@ extension DataService {
 
 
 
-// MARK: - FoodEntry Model Extensions
 
-extension FoodEntry {
-    init(id: UUID, calories: Double, protein: Double?, timestamp: Date, mealType: MealType?, notes: String?) {
-        self.id = id
-        self.calories = calories
-        self.protein = protein
-        self.timestamp = timestamp
-        self.mealType = mealType
-        self.notes = notes
-    }
-}
 
 // MARK: - FitnessGoal Model Extensions
 

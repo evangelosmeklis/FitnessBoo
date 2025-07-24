@@ -24,6 +24,15 @@ struct FoodEntry: Codable, Identifiable {
         self.notes = notes
     }
     
+    init(id: UUID, calories: Double, protein: Double?, timestamp: Date, mealType: MealType?, notes: String?) {
+        self.id = id
+        self.calories = calories
+        self.protein = protein
+        self.timestamp = timestamp
+        self.mealType = mealType
+        self.notes = notes
+    }
+    
     /// Validate food entry data
     func validate() throws {
         guard calories >= 0 && calories <= 10000 else {

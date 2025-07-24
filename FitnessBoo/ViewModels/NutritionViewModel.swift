@@ -49,6 +49,8 @@ class NutritionViewModel: ObservableObject {
             .sink { [weak self] nutrition in
                 if let nutrition = nutrition {
                     self?.foodEntries = nutrition.entries
+                } else {
+                    self?.foodEntries = []
                 }
             }
             .store(in: &cancellables)
@@ -57,6 +59,7 @@ class NutritionViewModel: ObservableObject {
     // MARK: - Public Methods
     
     func loadDailyNutrition(for date: Date = Date()) async {
+        print("📊 NutritionViewModel: Loading daily nutrition for date \(date)")
         isLoading = true
         errorMessage = nil
         currentDate = date
@@ -64,19 +67,42 @@ class NutritionViewModel: ObservableObject {
         do {
             // Try to load existing daily nutrition
             if let existingNutrition = try await dataService.fetchDailyNutrition(for: date) {
+                print("📊 NutritionViewModel: Found existing daily nutrition with \(existingNutrition.entries.count) entries")
                 dailyNutrition = existingNutrition
             } else {
+                print("📊 NutritionViewModel: No existing daily nutrition, creating new one")
                 // Create new daily nutrition with targets from user goals
                 let targets = try await calculateDailyTargets()
-                dailyNutrition = DailyNutrition(
+                var newNutrition = DailyNutrition(
                     date: date,
                     calorieTarget: targets.calories,
                     proteinTarget: targets.protein
                 )
+                
+                // Load any existing food entries for this date
+                if let user = try await dataService.fetchUser() {
+                    let existingEntries = try await dataService.fetchFoodEntries(for: date, user: user)
+                    print("📊 NutritionViewModel: Found \(existingEntries.count) existing food entries")
+                    for entry in existingEntries {
+                        newNutrition.addEntry(entry)
+                    }
+                } else {
+                    print("📊 NutritionViewModel: No user found when loading food entries")
+                }
+                
+                dailyNutrition = newNutrition
+                print("📊 NutritionViewModel: Final daily nutrition has \(newNutrition.entries.count) entries")
+                
+                // Save the daily nutrition if we have entries
+                if !newNutrition.entries.isEmpty {
+                    try await dataService.saveDailyNutrition(newNutrition)
+                }
             }
             
             updateRealTimeCalculations()
+            print("📊 NutritionViewModel: Final foodEntries count: \(foodEntries.count)")
         } catch {
+            print("📊 NutritionViewModel: Error loading daily nutrition: \(error)")
             errorMessage = "Failed to load nutrition data: \(error.localizedDescription)"
         }
         
@@ -84,24 +110,23 @@ class NutritionViewModel: ObservableObject {
     }
     
     func addFoodEntry(_ entry: FoodEntry) async {
+        print("🍎 NutritionViewModel: Starting to add food entry with \(entry.calories) calories")
         do {
             // Validate the entry
             try entry.validate()
+            print("🍎 NutritionViewModel: Entry validated successfully")
             
-            // Save to data service
+            // Save to data service first
             try await dataService.saveFoodEntry(entry)
+            print("🍎 NutritionViewModel: Entry saved to data service")
             
-            // Update daily nutrition
-            if var nutrition = dailyNutrition {
-                nutrition.addEntry(entry)
-                dailyNutrition = nutrition
-                
-                // Save updated daily nutrition
-                try await dataService.saveDailyNutrition(nutrition)
-            }
+            // Force reload the data to get the latest from database
+            await loadDailyNutrition(for: currentDate)
+            print("🍎 NutritionViewModel: Data reloaded, food entries count: \(foodEntries.count)")
             
             errorMessage = nil
         } catch {
+            print("🍎 NutritionViewModel: Error adding food entry: \(error)")
             errorMessage = "Failed to add food entry: \(error.localizedDescription)"
         }
     }
@@ -123,6 +148,9 @@ class NutritionViewModel: ObservableObject {
                 try await dataService.saveDailyNutrition(nutrition)
             }
             
+            // Refresh data to ensure consistency
+            await refreshData()
+            
             errorMessage = nil
         } catch {
             errorMessage = "Failed to update food entry: \(error.localizedDescription)"
@@ -142,6 +170,9 @@ class NutritionViewModel: ObservableObject {
                 // Save updated daily nutrition
                 try await dataService.saveDailyNutrition(nutrition)
             }
+            
+            // Refresh data to ensure consistency
+            await refreshData()
             
             errorMessage = nil
         } catch {

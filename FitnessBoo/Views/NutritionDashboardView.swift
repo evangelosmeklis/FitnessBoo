@@ -67,6 +67,11 @@ struct NutritionDashboardView: View {
             .task {
                 await nutritionViewModel.loadDailyNutrition()
             }
+            .onAppear {
+                Task {
+                    await nutritionViewModel.refreshData()
+                }
+            }
         }
     }
     
@@ -144,6 +149,58 @@ struct NutritionDashboardView: View {
                     Text("\(nutritionViewModel.foodEntries.count) entries")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+            }
+            
+            // Debug info
+            VStack {
+                HStack {
+                    Text("Debug: \(nutritionViewModel.foodEntries.count) food entries loaded")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    
+                    Button("Refresh") {
+                        Task {
+                            await nutritionViewModel.refreshData()
+                        }
+                    }
+                    .font(.caption)
+                }
+                
+                HStack {
+                    Button("Test Add Food") {
+                        Task {
+                            let testEntry = FoodEntry(
+                                calories: 100,
+                                protein: 10,
+                                mealType: .snack,
+                                notes: "Test entry"
+                            )
+                            await nutritionViewModel.addFoodEntry(testEntry)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.blue)
+                    
+                    Button("Create Test User") {
+                        Task {
+                            let testUser = User(
+                                age: 30,
+                                weight: 70.0,
+                                height: 175.0,
+                                gender: .male,
+                                activityLevel: .moderatelyActive
+                            )
+                            do {
+                                try await DataService.shared.saveUser(testUser)
+                                print("✅ Test user created successfully!")
+                            } catch {
+                                print("❌ Failed to create test user: \(error)")
+                            }
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.green)
                 }
             }
             

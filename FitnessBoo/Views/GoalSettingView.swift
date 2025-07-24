@@ -11,6 +11,9 @@ struct GoalSettingView: View {
     @StateObject private var viewModel: GoalViewModel
     @State private var user: User?
     @State private var showingDatePicker = false
+    @State private var hasChanges = false
+    @State private var showSuccessMessage = false
+    @FocusState private var isTargetWeightFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     init(calculationService: CalculationServiceProtocol = CalculationService(), 
@@ -41,12 +44,6 @@ struct GoalSettingView: View {
             .navigationTitle("Set Your Goal")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         Task {
@@ -58,16 +55,36 @@ struct GoalSettingView: View {
                                 }
                                 
                                 if !viewModel.showingError {
-                                    dismiss()
+                                    // Show success message
+                                    showSuccessMessage = true
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                        dismiss()
+                                    }
                                 }
                             }
                         }
                     }
-                    .disabled(!viewModel.validateCurrentGoal() || viewModel.isLoading)
+                    .disabled(!viewModel.validateCurrentGoal() || viewModel.isLoading || !hasValidInput())
                 }
             }
             .task {
                 await loadUserAndGoal()
+            }
+            .onTapGesture {
+                // Dismiss keyboard when tapping outside
+                isTargetWeightFocused = false
+            }
+            .onChange(of: viewModel.selectedGoalType) { _ in
+                checkForChanges()
+            }
+            .onChange(of: viewModel.targetWeight) { _ in
+                checkForChanges()
+            }
+            .onChange(of: viewModel.targetDate) { _ in
+                checkForChanges()
+            }
+            .onChange(of: viewModel.weeklyWeightChangeGoal) { _ in
+                checkForChanges()
             }
             .alert("Goal Error", isPresented: $viewModel.showingError) {
                 Button("OK") {
@@ -76,6 +93,28 @@ struct GoalSettingView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "An unknown error occurred")
             }
+            .overlay(
+                Group {
+                    if showSuccessMessage {
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("Goal saved successfully!")
+                                    .fontWeight(.medium)
+                            }
+                            .padding()
+                            .background(Color(.systemBackground))
+                            .cornerRadius(10)
+                            .shadow(radius: 5)
+                            .padding(.bottom, 50)
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.easeInOut, value: showSuccessMessage)
+                    }
+                }
+            )
         }
     }
     
@@ -120,6 +159,15 @@ struct GoalSettingView: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
+                    .focused($isTargetWeightFocused)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") {
+                                isTargetWeightFocused = false
+                            }
+                        }
+                    }
                 Text("kg")
                     .foregroundColor(.secondary)
             }
@@ -249,6 +297,8 @@ struct GoalSettingView: View {
             user = try await DataService.shared.fetchUser()
             if let user = user {
                 await viewModel.loadCurrentGoal(for: user)
+                // Initialize hasChanges after loading
+                checkForChanges()
             }
         } catch {
             viewModel.errorMessage = "Failed to load user data"
@@ -273,6 +323,47 @@ struct GoalSettingView: View {
         case .maintainWeight:
             return "Maintenance allows for small fluctuations around your current weight."
         }
+    }
+    
+    private func checkForChanges() {
+        guard let currentGoal = viewModel.currentGoal else {
+            // If no current goal exists, require meaningful input for changes
+            let hasTargetWeight = !viewModel.targetWeight.isEmpty && 
+                                 Double(viewModel.targetWeight) != nil && 
+                                 Double(viewModel.targetWeight)! > 0
+            let hasNonDefaultGoalType = viewModel.selectedGoalType != .loseWeight
+            let hasNonDefaultWeeklyChange = abs(viewModel.weeklyWeightChangeGoal - (-0.5)) > 0.01
+            
+            // For goals that require target weight, ensure it's provided
+            if viewModel.selectedGoalType != .maintainWeight {
+                hasChanges = hasTargetWeight && (hasNonDefaultGoalType || hasNonDefaultWeeklyChange || hasTargetWeight)
+            } else {
+                hasChanges = hasNonDefaultGoalType || hasNonDefaultWeeklyChange
+            }
+            return
+        }
+        
+        // Compare current values with existing goal
+        let targetWeightChanged = (currentGoal.targetWeight?.formatted() ?? "") != viewModel.targetWeight
+        let goalTypeChanged = currentGoal.type != viewModel.selectedGoalType
+        let weeklyChangeChanged = abs(currentGoal.weeklyWeightChangeGoal - viewModel.weeklyWeightChangeGoal) > 0.01
+        let targetDateChanged = currentGoal.targetDate != viewModel.targetDate
+        
+        hasChanges = targetWeightChanged || goalTypeChanged || weeklyChangeChanged || targetDateChanged
+    }
+    
+    private func hasValidInput() -> Bool {
+        // For goals that require target weight, ensure it's provided and valid
+        if viewModel.selectedGoalType != .maintainWeight {
+            guard !viewModel.targetWeight.isEmpty,
+                  let targetWeight = Double(viewModel.targetWeight),
+                  targetWeight > 0 else {
+                return false
+            }
+        }
+        
+        // Always allow saving if validation passes
+        return true
     }
 }
 

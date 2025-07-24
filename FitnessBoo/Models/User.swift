@@ -32,6 +32,19 @@ struct User: Codable, Identifiable {
         self.updatedAt = Date()
     }
     
+    init(id: UUID, age: Int, weight: Double, height: Double, gender: Gender, activityLevel: ActivityLevel, preferredUnits: UnitSystem = .metric, bmr: Double, createdAt: Date, updatedAt: Date) {
+        self.id = id
+        self.age = age
+        self.weight = weight
+        self.height = height
+        self.gender = gender
+        self.activityLevel = activityLevel
+        self.preferredUnits = preferredUnits
+        self.bmr = bmr
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+    
 
     
     /// Calculate BMR using Mifflin-St Jeor Equation
