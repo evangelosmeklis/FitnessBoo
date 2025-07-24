@@ -50,9 +50,6 @@ struct DashboardView: View {
                     
                     // Today's progress
                     todaysProgressSection
-                    
-                    // Quick actions
-                    quickActionsSection
                 }
                 .padding()
             }
@@ -155,35 +152,6 @@ struct DashboardView: View {
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
-    }
-    
-    private var quickActionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Actions")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 12) {
-                NavigationLink(destination: FoodEntryView(nutritionViewModel: nutritionViewModel)) {
-                    ActionCard(
-                        title: "Log Food",
-                        icon: "fork.knife",
-                        color: .green
-                    )
-                }
-                
-                NavigationLink(destination: GoalSettingView(calculationService: calculationService, dataService: dataService)) {
-                    ActionCard(
-                        title: "Set Goals",
-                        icon: "target",
-                        color: .blue
-                    )
-                }
-            }
-        }
     }
     
     private var energyTrackingSection: some View {
