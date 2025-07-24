@@ -147,7 +147,12 @@ struct GoalSettingView: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    viewModel.selectedGoalType = goalType
+                    // Use withAnimation for smooth transitions
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.selectedGoalType = goalType
+                    }
+                    
+                    // Update weight change range
                     updateWeightChangeForGoalType(goalType)
                     
                     // Clear target weight for maintain weight goal

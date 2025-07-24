@@ -39,10 +39,19 @@ class GoalViewModel: ObservableObject {
     private func setupBindings() {
         // Update calculations when goal parameters change
         Publishers.CombineLatest4($selectedGoalType, $targetWeight, $weeklyWeightChangeGoal, $targetDate)
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] _, _, _, _ in
+                // Only update calculations if we have meaningful data
+                guard let self = self else { return }
+                
+                // Skip calculations for maintain weight or empty target weight for other goals
+                if self.selectedGoalType == .maintainWeight || 
+                   (self.selectedGoalType != .maintainWeight && self.targetWeight.isEmpty) {
+                    return
+                }
+                
                 Task { @MainActor in
-                    await self?.updateCalculations()
+                    await self.updateCalculations()
                 }
             }
             .store(in: &cancellables)
@@ -126,6 +135,9 @@ class GoalViewModel: ObservableObject {
     func loadCurrentGoal(for user: User) async {
         isLoading = true
         
+        // Cache the user for calculations
+        cachedUser = user
+        
         do {
             currentGoal = try await dataService.fetchActiveGoal(for: user)
             
@@ -146,9 +158,27 @@ class GoalViewModel: ObservableObject {
     
     // MARK: - Calculations and Validation
     
+    private var cachedUser: User?
+    
     private func updateCalculations() async {
         do {
-            guard let user = try await dataService.fetchUser() else { return }
+            // Use cached user if available, otherwise fetch
+            let user: User
+            if let cachedUser = cachedUser {
+                user = cachedUser
+            } else {
+                guard let fetchedUser = try await dataService.fetchUser() else { return }
+                cachedUser = fetchedUser
+                user = fetchedUser
+            }
+            
+            // Skip calculations for maintain weight
+            if selectedGoalType == .maintainWeight {
+                estimatedDailyCalories = 0
+                estimatedDailyProtein = 0
+                estimatedTimeToGoal = "N/A"
+                return
+            }
             
             // Create a temporary goal for calculations
             let targetWeightValue = targetWeight.isEmpty ? nil : Double(targetWeight)
@@ -175,6 +205,7 @@ class GoalViewModel: ObservableObject {
             
         } catch {
             // Silently handle calculation errors
+            print("Calculation error: \(error)")
         }
     }
     
@@ -189,6 +220,7 @@ class GoalViewModel: ObservableObject {
         weeklyWeightChangeGoal = -0.5
         errorMessage = nil
         showingError = false
+        cachedUser = nil // Clear cache
     }
     
     func getRecommendedWeightChangeRange() -> ClosedRange<Double> {
