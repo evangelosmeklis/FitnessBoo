@@ -45,7 +45,7 @@ struct ContentView: View {
             }
             
             // Placeholder for Settings view
-            Text("Settings")
+            SettingsView(dataService: dataService)
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
@@ -71,9 +71,13 @@ struct ContentView: View {
             do {
                 try await healthKitService.requestAuthorization()
                 print("HealthKit authorization completed successfully")
+                
+                // Also request notification permissions
+                try await NotificationService.shared.requestAuthorization()
+                print("Notification authorization completed successfully")
+                
             } catch {
-                print("HealthKit authorization failed: \(error.localizedDescription)")
-                // Continue without HealthKit - the app will use calculated values
+                print("Authorization failed: \(error.localizedDescription)")
             }
         }
     }

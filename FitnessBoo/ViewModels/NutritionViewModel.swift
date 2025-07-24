@@ -24,15 +24,18 @@ class NutritionViewModel: ObservableObject {
     @Published var remainingProtein: Double = 0
     @Published var calorieProgress: Double = 0
     @Published var proteinProgress: Double = 0
+    @Published var totalWater: Double = 0
     
     private let dataService: DataServiceProtocol
     private let calculationService: CalculationServiceProtocol
+    private let healthKitService: HealthKitServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     private var currentDate = Date()
     
-    init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
+    init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol, healthKitService: HealthKitServiceProtocol) {
         self.dataService = dataService
         self.calculationService = calculationService
+        self.healthKitService = healthKitService
         setupObservers()
     }
     
@@ -127,9 +130,29 @@ class NutritionViewModel: ObservableObject {
                 await loadDailyNutrition(for: currentDate)
             }
             
+            // Save to HealthKit
+            try await healthKitService.saveDietaryEnergy(calories: entry.calories, date: entry.timestamp)
+            
             errorMessage = nil
         } catch {
             errorMessage = "Failed to add food entry: \(error.localizedDescription)"
+        }
+    }
+    
+    func addWater(milliliters: Double) async {
+        do {
+            if var currentNutrition = dailyNutrition {
+                currentNutrition.waterConsumed += milliliters
+                try await dataService.saveDailyNutrition(currentNutrition)
+                self.dailyNutrition = currentNutrition
+                
+                // Save to HealthKit
+                try await healthKitService.saveWater(milliliters: milliliters, date: Date())
+            }
+            
+            errorMessage = nil
+        } catch {
+            errorMessage = "Failed to add water: \(error.localizedDescription)"
         }
     }
     
@@ -196,6 +219,7 @@ class NutritionViewModel: ObservableObject {
         remainingProtein = nutrition.remainingProtein
         calorieProgress = nutrition.calorieProgress
         proteinProgress = nutrition.proteinProgress
+        totalWater = nutrition.waterConsumed
     }
     
     private func resetCalculations() {
@@ -205,6 +229,7 @@ class NutritionViewModel: ObservableObject {
         remainingProtein = 0
         calorieProgress = 0
         proteinProgress = 0
+        totalWater = 0
     }
     
     private func calculateDailyTargets() async throws -> (calories: Double, protein: Double) {

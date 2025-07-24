@@ -13,10 +13,11 @@ struct NutritionDashboardView: View {
     @State private var selectedEntry: FoodEntry?
     @State private var showingEditFood = false
     
-    init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
+    init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol, healthKitService: HealthKitServiceProtocol) {
         self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(
             dataService: dataService,
-            calculationService: calculationService
+            calculationService: calculationService,
+            healthKitService: healthKitService
         ))
     }
     
@@ -29,6 +30,9 @@ struct NutritionDashboardView: View {
                     
                     // Quick Add Button
                     quickAddButton
+                    
+                    // Water Tracking Section
+                    waterTrackingSection
                     
                     // Food Entries by Meal Type
                     foodEntriesSection
@@ -140,6 +144,36 @@ struct NutritionDashboardView: View {
             .foregroundColor(.accentColor)
             .cornerRadius(12)
         }
+    }
+    
+    // MARK: - Water Tracking Section
+    
+    private var waterTrackingSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Water Intake")
+                    .font(.headline)
+                Spacer()
+                Text("\(Int(nutritionViewModel.totalWater)) ml")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            
+            HStack(spacing: 12) {
+                WaterButton(amount: 250) {
+                    Task { await nutritionViewModel.addWater(milliliters: 250) }
+                }
+                WaterButton(amount: 500) {
+                    Task { await nutritionViewModel.addWater(milliliters: 500) }
+                }
+                WaterButton(amount: 750) {
+                    Task { await nutritionViewModel.addWater(milliliters: 750) }
+                }
+            }
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
     }
     
     // MARK: - Food Entries Section
@@ -370,13 +404,34 @@ struct FoodEntryRow: View {
     }
 }
 
+// MARK: - Water Button
+
+struct WaterButton: View {
+    let amount: Int
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text("\(amount) ml")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.1))
+                .foregroundColor(.blue)
+                .cornerRadius(8)
+        }
+    }
+}
+
 // MARK: - Preview
 
 struct NutritionDashboardView_Previews: PreviewProvider {
     static var previews: some View {
         NutritionDashboardView(
             dataService: MockDataService(),
-            calculationService: MockCalculationService()
+            calculationService: MockCalculationService(),
+            healthKitService: MockHealthKitService()
         )
     }
 }

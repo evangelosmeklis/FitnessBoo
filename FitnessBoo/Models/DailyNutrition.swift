@@ -17,6 +17,7 @@ struct DailyNutrition: Codable, Identifiable {
     var proteinTarget: Double
     var caloriesFromExercise: Double
     var netCalories: Double
+    var waterConsumed: Double // in milliliters
     
     init(date: Date, calorieTarget: Double, proteinTarget: Double) {
         self.id = UUID()
@@ -28,9 +29,10 @@ struct DailyNutrition: Codable, Identifiable {
         self.proteinTarget = proteinTarget
         self.caloriesFromExercise = 0
         self.netCalories = 0
+        self.waterConsumed = 0
     }
     
-    init(id: UUID, date: Date, totalCalories: Double, totalProtein: Double, entries: [FoodEntry], calorieTarget: Double, proteinTarget: Double, caloriesFromExercise: Double, netCalories: Double) {
+    init(id: UUID, date: Date, totalCalories: Double, totalProtein: Double, entries: [FoodEntry], calorieTarget: Double, proteinTarget: Double, caloriesFromExercise: Double, netCalories: Double, waterConsumed: Double) {
         self.id = id
         self.date = Calendar.current.startOfDay(for: date)
         self.totalCalories = totalCalories
@@ -40,6 +42,7 @@ struct DailyNutrition: Codable, Identifiable {
         self.proteinTarget = proteinTarget
         self.caloriesFromExercise = caloriesFromExercise
         self.netCalories = netCalories
+        self.waterConsumed = waterConsumed
         
         recalculateTotals()
     }

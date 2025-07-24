@@ -12,11 +12,14 @@ import Combine
 class HistoryViewModel: ObservableObject {
     @Published var selectedDate: Date = Date()
     @Published var foodEntries: [FoodEntry] = []
+    @Published var dailyNutrition: DailyNutrition?
+    @Published var weeklyBalance: Double?
     @Published var datesWithEntries: Set<Date> = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
     private let dataService: DataServiceProtocol
+    private let calculationService: CalculationServiceProtocol = CalculationService()
     private var cancellables = Set<AnyCancellable>()
     
     init(dataService: DataServiceProtocol) {
@@ -25,28 +28,52 @@ class HistoryViewModel: ObservableObject {
         $selectedDate
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] date in
-                self?.loadFoodEntries(for: date)
+                self?.loadData(for: date)
             }
             .store(in: &cancellables)
     }
     
-    func loadFoodEntries(for date: Date) {
+    func loadData(for date: Date) {
         isLoading = true
         errorMessage = nil
         
         Task {
             do {
-                if let user = try await dataService.fetchUser() {
-                    let entries = try await dataService.fetchFoodEntries(for: date, user: user)
-                    self.foodEntries = entries
+                // Fetch daily nutrition and stats
+                let fetchedNutrition = try await dataService.fetchDailyNutrition(for: date)
+                let dailyStats = try await dataService.fetchDailyStats(for: date)
+                
+                if var nutrition = fetchedNutrition {
+                    // Update exercise calories and recalculate
+                    nutrition.updateExerciseCalories(dailyStats?.caloriesFromExercise ?? 0)
+                    self.dailyNutrition = nutrition
+                    self.foodEntries = sortFoodEntries(nutrition.entries)
                 } else {
+                    self.dailyNutrition = nil
                     self.foodEntries = []
                 }
+                
+                // Fetch weekly balance
+                if let user = try await dataService.fetchUser() {
+                    let week = Calendar.current.dateInterval(of: .weekOfYear, for: date)!
+                    let weeklyStats = try await dataService.fetchDailyStats(for: week.start...week.end, user: user)
+                    self.weeklyBalance = weeklyStats.reduce(0) { $0 + $1.netCalories }
+                }
+                
             } catch {
-                self.errorMessage = "Failed to load food entries: \(error.localizedDescription)"
+                self.errorMessage = "Failed to load history data: \(error.localizedDescription)"
             }
             
             isLoading = false
+        }
+    }
+    
+    private func sortFoodEntries(_ entries: [FoodEntry]) -> [FoodEntry] {
+        let mealOrder: [MealType] = [.breakfast, .lunch, .dinner, .snack]
+        return entries.sorted {
+            let firstMealIndex = mealOrder.firstIndex(of: $0.mealType ?? .snack) ?? mealOrder.count
+            let secondMealIndex = mealOrder.firstIndex(of: $1.mealType ?? .snack) ?? mealOrder.count
+            return firstMealIndex < secondMealIndex
         }
     }
     

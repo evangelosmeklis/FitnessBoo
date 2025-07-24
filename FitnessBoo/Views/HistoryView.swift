@@ -24,6 +24,12 @@ struct HistoryView: View {
                 )
                 .padding(.horizontal)
                 
+                // Weekly summary
+                weeklySummarySection
+                
+                // Daily summary
+                dailySummarySection
+                
                 // Food entries for selected date
                 foodEntriesList
             }
@@ -31,6 +37,44 @@ struct HistoryView: View {
             .onAppear {
                 viewModel.loadDatesWithEntries()
             }
+        }
+    }
+    
+    private var weeklySummarySection: some View {
+        VStack(alignment: .leading) {
+            Text("Weekly Summary")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            if let weeklyBalance = viewModel.weeklyBalance {
+                HStack {
+                    Text("Total Balance:")
+                    Spacer()
+                    Text(weeklyBalance > 0 ? "+\(Int(weeklyBalance)) kcal" : "\(Int(weeklyBalance)) kcal")
+                        .foregroundColor(weeklyBalance > 0 ? .orange : .green)
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var dailySummarySection: some View {
+        if let dailyNutrition = viewModel.dailyNutrition {
+            VStack(alignment: .leading) {
+                Text("Daily Summary")
+                    .font(.headline)
+                
+                HStack {
+                    Text("Caloric Balance:")
+                    Spacer()
+                    Text("\(Int(dailyNutrition.netCalories)) kcal")
+                }
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            .padding(.horizontal)
         }
     }
     

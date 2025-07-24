@@ -67,6 +67,8 @@ enum ConflictResolutionStrategy {
 // MARK: - HealthKit Service Protocol
 protocol HealthKitServiceProtocol {
     func requestAuthorization() async throws
+    func saveDietaryEnergy(calories: Double, date: Date) async throws
+    func saveWater(milliliters: Double, date: Date) async throws
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData]
     func fetchActiveEnergy(for date: Date) async throws -> Double
     func fetchRestingEnergy(for date: Date) async throws -> Double
@@ -190,7 +192,8 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             HKQuantityType(.dietaryEnergyConsumed),
             HKQuantityType(.dietaryProtein),
             HKQuantityType(.dietaryCarbohydrates),
-            HKQuantityType(.dietaryFatTotal)
+            HKQuantityType(.dietaryFatTotal),
+            HKQuantityType(.dietaryWater)
         ]
         return types
     }
@@ -234,6 +237,30 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             syncStatusSubject.send(.failed(healthKitError))
             throw healthKitError
         }
+    }
+    
+    // MARK: - Save to HealthKit
+    
+    func saveDietaryEnergy(calories: Double, date: Date) async throws {
+        guard let energyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        
+        let energyQuantity = HKQuantity(unit: .kilocalorie(), doubleValue: calories)
+        let energySample = HKQuantitySample(type: energyType, quantity: energyQuantity, start: date, end: date)
+        
+        try await saveSample(energySample)
+    }
+    
+    func saveWater(milliliters: Double, date: Date) async throws {
+        guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        
+        let waterQuantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: milliliters)
+        let waterSample = HKQuantitySample(type: waterType, quantity: waterQuantity, start: date, end: date)
+        
+        try await saveSample(waterSample)
     }
     
     // MARK: - Data Fetching

@@ -325,7 +325,7 @@ class DataService: DataServiceProtocol {
             return nil
         }
         
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<DailyNutrition?, Error>) in
             context.perform {
                 do {
                     let calendar = Calendar.current
@@ -368,7 +368,8 @@ class DataService: DataServiceProtocol {
                             calorieTarget: 2000, // Default target, will be updated
                             proteinTarget: 100,   // Default target, will be updated
                             caloriesFromExercise: 0,
-                            netCalories: totalCalories
+                            netCalories: totalCalories,
+                            waterConsumed: 0 // Default value
                         )
                         continuation.resume(returning: nutrition)
                     } else {
@@ -725,7 +726,8 @@ extension DataService {
             calorieTarget: entity.calorieTarget,
             proteinTarget: entity.proteinTarget,
             caloriesFromExercise: entity.caloriesFromExercise,
-            netCalories: entity.netCalories
+            netCalories: entity.netCalories,
+            waterConsumed: 0 // Not persisted in Core Data
         )
         
         return nutrition
