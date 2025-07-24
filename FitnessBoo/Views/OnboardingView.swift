@@ -13,7 +13,7 @@ struct OnboardingView: View {
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
-    private let totalSteps = 5
+    private let totalSteps = 6
     
     var body: some View {
         NavigationView {
@@ -41,6 +41,8 @@ struct OnboardingView: View {
                     case 3:
                         ActivityLevelStepView(viewModel: viewModel)
                     case 4:
+                        HealthKitPermissionStepView()
+                    case 5:
                         ReviewStepView(viewModel: viewModel)
                     default:
                         EmptyView()
@@ -94,7 +96,7 @@ struct OnboardingView: View {
         case 2:
             return viewModel.weight.isEmpty || viewModel.height.isEmpty ||
                    viewModel.weightError != nil || viewModel.heightError != nil
-        case 4:
+        case 5:
             return viewModel.isLoading
         default:
             return false
@@ -341,6 +343,114 @@ struct ReviewStepView: View {
                     .padding()
             }
         }
+    }
+}
+
+struct HealthKitPermissionStepView: View {
+    @State private var hasRequestedPermission = false
+    @State private var permissionStatus = "Not Requested"
+    
+    private let healthKitService = HealthKitService()
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.red)
+            
+            Text("Health Data Access")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("FitnessBoo can integrate with the Health app to provide accurate calorie tracking using your active and resting energy data.")
+                .font(.body)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+            
+            VStack(spacing: 12) {
+                FeatureRow(
+                    icon: "flame.fill",
+                    title: "Active Energy Tracking",
+                    description: "Track calories burned during workouts and activities"
+                )
+                
+                FeatureRow(
+                    icon: "bed.double.fill",
+                    title: "Resting Energy Tracking",
+                    description: "Monitor your basal metabolic rate throughout the day"
+                )
+                
+                FeatureRow(
+                    icon: "chart.line.uptrend.xyaxis",
+                    title: "Real-time Balance",
+                    description: "See your caloric balance update live throughout the day"
+                )
+            }
+            
+            if !hasRequestedPermission {
+                Button("Grant Health Access") {
+                    requestHealthKitPermission()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            } else {
+                VStack(spacing: 8) {
+                    Text("Status: \(permissionStatus)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text("You can change these permissions anytime in the Health app")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
+    }
+    
+    private func requestHealthKitPermission() {
+        hasRequestedPermission = true
+        permissionStatus = "Requesting..."
+        
+        Task {
+            do {
+                try await healthKitService.requestAuthorization()
+                await MainActor.run {
+                    permissionStatus = "Completed"
+                }
+            } catch {
+                await MainActor.run {
+                    permissionStatus = "Limited (will use calculated values)"
+                }
+            }
+        }
+    }
+}
+
+struct FeatureRow: View {
+    let icon: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundColor(.blue)
+                .frame(width: 30)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal)
     }
 }
 

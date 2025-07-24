@@ -13,6 +13,8 @@ struct ContentView: View {
     private let dataService: DataServiceProtocol = DataService.shared
     private let calculationService: CalculationServiceProtocol = CalculationService()
     
+    @State private var hasRequestedHealthKit = false
+    
     var body: some View {
         TabView {
             DashboardView(
@@ -46,6 +48,24 @@ struct ContentView: View {
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
+        }
+        .onAppear {
+            requestHealthKitAuthorizationIfNeeded()
+        }
+    }
+    
+    private func requestHealthKitAuthorizationIfNeeded() {
+        guard !hasRequestedHealthKit else { return }
+        hasRequestedHealthKit = true
+        
+        Task {
+            do {
+                try await healthKitService.requestAuthorization()
+                print("HealthKit authorization completed successfully")
+            } catch {
+                print("HealthKit authorization failed: \(error.localizedDescription)")
+                // Continue without HealthKit - the app will use calculated values
+            }
         }
     }
 }

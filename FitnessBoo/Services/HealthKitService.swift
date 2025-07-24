@@ -120,6 +120,51 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
         return healthStore.authorizationStatus(for: bodyMassType)
     }
     
+    // MARK: - HealthKit Status Check
+    func checkHealthKitStatus() -> (available: Bool, authorized: Bool, message: String) {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return (false, false, "HealthKit is not available on this device. The app will use calculated values instead.")
+        }
+        
+        // Note: Per Apple docs, we can't determine if read permissions were granted
+        // We can only check write permissions and see what data we actually receive
+        let writeTypes = [
+            HKQuantityType(.dietaryEnergyConsumed),
+            HKQuantityType(.dietaryProtein)
+        ]
+        
+        let writeAuthorized = writeTypes.allSatisfy { type in
+            healthStore.authorizationStatus(for: type) == .sharingAuthorized
+        }
+        
+        if writeAuthorized {
+            return (true, true, "HealthKit is configured. Energy data will be available if permissions were granted.")
+        } else {
+            return (true, false, "HealthKit permissions may be limited. Some features may not work optimally.")
+        }
+    }
+    
+    // MARK: - Authorization Status Check
+    func checkAuthorizationStatus(for sampleType: HKSampleType) -> HKAuthorizationStatus {
+        return healthStore.authorizationStatus(for: sampleType)
+    }
+    
+    // MARK: - Save Data with Authorization Check
+    func saveSample(_ sample: HKSample) async throws {
+        let authStatus = healthStore.authorizationStatus(for: sample.sampleType)
+        
+        switch authStatus {
+        case .notDetermined:
+            throw HealthKitError.authorizationNotDetermined
+        case .sharingDenied:
+            throw HealthKitError.permissionDenied
+        case .sharingAuthorized:
+            try await healthStore.save(sample)
+        @unknown default:
+            throw HealthKitError.authorizationNotDetermined
+        }
+    }
+    
     var syncStatus: AnyPublisher<SyncStatus, Never> {
         return syncStatusSubject.eraseToAnyPublisher()
     }
@@ -130,67 +175,61 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
     
     // MARK: - Data Types
     private var readTypes: Set<HKObjectType> {
-        var types = Set<HKObjectType>()
-        
-        // Quantity types
-        if let bodyMass = HKQuantityType.quantityType(forIdentifier: .bodyMass) {
-            types.insert(bodyMass)
-        }
-        if let activeEnergy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
-            types.insert(activeEnergy)
-        }
-        if let basalEnergy = HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned) {
-            types.insert(basalEnergy)
-        }
-        
-        // Workout type
-        types.insert(HKObjectType.workoutType())
-        
+        let types: Set<HKObjectType> = [
+            HKObjectType.workoutType(),
+            HKQuantityType(.activeEnergyBurned),
+            HKQuantityType(.basalEnergyBurned),
+            HKQuantityType(.bodyMass),
+            HKQuantityType(.heartRate)
+        ]
         return types
     }
     
     private var writeTypes: Set<HKSampleType> {
-        var types = Set<HKSampleType>()
-        
-        if let dietaryEnergy = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) {
-            types.insert(dietaryEnergy)
-        }
-        if let dietaryProtein = HKQuantityType.quantityType(forIdentifier: .dietaryProtein) {
-            types.insert(dietaryProtein)
-        }
-        
+        let types: Set<HKSampleType> = [
+            HKQuantityType(.dietaryEnergyConsumed),
+            HKQuantityType(.dietaryProtein),
+            HKQuantityType(.dietaryCarbohydrates),
+            HKQuantityType(.dietaryFatTotal)
+        ]
         return types
     }
     
     // MARK: - Authorization
     func requestAuthorization() async throws {
-        guard isHealthKitAvailable else {
+        // Check that Health data is available on the device
+        guard HKHealthStore.isHealthDataAvailable() else {
             throw HealthKitError.healthKitNotAvailable
         }
         
         syncStatusSubject.send(.syncing)
         
         do {
+            // Asynchronously request authorization to the data
             try await healthStore.requestAuthorization(toShare: writeTypes, read: readTypes)
             
-            // Check if we got the required permissions
-            guard let bodyMassType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
-                throw HealthKitError.dataTypeNotAvailable
-            }
+            // Check authorization status for key data types
+            let energyTypes = [
+                HKQuantityType(.activeEnergyBurned),
+                HKQuantityType(.basalEnergyBurned)
+            ]
             
-            let status = healthStore.authorizationStatus(for: bodyMassType)
-            if status == .notDetermined {
-                throw HealthKitError.authorizationNotDetermined
-            }
+            // Note: Per Apple docs, we can't know if read permission was granted or denied
+            // The app will only receive data that it has permission to read
             
-            // Start observing changes after authorization
+            // Start observing changes after authorization request
             startObservingHealthData()
             startBackgroundSync()
             
             // Perform initial sync
             try await performInitialSync()
             
+            syncStatusSubject.send(.success(Date()))
+            
         } catch {
+            // Typically, authorization requests only fail if you haven't set the
+            // usage and share descriptions in your app's Info.plist, or if
+            // Health data isn't available on the current device.
             let healthKitError = error as? HealthKitError ?? HealthKitError.authorizationFailed(error.localizedDescription)
             syncStatusSubject.send(.failed(healthKitError))
             throw healthKitError
