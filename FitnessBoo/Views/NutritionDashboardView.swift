@@ -82,6 +82,11 @@ struct NutritionDashboardView: View {
                     await nutritionViewModel.refreshData()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))) { _ in
+                Task {
+                    await nutritionViewModel.refreshData()
+                }
+            }
         }
     }
     
@@ -516,6 +521,14 @@ struct CaloricBalanceCard: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
             Task {
                 // Reload the current goal when goals are updated
+                if let user = try? await DataService.shared.fetchUser() {
+                    await goalViewModel.loadCurrentGoal(for: user)
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))) { _ in
+            Task {
+                // Reload goal data when weight changes
                 if let user = try? await DataService.shared.fetchUser() {
                     await goalViewModel.loadCurrentGoal(for: user)
                 }

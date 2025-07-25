@@ -50,6 +50,7 @@ protocol DataServiceProtocol {
     func fetchActiveGoal(for user: User) async throws -> FitnessGoal?
     func fetchActiveGoal() async throws -> FitnessGoal?
     func fetchAllGoals(for user: User) async throws -> [FitnessGoal]
+    func resetAllData() async throws
 }
 
 class DataService: DataServiceProtocol {
@@ -612,6 +613,30 @@ class DataService: DataServiceProtocol {
         }
         let stats = try await fetchDailyStats(for: date...date, user: user)
         return stats.first
+    }
+    
+    func resetAllData() async throws {
+        let context = persistentContainer.viewContext
+        
+        // Delete all entities
+        let entityNames = ["User", "FitnessGoal", "FoodEntry", "DailyNutrition"]
+        
+        for entityName in entityNames {
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            
+            do {
+                try context.execute(deleteRequest)
+            } catch {
+                print("Failed to delete \(entityName): \(error)")
+                // Continue with other entities even if one fails
+            }
+        }
+        
+        // Save the context to persist the deletions
+        try context.save()
+        
+        print("All app data has been reset")
     }
 }
 

@@ -254,6 +254,7 @@ class MockDataService: DataServiceProtocol {
     func createUserFromHealthKit(healthKitService: HealthKitServiceProtocol) async throws -> User {
         return User(weight: 70.0)
     }
+    func resetAllData() async throws { }
     func saveFoodEntry(_ entry: FoodEntry, for user: User) async throws { }
     func saveFoodEntry(_ entry: FoodEntry) async throws { }
     func updateFoodEntry(_ entry: FoodEntry) async throws { }

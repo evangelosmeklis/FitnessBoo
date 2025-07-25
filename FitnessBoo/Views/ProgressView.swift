@@ -52,6 +52,16 @@ struct ProgressView: View {
                     await viewModel.refreshData()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
+                Task {
+                    await viewModel.refreshData()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))) { _ in
+                Task {
+                    await viewModel.refreshData()
+                }
+            }
         }
     }
     

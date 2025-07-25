@@ -65,7 +65,7 @@ class GoalViewModel: ObservableObject {
         // Update calculations when goal parameters change
         Publishers.CombineLatest4($selectedGoalType, $currentWeight, $targetWeight, $weeklyWeightChangeGoal)
             .combineLatest($targetDate)
-            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(1000), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 // Only update calculations if we have meaningful data
                 guard let self = self else { return }
@@ -114,6 +114,10 @@ class GoalViewModel: ObservableObject {
             
             currentGoal = goal
             
+            // Notify all tabs that goal data has changed
+            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
+            
         } catch let error as GoalValidationError {
             errorMessage = error.localizedDescription
             showingError = true
@@ -154,6 +158,10 @@ class GoalViewModel: ObservableObject {
             try await dataService.saveGoal(goal, for: user)
             
             currentGoal = goal
+            
+            // Notify all tabs that goal data has changed
+            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
             
         } catch let error as GoalValidationError {
             errorMessage = error.localizedDescription

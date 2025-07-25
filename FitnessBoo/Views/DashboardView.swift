@@ -294,6 +294,7 @@ private class DashboardMockDataService: DataServiceProtocol {
     func fetchActiveGoal(for user: User) async throws -> FitnessGoal? { return nil }
     func fetchActiveGoal() async throws -> FitnessGoal? { return nil }
     func fetchAllGoals(for user: User) async throws -> [FitnessGoal] { return [] }
+    func resetAllData() async throws { }
 }
 
 private class DashboardMockCalculationService: CalculationServiceProtocol {

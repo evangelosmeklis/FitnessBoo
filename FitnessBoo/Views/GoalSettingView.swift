@@ -15,7 +15,10 @@ struct GoalSettingView: View {
     @State private var showingDatePicker = false
     @State private var hasChanges = false
     @State private var showSuccessMessage = false
+    @State private var showingResetConfirmation = false
+    @State private var isResetting = false
     @FocusState private var isTargetWeightFocused: Bool
+    @FocusState private var isCurrentWeightFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     init(calculationService: CalculationServiceProtocol = CalculationService(), 
@@ -47,6 +50,8 @@ struct GoalSettingView: View {
                 if !viewModel.errorMessage.isNilOrEmpty {
                     errorSection
                 }
+                
+                resetDataSection
             }
             .navigationTitle("Set Your Goal")
             .navigationBarTitleDisplayMode(.large)
@@ -86,6 +91,7 @@ struct GoalSettingView: View {
             .onTapGesture {
                 // Dismiss keyboard when tapping outside
                 isTargetWeightFocused = false
+                isCurrentWeightFocused = false
             }
             .onChange(of: viewModel.selectedGoalType) { _ in
                 checkForChanges()
@@ -105,6 +111,16 @@ struct GoalSettingView: View {
                 }
             } message: {
                 Text(viewModel.errorMessage ?? "An unknown error occurred")
+            }
+            .confirmationDialog("Reset All Data", isPresented: $showingResetConfirmation, titleVisibility: .visible) {
+                Button("Reset All Data", role: .destructive) {
+                    Task {
+                        await resetAllData()
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This will permanently delete all your goals, food entries, and nutrition data. This action cannot be undone. HealthKit data will not be affected.")
             }
             .overlay(
                 Group {
@@ -180,6 +196,15 @@ struct GoalSettingView: View {
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
+                    .focused($isCurrentWeightFocused)
+                    .toolbar {
+                        ToolbarItemGroup(placement: .keyboard) {
+                            Spacer()
+                            Button("Done") {
+                                isCurrentWeightFocused = false
+                            }
+                        }
+                    }
                 Text("kg")
                     .foregroundColor(.secondary)
             }
@@ -401,6 +426,32 @@ struct GoalSettingView: View {
         }
     }
     
+    private var resetDataSection: some View {
+        Section {
+            Button(action: {
+                showingResetConfirmation = true
+            }) {
+                HStack {
+                    Image(systemName: "trash.fill")
+                        .foregroundColor(.red)
+                    Text("Reset All Data")
+                        .foregroundColor(.red)
+                        .fontWeight(.medium)
+                    Spacer()
+                    if isResetting {
+                        SwiftUI.ProgressView()
+                            .scaleEffect(0.8)
+                    }
+                }
+            }
+            .disabled(isResetting)
+        } footer: {
+            Text("This will permanently delete all your goals, food entries, and nutrition data from the app. HealthKit data will remain unchanged.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
     // MARK: - Helper Methods
     
     private func loadUserAndGoal() async {
@@ -478,6 +529,38 @@ struct GoalSettingView: View {
         guard let user = user else { return nil }
         let validation = viewModel.validateTargetWeight(currentWeight: user.weight)
         return validation.isValid ? nil : validation.errorMessage
+    }
+    
+    private func resetAllData() async {
+        isResetting = true
+        
+        do {
+            // Reset all app data through DataService
+            try await DataService.shared.resetAllData()
+            
+            // Reset the view model
+            viewModel.resetToDefaults()
+            
+            // Clear user state
+            user = nil
+            
+            // Post notifications to refresh all tabs
+            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
+            NotificationCenter.default.post(name: .nutritionDataUpdated, object: nil)
+            
+            // Show success message
+            showSuccessMessage = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                showSuccessMessage = false
+            }
+            
+        } catch {
+            viewModel.errorMessage = "Failed to reset data: \(error.localizedDescription)"
+            viewModel.showingError = true
+        }
+        
+        isResetting = false
     }
 }
 
