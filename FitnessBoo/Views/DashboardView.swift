@@ -8,22 +8,19 @@
 import SwiftUI
 import Foundation
 import Combine
+import HealthKit
 
 struct DashboardView: View {
-    private let healthKitService: HealthKitServiceProtocol
-    private let dataService: DataServiceProtocol
-    private let calculationService: CalculationServiceProtocol
-    
     @StateObject private var userProfileViewModel: UserProfileViewModel
     @StateObject private var nutritionViewModel: NutritionViewModel
     @StateObject private var goalViewModel: GoalViewModel
     @StateObject private var energyViewModel: EnergyViewModel
     @StateObject private var calorieBalanceService: CalorieBalanceService
     
+    private let healthKitService: HealthKitServiceProtocol
+    
     init(healthKitService: HealthKitServiceProtocol, dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
         self.healthKitService = healthKitService
-        self.dataService = dataService
-        self.calculationService = calculationService
         
         self._userProfileViewModel = StateObject(wrappedValue: UserProfileViewModel(dataService: dataService))
         self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(dataService: dataService, calculationService: calculationService, healthKitService: healthKitService))
@@ -51,17 +48,34 @@ struct DashboardView: View {
                 .padding()
             }
             .navigationTitle("Dashboard")
-            .onAppear {
-                loadData()
+            .task {
+                userProfileViewModel.loadCurrentUser()
+                await nutritionViewModel.loadTodaysNutrition()
+                await goalViewModel.loadGoals()
+                await energyViewModel.loadTodaysEnergy()
+                calorieBalanceService.startRealTimeTracking()
             }
             .refreshable {
-                await refreshAllData()
+                do {
+                    try await healthKitService.manualRefresh()
+                    userProfileViewModel.loadCurrentUser()
+                    await nutritionViewModel.loadTodaysNutrition()
+                    await goalViewModel.loadGoals()
+                    await energyViewModel.refreshEnergyData()
+                } catch {
+                    print("HealthKit refresh failed: \(error)")
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
-                loadData()
+                Task { await goalViewModel.loadGoals() }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DayChanged"))) { _ in
-                loadData()
+                Task {
+                    userProfileViewModel.loadCurrentUser()
+                    await nutritionViewModel.loadTodaysNutrition()
+                    await goalViewModel.loadGoals()
+                    await energyViewModel.loadTodaysEnergy()
+                }
             }
         }
     }
@@ -191,38 +205,6 @@ struct DashboardView: View {
         .cornerRadius(12)
     }
     
-    private func loadData() {
-        userProfileViewModel.loadCurrentUser()
-        nutritionViewModel.loadTodaysNutrition()
-        goalViewModel.loadGoals()
-        energyViewModel.loadTodaysEnergy()
-        calorieBalanceService.startRealTimeTracking()
-    }
-    
-    private func refreshAllData() async {
-        // Refresh HealthKit data first
-        do {
-            try await healthKitService.manualRefresh()
-        } catch {
-            print("HealthKit refresh failed: \(error)")
-        }
-        
-        // Refresh all view models
-        await MainActor.run {
-            userProfileViewModel.loadCurrentUser()
-            nutritionViewModel.loadTodaysNutrition()
-            goalViewModel.loadGoals()
-        }
-        
-        // Refresh energy data
-        await energyViewModel.refreshEnergyData()
-        
-        // Restart calorie balance tracking to get fresh data
-        calorieBalanceService.stopRealTimeTracking()
-        calorieBalanceService.startRealTimeTracking()
-    }
-    
-
 }
 
 struct StatCard: View {
@@ -280,89 +262,83 @@ struct ActionCard: View {
 
 #Preview {
     DashboardView(
-        healthKitService: HealthKitService(),
-        dataService: DataService.shared,
-        calculationService: CalculationService()
+        healthKitService: DashboardMockHealthKitService(),
+        dataService: DashboardMockDataService(),
+        calculationService: DashboardMockCalculationService()
     )
 }
 
-// MARK: - Energy Views
+// MARK: - Mock Services for Preview
 
-struct EnergyBreakdownView: View {
-    let activeEnergy: Double
-    let restingEnergy: Double
-    let totalEnergy: Double
-    
-    private var activePercentage: Double {
-        guard totalEnergy > 0 else { return 0 }
-        return activeEnergy / totalEnergy
+private class DashboardMockDataService: DataServiceProtocol {
+    func saveUser(_ user: User) async throws { }
+    func fetchUser() async throws -> User? { return nil }
+    func createUserFromHealthKit(healthKitService: HealthKitServiceProtocol) async throws -> User {
+        return User(weight: 70.0)
     }
-    
-    private var restingPercentage: Double {
-        guard totalEnergy > 0 else { return 0 }
-        return restingEnergy / totalEnergy
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Total Energy Burned")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                Spacer()
-                
-                Text("\(Int(totalEnergy)) kcal")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-            }
-            
-            // Energy breakdown bar
-            GeometryReader { geometry in
-                HStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Color.orange)
-                        .frame(width: geometry.size.width * activePercentage)
-                    
-                    Rectangle()
-                        .fill(Color.blue)
-                        .frame(width: geometry.size.width * restingPercentage)
-                }
-            }
-            .frame(height: 8)
-            .cornerRadius(4)
-        }
-    }
+    func saveFoodEntry(_ entry: FoodEntry, for user: User) async throws { }
+    func saveFoodEntry(_ entry: FoodEntry) async throws { }
+    func updateFoodEntry(_ entry: FoodEntry) async throws { }
+    func deleteFoodEntry(_ entry: FoodEntry) async throws { }
+    func fetchFoodEntries(for date: Date, user: User) async throws -> [FoodEntry] { return [] }
+    func deleteFoodEntry(withId id: UUID) async throws { }
+    func saveDailyNutrition(_ nutrition: DailyNutrition) async throws { }
+    func fetchDailyNutrition(for date: Date) async throws -> DailyNutrition? { return nil }
+    func saveDailyStats(_ stats: DailyStats, for user: User) async throws { }
+    func saveDailyStats(_ stats: DailyStats) async throws { }
+    func fetchDailyStats(for dateRange: ClosedRange<Date>, user: User) async throws -> [DailyStats] { return [] }
+    func fetchDailyStats(for date: Date) async throws -> DailyStats? { return nil }
+    func saveGoal(_ goal: FitnessGoal, for user: User) async throws { }
+    func updateGoal(_ goal: FitnessGoal) async throws { }
+    func deleteGoal(_ goal: FitnessGoal) async throws { }
+    func fetchActiveGoal(for user: User) async throws -> FitnessGoal? { return nil }
+    func fetchActiveGoal() async throws -> FitnessGoal? { return nil }
+    func fetchAllGoals(for user: User) async throws -> [FitnessGoal] { return [] }
 }
 
-struct EnergyDetailView: View {
-    let title: String
-    let value: String
-    let color: Color
-    let percentage: Double
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(color)
-                    .frame(width: 8, height: 8)
-                
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-            
-            Text("\(Int(percentage * 100))%")
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
+private class DashboardMockCalculationService: CalculationServiceProtocol {
+    func calculateBMR(age: Int, weight: Double, height: Double, gender: Gender) -> Double { return 1500 }
+    func calculateDailyCalorieNeeds(bmr: Double, activityLevel: ActivityLevel) -> Double { return 2000 }
+    func calculateMaintenanceCalories(bmr: Double, activityLevel: ActivityLevel) -> Double { return 2000 }
+    func calculateCalorieTargetForGoal(dailyCalorieNeeds: Double, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double { return 1800 }
+    func calculateCalorieTarget(bmr: Double, activityLevel: ActivityLevel, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double { return 1800 }
+    func calculateProteinTarget(weight: Double, goalType: GoalType) -> Double { return 100 }
+    func calculateProteinGoal(for user: User?) -> Double { return 100 }
+    func calculateCarbGoal(for user: User?) -> Double { return 200 }
+    func calculateFatGoal(for user: User?) -> Double { return 65 }
+    func calculateWeightLossCalories(maintenanceCalories: Double, weeklyWeightLoss: Double) -> Double { return 1500 }
+    func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double { return 2200 }
+    func validateUserData(age: Int, weight: Double, height: Double) throws { }
+}
+
+private class DashboardMockHealthKitService: HealthKitServiceProtocol {
+    var isHealthKitAvailable: Bool = true
+    var authorizationStatus: HKAuthorizationStatus = .sharingAuthorized
+    var lastSyncDate: Date? = Date()
+    var syncStatus: AnyPublisher<SyncStatus, Never> {
+        return Just(SyncStatus.success(Date())).eraseToAnyPublisher()
     }
+    
+    func requestAuthorization() async throws { }
+    func saveDietaryEnergy(calories: Double, date: Date) async throws { }
+    func saveWater(milliliters: Double, date: Date) async throws { }
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData] { return [] }
+    func fetchActiveEnergy(for date: Date) async throws -> Double { return 400 }
+    func fetchRestingEnergy(for date: Date) async throws -> Double { return 1600 }
+    func fetchTotalEnergyExpended(for date: Date) async throws -> Double { return 2000 }
+    func fetchWeight() async throws -> Double? { return 70.0 }
+    func observeWeightChanges() -> AnyPublisher<Double, Never> {
+        return Just(70.0).eraseToAnyPublisher()
+    }
+    func observeWorkouts() -> AnyPublisher<[WorkoutData], Never> {
+        return Just([]).eraseToAnyPublisher()
+    }
+    func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never> {
+        return Just((resting: 1600.0, active: 400.0)).eraseToAnyPublisher()
+    }
+    func manualRefresh() async throws { }
+    func startBackgroundSync() { }
+    func stopBackgroundSync() { }
 }
 
 // MARK: - Calorie Balance Summary View

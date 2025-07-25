@@ -1,0 +1,30 @@
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Views/SettingsView.swift":
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/SettingsView.swiftconstvalues"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/SettingsView.d"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/SettingsView.dia"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/SettingsView.o"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/SettingsView.swiftdeps"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Views/CalendarView.swift":
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/CalendarView.swiftdeps"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/CalendarView.dia"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/CalendarView.swiftconstvalues"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/CalendarView.o"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/CalendarView.d"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Models/User.swift":
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/User.swiftdeps"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/User.dia"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/User.d"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/User.o"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/User.swiftconstvalues"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Views/OnboardingView.swift":
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/OnboardingView.dia"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/OnboardingView.swiftconstvalues"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/OnboardingView.swiftdeps"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/OnboardingView.d"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/OnboardingView.o"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Models/WorkoutData.swift":
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/WorkoutData.o"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/WorkoutData.d"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/WorkoutData.swiftdeps"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/WorkoutData.swiftconstvalues"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/WorkoutData.dia"

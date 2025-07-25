@@ -12,32 +12,9 @@ import SwiftUI
 @MainActor
 final class DashboardViewTests: XCTestCase {
     
-    var mockHealthKitService: MockHealthKitService!
-    var mockDataService: MockDataService!
-    var mockCalculationService: MockCalculationService!
-    
-    override func setUp() {
-        super.setUp()
-        mockHealthKitService = MockHealthKitService()
-        mockDataService = MockDataService()
-        mockCalculationService = MockCalculationService()
-    }
-    
-    override func tearDown() {
-        mockHealthKitService?.reset()
-        mockHealthKitService = nil
-        mockDataService = nil
-        mockCalculationService = nil
-        super.tearDown()
-    }
-    
     func testDashboardViewInitialization() {
         // Given/When
-        let dashboardView = DashboardView(
-            healthKitService: mockHealthKitService,
-            dataService: mockDataService,
-            calculationService: mockCalculationService
-        )
+        let dashboardView = DashboardView()
         
         // Then - Should initialize without crashing
         XCTAssertNotNil(dashboardView)
@@ -45,20 +22,12 @@ final class DashboardViewTests: XCTestCase {
     
     func testDashboardViewWithMockData() {
         // Given
-        mockHealthKitService.mockActiveEnergy = 400
-        mockHealthKitService.mockRestingEnergy = 1600
         
         // When
-        let dashboardView = DashboardView(
-            healthKitService: mockHealthKitService,
-            dataService: mockDataService,
-            calculationService: mockCalculationService
-        )
+        let dashboardView = DashboardView()
         
         // Then - Should create view with mock data
         XCTAssertNotNil(dashboardView)
-        XCTAssertEqual(mockHealthKitService.mockActiveEnergy, 400)
-        XCTAssertEqual(mockHealthKitService.mockRestingEnergy, 1600)
     }
 }
 

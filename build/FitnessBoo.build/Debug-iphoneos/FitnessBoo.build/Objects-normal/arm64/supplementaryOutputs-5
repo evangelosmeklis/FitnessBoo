@@ -1,0 +1,24 @@
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Views/EnergyBreakdownView.swift":
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyBreakdownView.d"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyBreakdownView.swiftconstvalues"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyBreakdownView.dia"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyBreakdownView.swiftdeps"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyBreakdownView.o"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Views/EnergyDetailView.swift":
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyDetailView.o"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyDetailView.d"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyDetailView.dia"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyDetailView.swiftdeps"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyDetailView.swiftconstvalues"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/Views/DashboardView.swift":
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/DashboardView.dia"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/DashboardView.o"
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/DashboardView.d"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/DashboardView.swiftconstvalues"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/DashboardView.swiftdeps"
+"/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/ViewModels/EnergyViewModel.swift":
+  dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyViewModel.d"
+  swift-dependencies: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyViewModel.swiftdeps"
+  diagnostics: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyViewModel.dia"
+  const-values: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyViewModel.swiftconstvalues"
+  object: "/Users/evangelosmeklis/Desktop/FitnessBoo/build/FitnessBoo.build/Debug-iphoneos/FitnessBoo.build/Objects-normal/arm64/EnergyViewModel.o"

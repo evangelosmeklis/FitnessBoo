@@ -36,7 +36,7 @@ struct ContentView: View {
                 Label("Nutrition", systemImage: "chart.bar.fill")
             }
             
-            // Placeholder for Goals view
+            // Goals view
             GoalSettingView(
                 calculationService: calculationService,
                 dataService: dataService,
@@ -45,17 +45,6 @@ struct ContentView: View {
             .tabItem {
                 Label("Goals", systemImage: "target")
             }
-            
-            // Placeholder for Settings view
-            SettingsView(dataService: dataService)
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-            
-            HistoryView(dataService: dataService)
-                .tabItem {
-                    Label("History", systemImage: "calendar")
-                }
         }
         .onAppear {
             requestHealthKitAuthorizationIfNeeded()

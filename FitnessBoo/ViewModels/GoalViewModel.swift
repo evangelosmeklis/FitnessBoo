@@ -11,6 +11,7 @@ import Combine
 @MainActor
 class GoalViewModel: ObservableObject {
     @Published var selectedGoalType: GoalType = .loseWeight
+    @Published var currentWeight: String = ""
     @Published var targetWeight: String = ""
     @Published var targetDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
     @Published var weeklyWeightChangeGoal: Double = -0.5
@@ -28,13 +29,12 @@ class GoalViewModel: ObservableObject {
     // Computed properties for automatic calculations
     var calculatedWeeklyChange: Double {
         guard let targetWeightValue = Double(targetWeight),
+              let currentWeightValue = Double(currentWeight),
               selectedGoalType != .maintainWeight else {
             return 0
         }
         
-        // Get current weight from cached user or use a default
-        let currentWeight = cachedUser?.weight ?? 70.0
-        let weightDifference = targetWeightValue - currentWeight
+        let weightDifference = targetWeightValue - currentWeightValue
         let weeksToTarget = targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
         
         guard weeksToTarget > 0 else { return 0 }
@@ -63,14 +63,15 @@ class GoalViewModel: ObservableObject {
     
     private func setupBindings() {
         // Update calculations when goal parameters change
-        Publishers.CombineLatest4($selectedGoalType, $targetWeight, $weeklyWeightChangeGoal, $targetDate)
+        Publishers.CombineLatest4($selectedGoalType, $currentWeight, $targetWeight, $weeklyWeightChangeGoal)
+            .combineLatest($targetDate)
             .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
-            .sink { [weak self] _, _, _, _ in
+            .sink { [weak self] _ in
                 // Only update calculations if we have meaningful data
                 guard let self = self else { return }
                 
                 // Skip calculations for maintain weight or empty target weight for other goals
-                if self.selectedGoalType == .maintainWeight || 
+                if self.selectedGoalType == .maintainWeight ||
                    (self.selectedGoalType != .maintainWeight && self.targetWeight.isEmpty) {
                     return
                 }
@@ -102,11 +103,11 @@ class GoalViewModel: ObservableObject {
             try goal.validate()
             
             // Get current weight and energy data from HealthKit
-            let currentWeight = try await healthKitService.fetchWeight() ?? user.weight
+            let currentWeightValue = Double(currentWeight) ?? user.weight
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             
             // Calculate daily targets using HealthKit data
-            goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeight)
+            goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
             // Save the goal
             try await dataService.saveGoal(goal, for: user)
@@ -143,11 +144,11 @@ class GoalViewModel: ObservableObject {
             try goal.validate()
             
             // Get current weight and energy data from HealthKit
-            let currentWeight = try await healthKitService.fetchWeight() ?? user.weight
+            let currentWeightValue = Double(currentWeight) ?? user.weight
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             
             // Recalculate daily targets using HealthKit data
-            goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeight)
+            goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
             // Save the updated goal
             try await dataService.saveGoal(goal, for: user)
@@ -170,6 +171,7 @@ class GoalViewModel: ObservableObject {
         
         // Cache the user for calculations
         cachedUser = user
+        currentWeight = String(user.weight)
         
         do {
             currentGoal = try await dataService.fetchActiveGoal(for: user)
@@ -223,11 +225,11 @@ class GoalViewModel: ObservableObject {
             )
             
             // Get current weight and energy data from HealthKit
-            let currentWeight = try await healthKitService.fetchWeight() ?? user.weight
+            let currentWeightValue = Double(currentWeight) ?? user.weight
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             
             // Calculate targets using HealthKit data
-            tempGoal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeight)
+            tempGoal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
             estimatedDailyCalories = tempGoal.dailyCalorieTarget
             estimatedDailyProtein = tempGoal.dailyProteinTarget
@@ -264,35 +266,15 @@ class GoalViewModel: ObservableObject {
         return selectedGoalType.recommendedWeightChangeRange
     }
     
-    func formatWeightChange(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 1
-        formatter.maximumFractionDigits = 1
-        
-        let formattedValue = formatter.string(from: NSNumber(value: abs(value))) ?? "0.0"
-        
-        switch selectedGoalType {
-        case .loseWeight:
-            return "-\(formattedValue) kg/week"
-        case .gainWeight, .gainMuscle:
-            return "+\(formattedValue) kg/week"
-        case .maintainWeight:
-            return "±\(formattedValue) kg/week"
-        }
-    }
-    
-    func loadGoals() {
-        Task {
-            do {
-                guard let user = try await dataService.fetchUser() else { return }
-                let goals = try await dataService.fetchAllGoals(for: user)
-                activeGoals = goals.filter { $0.isActive }
-                currentGoal = activeGoals.first
-            } catch {
-                errorMessage = "Failed to load goals: \(error.localizedDescription)"
-                showingError = true
-            }
+    func loadGoals() async {
+        do {
+            guard let user = try await dataService.fetchUser() else { return }
+            let goals = try await dataService.fetchAllGoals(for: user)
+            activeGoals = goals.filter { $0.isActive }
+            currentGoal = activeGoals.first
+        } catch {
+            errorMessage = "Failed to load goals: \(error.localizedDescription)"
+            showingError = true
         }
     }
     
@@ -333,21 +315,22 @@ class GoalViewModel: ObservableObject {
         }
         
         // Validate logical constraints
+        let currentWeightValue = Double(self.currentWeight) ?? currentWeight
         switch selectedGoalType {
         case .loseWeight:
-            if targetWeightValue >= currentWeight {
-                return (false, "Target weight must be lower than current weight (\(String(format: "%.1f", currentWeight)) kg) for weight loss")
+            if targetWeightValue >= currentWeightValue {
+                return (false, "Target weight must be lower than current weight (\(String(format: "%.1f", currentWeightValue)) kg) for weight loss")
             }
-        case .gainWeight, .gainMuscle:
-            if targetWeightValue <= currentWeight {
-                return (false, "Target weight must be higher than current weight (\(String(format: "%.1f", currentWeight)) kg) for weight gain")
+        case .gainWeight:
+            if targetWeightValue <= currentWeightValue {
+                return (false, "Target weight must be higher than current weight (\(String(format: "%.1f", currentWeightValue)) kg) for weight gain")
             }
         case .maintainWeight:
             break // Already handled above
         }
         
         // Check for reasonable weight change (not more than 50kg difference)
-        let weightDifference = abs(targetWeightValue - currentWeight)
+        let weightDifference = abs(targetWeightValue - currentWeightValue)
         if weightDifference > 50 {
             return (false, "Target weight seems unrealistic. Please choose a target within 50kg of your current weight")
         }

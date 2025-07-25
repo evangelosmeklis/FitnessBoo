@@ -1,0 +1,32 @@
+{
+  "source": "/Users/evangelosmeklis/Desktop/FitnessBoo/FitnessBoo/ContentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Dashboard",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 27
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nutrition",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 36
+        }
+      },
+      {
+        "comment": "",
+        "key": "Goals",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 46
+        }
+      }
+    ]
+  },
+  "version": 1
+}

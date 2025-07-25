@@ -33,10 +33,11 @@ struct GoalSettingView: View {
             Form {
                 goalTypeSection
                 
+                currentWeightSection
+                
                 if viewModel.selectedGoalType != .maintainWeight {
                     targetWeightSection
                     targetDateSection
-                    calculatedWeeklyChangeSection
                 }
                 
                 estimatedTargetsSection
@@ -156,9 +157,6 @@ struct GoalSettingView: View {
                         viewModel.selectedGoalType = goalType
                     }
                     
-                    // Update weight change range
-                    updateWeightChangeForGoalType(goalType)
-                    
                     // Clear target weight for maintain weight goal
                     if goalType == .maintainWeight {
                         viewModel.targetWeight = ""
@@ -168,6 +166,21 @@ struct GoalSettingView: View {
             }
         } header: {
             Text("Goal Type")
+        }
+    }
+    
+    private var currentWeightSection: some View {
+        Section(header: Text("Current Weight")) {
+            HStack {
+                Text("Current Weight")
+                Spacer()
+                TextField("Enter weight", text: $viewModel.currentWeight)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 100)
+                Text("kg")
+                    .foregroundColor(.secondary)
+            }
         }
     }
     
@@ -256,43 +269,12 @@ struct GoalSettingView: View {
         }
     }
     
-    private var calculatedWeeklyChangeSection: some View {
-        Section {
-            HStack {
-                Text("Required Weekly Change")
-                Spacer()
-                Text(viewModel.formatWeightChange(viewModel.calculatedWeeklyChange))
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack {
-                Text("Daily Calorie Adjustment")
-                Spacer()
-                let adjustment = viewModel.calculatedDailyCalorieAdjustment
-                Text("\(adjustment > 0 ? "+" : "")\(Int(adjustment)) cal")
-                    .foregroundColor(adjustment > 0 ? .green : .red)
-            }
-        } header: {
-            Text("Calculated Requirements")
-        } footer: {
-            Text("Based on your target weight and date. 1 kg = ~7700 calories.")
-                .font(.caption)
-        }
-    }
-    
     private var estimatedTargetsSection: some View {
         Section {
             HStack {
                 Text("Daily Calories")
                 Spacer()
                 Text("\(Int(viewModel.estimatedDailyCalories)) cal")
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack {
-                Text("Daily Protein")
-                Spacer()
-                Text("\(Int(viewModel.estimatedDailyProtein)) g")
                     .foregroundColor(.secondary)
             }
         } header: {
@@ -327,25 +309,6 @@ struct GoalSettingView: View {
         } catch {
             viewModel.errorMessage = "Failed to load user data"
             viewModel.showingError = true
-        }
-    }
-    
-    private func updateWeightChangeForGoalType(_ goalType: GoalType) {
-        let range = goalType.recommendedWeightChangeRange
-        let midpoint = (range.lowerBound + range.upperBound) / 2
-        viewModel.weeklyWeightChangeGoal = midpoint
-    }
-    
-    private func getWeeklyChangeFooterText() -> String {
-        switch viewModel.selectedGoalType {
-        case .loseWeight:
-            return "Safe weight loss is 0.25-1.0 kg per week. Faster loss may lead to muscle loss."
-        case .gainWeight:
-            return "Healthy weight gain is 0.25-0.5 kg per week. Faster gain may increase fat storage."
-        case .gainMuscle:
-            return "Quality muscle gain is 0.1-0.3 kg per week with proper training and nutrition."
-        case .maintainWeight:
-            return "Maintenance allows for small fluctuations around your current weight."
         }
     }
     

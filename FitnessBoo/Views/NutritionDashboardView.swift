@@ -94,29 +94,8 @@ struct NutritionDashboardView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             
             VStack(spacing: 12) {
-                // Calories Progress
-                ProgressCard(
-                    title: "Calories",
-                    current: nutritionViewModel.totalCalories,
-                    target: nutritionViewModel.dailyNutrition?.calorieTarget ?? 0,
-                    remaining: nutritionViewModel.remainingCalories,
-                    progress: nutritionViewModel.calorieProgress,
-                    color: .orange,
-                    icon: "flame.fill",
-                    unit: "cal"
-                )
-                
-                // Protein Progress
-                ProgressCard(
-                    title: "Protein",
-                    current: nutritionViewModel.totalProtein,
-                    target: nutritionViewModel.dailyNutrition?.proteinTarget ?? 0,
-                    remaining: nutritionViewModel.remainingProtein,
-                    progress: nutritionViewModel.proteinProgress,
-                    color: .green,
-                    icon: "leaf.fill",
-                    unit: "g"
-                )
+                // Caloric Balance Progress
+                CaloricBalanceCard()
             }
         }
         .padding()
@@ -338,10 +317,6 @@ struct MealSection: View {
         entries.reduce(0) { $0 + $1.calories }
     }
     
-    private var totalProtein: Double {
-        entries.reduce(0) { $0 + ($1.protein ?? 0) }
-    }
-    
     var body: some View {
         VStack(spacing: 8) {
             // Meal header
@@ -354,11 +329,6 @@ struct MealSection: View {
                     Text("\(Int(totalCalories)) cal")
                         .font(.caption)
                         .fontWeight(.medium)
-                    if totalProtein > 0 {
-                        Text("\(String(format: "%.1f", totalProtein))g protein")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -395,12 +365,6 @@ struct FoodEntryRow: View {
                         Text("\(Int(entry.calories)) cal")
                             .font(.subheadline)
                             .fontWeight(.medium)
-                        
-                        if let protein = entry.protein, protein > 0 {
-                            Text("• \(String(format: "%.1f", protein))g protein")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
                     }
                     
                     if let notes = entry.notes, !notes.isEmpty {
@@ -450,6 +414,164 @@ struct WaterButton: View {
                 .background(Color.blue.opacity(0.1))
                 .foregroundColor(.blue)
                 .cornerRadius(8)
+        }
+    }
+}
+
+// MARK: - Caloric Balance Card
+
+struct CaloricBalanceCard: View {
+    @StateObject private var calorieBalanceService = CalorieBalanceService(
+        healthKitService: HealthKitService(),
+        calculationService: CalculationService(),
+        dataService: DataService.shared
+    )
+    @StateObject private var goalViewModel = GoalViewModel(
+        calculationService: CalculationService(),
+        dataService: DataService.shared,
+        healthKitService: HealthKitService()
+    )
+    @State private var currentBalance: CalorieBalance?
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Label("Caloric Balance", systemImage: "scale.3d")
+                    .foregroundColor(.blue)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                Text("vs Target")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Current Balance")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(Int(currentBalance?.balance ?? 0)) cal")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(balanceColor)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing) {
+                    Text("Target Adjustment")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text("\(adjustmentText)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(targetColor)
+                }
+            }
+            
+            // Progress indicator
+            let progress = calculateProgress()
+            ProgressView(value: progress)
+                .progressViewStyle(LinearProgressViewStyle(tint: progressColor))
+                .scaleEffect(x: 1, y: 1.5, anchor: .center)
+            
+            Text(statusText)
+                .font(.caption)
+                .foregroundColor(statusColor)
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.blue.opacity(0.2), lineWidth: 1)
+        )
+        .onAppear {
+            calorieBalanceService.startRealTimeTracking()
+            Task {
+                await goalViewModel.loadGoals()
+            }
+        }
+        .onReceive(calorieBalanceService.currentBalance) { balance in
+            currentBalance = balance
+        }
+    }
+    
+    private var balanceColor: Color {
+        let balance = currentBalance?.balance ?? 0
+        return balance < 0 ? .red : .green
+    }
+    
+    private var targetColor: Color {
+        let adjustment = goalViewModel.calculatedDailyCalorieAdjustment
+        return adjustment < 0 ? .red : .green
+    }
+    
+    private var adjustmentText: String {
+        let adjustment = goalViewModel.calculatedDailyCalorieAdjustment
+        return "\(adjustment > 0 ? "+" : "")\(Int(adjustment)) cal"
+    }
+    
+    private func calculateProgress() -> Double {
+        let currentBalanceValue = currentBalance?.balance ?? 0
+        let targetAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
+        
+        if targetAdjustment == 0 { return 0.5 }
+        
+        // For weight loss (negative target), we want current balance to be more negative
+        // For weight gain (positive target), we want current balance to be more positive
+        if targetAdjustment < 0 {
+            // Weight loss: progress is good when current balance is more negative than target
+            return min(max(abs(currentBalanceValue) / abs(targetAdjustment), 0), 2) / 2
+        } else {
+            // Weight gain: progress is good when current balance matches positive target
+            return min(max(currentBalanceValue / targetAdjustment, 0), 2) / 2
+        }
+    }
+    
+    private var progressColor: Color {
+        let progress = calculateProgress()
+        if progress > 0.8 { return .green }
+        if progress > 0.5 { return .orange }
+        return .red
+    }
+    
+    private var statusText: String {
+        let currentBalanceValue = currentBalance?.balance ?? 0
+        let targetAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
+        
+        if targetAdjustment == 0 {
+            return "No active goal set"
+        }
+        
+        let difference = abs(currentBalanceValue) - abs(targetAdjustment)
+        
+        if targetAdjustment < 0 { // Weight loss
+            if currentBalanceValue <= targetAdjustment {
+                return "Great! You're on track for weight loss"
+            } else {
+                return "Need \(Int(abs(difference))) more calorie deficit"
+            }
+        } else { // Weight gain
+            if currentBalanceValue >= targetAdjustment {
+                return "Great! You're on track for weight gain"
+            } else {
+                return "Need \(Int(difference)) more calorie surplus"
+            }
+        }
+    }
+    
+    private var statusColor: Color {
+        let currentBalanceValue = currentBalance?.balance ?? 0
+        let targetAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
+        
+        if targetAdjustment == 0 { return .secondary }
+        
+        if targetAdjustment < 0 { // Weight loss
+            return currentBalanceValue <= targetAdjustment ? .green : .orange
+        } else { // Weight gain
+            return currentBalanceValue >= targetAdjustment ? .green : .orange
         }
     }
 }

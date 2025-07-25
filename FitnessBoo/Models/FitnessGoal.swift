@@ -47,7 +47,7 @@ struct FitnessGoal: Codable, Identifiable {
             // For weight loss, subtract calories but ensure minimum of 1200 calories
             let targetCalories = baseDailyCalories + dailyCalorieAdjustment // dailyCalorieAdjustment is negative
             dailyCalorieTarget = max(targetCalories, 1200) // Never go below 1200 calories
-        case .gainWeight, .gainMuscle:
+        case .gainWeight:
             // For weight gain, add calories
             dailyCalorieTarget = baseDailyCalories + abs(dailyCalorieAdjustment)
         case .maintainWeight:
@@ -59,8 +59,6 @@ struct FitnessGoal: Codable, Identifiable {
         switch type {
         case .loseWeight:
             dailyProteinTarget = currentWeight * 1.6 // Higher protein for weight loss
-        case .gainMuscle:
-            dailyProteinTarget = currentWeight * 2.2 // Highest protein for muscle gain
         case .gainWeight:
             dailyProteinTarget = currentWeight * 1.4 // Moderate protein for weight gain
         case .maintainWeight:
@@ -79,7 +77,7 @@ struct FitnessGoal: Codable, Identifiable {
             guard weeklyWeightChangeGoal <= 0 && weeklyWeightChangeGoal >= -1.0 else {
                 throw GoalValidationError.unsafeWeightLoss
             }
-        case .gainWeight, .gainMuscle:
+        case .gainWeight:
             guard weeklyWeightChangeGoal >= 0 && weeklyWeightChangeGoal <= 0.5 else {
                 throw GoalValidationError.unsafeWeightGain
             }
@@ -115,14 +113,13 @@ struct FitnessGoal: Codable, Identifiable {
 }
 
 enum GoalType: String, CaseIterable, Codable {
-    case loseWeight, maintainWeight, gainWeight, gainMuscle
+    case loseWeight, maintainWeight, gainWeight
     
     var displayName: String {
         switch self {
         case .loseWeight: return "Lose Weight"
         case .maintainWeight: return "Maintain Weight"
         case .gainWeight: return "Gain Weight"
-        case .gainMuscle: return "Gain Muscle"
         }
     }
     
@@ -131,7 +128,6 @@ enum GoalType: String, CaseIterable, Codable {
         case .loseWeight: return "Create a calorie deficit to lose weight"
         case .maintainWeight: return "Maintain current weight with balanced nutrition"
         case .gainWeight: return "Create a calorie surplus to gain weight"
-        case .gainMuscle: return "Build muscle with high protein and strength training"
         }
     }
     
@@ -140,7 +136,6 @@ enum GoalType: String, CaseIterable, Codable {
         case .loseWeight: return -1.0...(-0.25) // -1kg to -0.25kg per week
         case .maintainWeight: return -0.1...0.1 // Minimal change
         case .gainWeight: return 0.25...0.5 // 0.25kg to 0.5kg per week
-        case .gainMuscle: return 0.1...0.3 // Slower, quality weight gain
         }
     }
 }

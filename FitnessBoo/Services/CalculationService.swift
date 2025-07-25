@@ -125,9 +125,6 @@ class CalculationService: CalculationServiceProtocol {
             // 1 kg of body weight ≈ 7700 calories
             let dailyCalorieAdjustment = (weeklyWeightChangeGoal * 7700) / 7
             return dailyCalorieNeeds + dailyCalorieAdjustment
-        case .gainMuscle:
-            // Muscle gain typically requires moderate surplus
-            return dailyCalorieNeeds + 300
         }
     }
     
@@ -146,8 +143,6 @@ class CalculationService: CalculationServiceProtocol {
             return weight * 1.2 // Higher protein to preserve muscle during weight loss
         case .gainWeight:
             return weight * 1.0 // 1.0g per kg for healthy weight gain
-        case .gainMuscle:
-            return weight * 1.6 // Higher protein for muscle building
         }
     }
     
