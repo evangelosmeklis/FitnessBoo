@@ -467,6 +467,25 @@ struct CaloricBalanceCard: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(targetColor)
+                    
+                    // Debug info
+                    VStack(alignment: .trailing, spacing: 2) {
+                        if goalViewModel.calculatedDailyCalorieAdjustment == 0 {
+                            Text("CW: \(goalViewModel.currentWeight)")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                            Text("TW: \(goalViewModel.targetWeight)")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                            Text("Type: \(goalViewModel.selectedGoalType.rawValue)")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        } else {
+                            Text("Weekly: \(goalViewModel.calculatedWeeklyChange, specifier: "%.2f")")
+                                .font(.caption2)
+                                .foregroundColor(.green)
+                        }
+                    }
                 }
             }
             
@@ -490,11 +509,22 @@ struct CaloricBalanceCard: View {
         .onAppear {
             calorieBalanceService.startRealTimeTracking()
             Task {
-                await goalViewModel.loadGoals()
+                // Load the current goal for the user (this populates the UI fields)
+                if let user = try? await DataService.shared.fetchUser() {
+                    await goalViewModel.loadCurrentGoal(for: user)
+                }
             }
         }
         .onReceive(calorieBalanceService.currentBalance) { balance in
             currentBalance = balance
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
+            Task {
+                // Reload the current goal when goals are updated
+                if let user = try? await DataService.shared.fetchUser() {
+                    await goalViewModel.loadCurrentGoal(for: user)
+                }
+            }
         }
     }
     
@@ -510,6 +540,9 @@ struct CaloricBalanceCard: View {
     
     private var adjustmentText: String {
         let adjustment = goalViewModel.calculatedDailyCalorieAdjustment
+        if adjustment == 0 {
+            return "No target"
+        }
         return "\(adjustment > 0 ? "+" : "")\(Int(adjustment)) cal"
     }
     
