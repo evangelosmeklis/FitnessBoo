@@ -436,7 +436,7 @@ struct GoalSettingView: View {
         }
         
         // Compare current values with existing goal
-        let targetWeightChanged = (currentGoal.targetWeight?.formatted() ?? "") != viewModel.targetWeight
+        let targetWeightChanged = (currentGoal.targetWeight != nil ? String(currentGoal.targetWeight!) : "") != viewModel.targetWeight
         let goalTypeChanged = currentGoal.type != viewModel.selectedGoalType
         let weeklyChangeChanged = abs(currentGoal.weeklyWeightChangeGoal - viewModel.weeklyWeightChangeGoal) > 0.01
         let targetDateChanged = currentGoal.targetDate != viewModel.targetDate

@@ -178,7 +178,7 @@ class GoalViewModel: ObservableObject {
             
             if let goal = currentGoal {
                 selectedGoalType = goal.type
-                targetWeight = goal.targetWeight?.formatted() ?? ""
+                targetWeight = goal.targetWeight != nil ? String(goal.targetWeight!) : ""
                 targetDate = goal.targetDate ?? targetDate
                 weeklyWeightChangeGoal = goal.weeklyWeightChangeGoal
             }

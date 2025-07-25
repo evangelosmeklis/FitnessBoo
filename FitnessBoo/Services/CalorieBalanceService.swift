@@ -144,8 +144,24 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
             .store(in: &cancellables)
         
         // Observe nutrition changes (when user logs food)
-        // This would be connected to nutrition tracking updates
         NotificationCenter.default.publisher(for: .nutritionDataUpdated)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.updateCurrentBalance()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Also listen for food entry updates
+        NotificationCenter.default.publisher(for: NSNotification.Name("FoodEntryAdded"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.updateCurrentBalance()
+                }
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: NSNotification.Name("FoodEntryUpdated"))
             .sink { [weak self] _ in
                 Task { @MainActor in
                     await self?.updateCurrentBalance()

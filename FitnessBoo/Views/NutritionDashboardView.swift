@@ -455,6 +455,9 @@ struct CaloricBalanceCard: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(balanceColor)
+                    Text("Consumed: \(Int(currentBalance?.caloriesConsumed ?? 0))")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()

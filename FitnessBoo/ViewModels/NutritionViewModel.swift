@@ -132,6 +132,10 @@ class NutritionViewModel: ObservableObject {
             // Save to HealthKit
             try await healthKitService.saveDietaryEnergy(calories: entry.calories, date: entry.timestamp)
             
+            // Post notification for calorie balance update
+            NotificationCenter.default.post(name: NSNotification.Name("FoodEntryAdded"), object: nil)
+            NotificationCenter.default.post(name: .nutritionDataUpdated, object: nil)
+            
             errorMessage = nil
         } catch {
             errorMessage = "Failed to add food entry: \(error.localizedDescription)"
@@ -182,6 +186,10 @@ class NutritionViewModel: ObservableObject {
                 self.dailyNutrition = currentNutrition
             }
             
+            // Post notification for calorie balance update
+            NotificationCenter.default.post(name: NSNotification.Name("FoodEntryUpdated"), object: nil)
+            NotificationCenter.default.post(name: .nutritionDataUpdated, object: nil)
+            
             errorMessage = nil
         } catch {
             errorMessage = "Failed to update food entry: \(error.localizedDescription)"
@@ -199,6 +207,10 @@ class NutritionViewModel: ObservableObject {
                 try await dataService.saveDailyNutrition(currentNutrition)
                 self.dailyNutrition = currentNutrition
             }
+            
+            // Post notification for calorie balance update
+            NotificationCenter.default.post(name: NSNotification.Name("FoodEntryUpdated"), object: nil)
+            NotificationCenter.default.post(name: .nutritionDataUpdated, object: nil)
             
             errorMessage = nil
         } catch {
