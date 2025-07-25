@@ -143,7 +143,7 @@ struct DashboardView: View {
                 .fontWeight(.semibold)
             
             if energyViewModel.isLoading {
-                ProgressView("Loading energy data...")
+                SwiftUI.ProgressView("Loading energy data...")
                     .frame(maxWidth: .infinity)
             } else if let errorMessage = energyViewModel.errorMessage {
                 Text("Error: \(errorMessage)")
@@ -403,7 +403,7 @@ struct CalorieBalanceSummaryView: View {
                 
             } else {
                 HStack {
-                    ProgressView()
+                    SwiftUI.ProgressView()
                         .scaleEffect(0.8)
                     
                     Text("Calculating balance...")

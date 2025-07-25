@@ -273,7 +273,7 @@ struct ProgressCard: View {
                     .fontWeight(.medium)
             }
             
-            ProgressView(value: min(progress, 1.0))
+            SwiftUI.ProgressView(value: min(progress, 1.0))
                 .progressViewStyle(LinearProgressViewStyle(tint: color))
                 .scaleEffect(x: 1, y: 1.5, anchor: .center)
             
@@ -421,17 +421,27 @@ struct WaterButton: View {
 // MARK: - Caloric Balance Card
 
 struct CaloricBalanceCard: View {
-    @StateObject private var calorieBalanceService = CalorieBalanceService(
-        healthKitService: HealthKitService(),
-        calculationService: CalculationService(),
-        dataService: DataService.shared
-    )
-    @StateObject private var goalViewModel = GoalViewModel(
-        calculationService: CalculationService(),
-        dataService: DataService.shared,
-        healthKitService: HealthKitService()
-    )
+    @StateObject private var calorieBalanceService: CalorieBalanceService
+    @StateObject private var goalViewModel: GoalViewModel
     @State private var currentBalance: CalorieBalance?
+    
+    init() {
+        let healthKitService = HealthKitService()
+        let calculationService = CalculationService()
+        let dataService = DataService.shared
+        
+        self._calorieBalanceService = StateObject(wrappedValue: CalorieBalanceService(
+            healthKitService: healthKitService,
+            calculationService: calculationService,
+            dataService: dataService
+        ))
+        
+        self._goalViewModel = StateObject(wrappedValue: GoalViewModel(
+            calculationService: calculationService,
+            dataService: dataService,
+            healthKitService: healthKitService
+        ))
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -471,30 +481,12 @@ struct CaloricBalanceCard: View {
                         .fontWeight(.bold)
                         .foregroundColor(targetColor)
                     
-                    // Debug info
-                    VStack(alignment: .trailing, spacing: 2) {
-                        if goalViewModel.calculatedDailyCalorieAdjustment == 0 {
-                            Text("CW: \(goalViewModel.currentWeight)")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                            Text("TW: \(goalViewModel.targetWeight)")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                            Text("Type: \(goalViewModel.selectedGoalType.rawValue)")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        } else {
-                            Text("Weekly: \(goalViewModel.calculatedWeeklyChange, specifier: "%.2f")")
-                                .font(.caption2)
-                                .foregroundColor(.green)
-                        }
-                    }
                 }
             }
             
             // Progress indicator
             let progress = calculateProgress()
-            ProgressView(value: progress)
+            SwiftUI.ProgressView(value: progress)
                 .progressViewStyle(LinearProgressViewStyle(tint: progressColor))
                 .scaleEffect(x: 1, y: 1.5, anchor: .center)
             

@@ -81,7 +81,7 @@ struct HistoryView: View {
     @ViewBuilder
     private var foodEntriesList: some View {
         if viewModel.isLoading {
-            ProgressView("Loading entries...")
+            SwiftUI.ProgressView("Loading entries...")
         } else if let errorMessage = viewModel.errorMessage {
             Text(errorMessage)
                 .foregroundColor(.red)

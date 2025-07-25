@@ -19,7 +19,7 @@ struct OnboardingView: View {
         NavigationView {
             VStack(spacing: 20) {
                 // Progress indicator
-                ProgressView(value: Double(currentStep), total: Double(totalSteps))
+                SwiftUI.ProgressView(value: Double(currentStep), total: Double(totalSteps))
                     .progressViewStyle(LinearProgressViewStyle())
                     .padding(.horizontal)
                 
@@ -297,7 +297,7 @@ struct ReviewStepView: View {
             .cornerRadius(10)
             
             if viewModel.isLoading {
-                ProgressView("Creating your profile...")
+                SwiftUI.ProgressView("Creating your profile...")
                     .padding()
             }
         }

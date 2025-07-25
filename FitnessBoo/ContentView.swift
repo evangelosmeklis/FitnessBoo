@@ -36,6 +36,15 @@ struct ContentView: View {
                 Label("Nutrition", systemImage: "chart.bar.fill")
             }
             
+            ProgressView(
+                dataService: dataService,
+                calculationService: calculationService,
+                healthKitService: healthKitService
+            )
+            .tabItem {
+                Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
+            }
+            
             // Goals view
             GoalSettingView(
                 calculationService: calculationService,

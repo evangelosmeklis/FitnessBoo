@@ -217,7 +217,7 @@ struct CalorieBalanceView: View {
     // MARK: - Loading Section
     private var loadingSection: some View {
         VStack(spacing: 16) {
-            ProgressView()
+            SwiftUI.ProgressView()
                 .scaleEffect(1.2)
             
             Text("Calculating balance...")
