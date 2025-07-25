@@ -209,8 +209,11 @@ class NutritionViewModel: ObservableObject {
             }
             
             // Post notification for calorie balance update
-            NotificationCenter.default.post(name: NSNotification.Name("FoodEntryUpdated"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("FoodEntryDeleted"), object: nil)
             NotificationCenter.default.post(name: .nutritionDataUpdated, object: nil)
+            
+            // Force immediate UI update
+            updateRealTimeCalculations()
             
             errorMessage = nil
         } catch {

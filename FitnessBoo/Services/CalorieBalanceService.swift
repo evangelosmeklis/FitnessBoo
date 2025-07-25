@@ -168,6 +168,14 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
                 }
             }
             .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: NSNotification.Name("FoodEntryDeleted"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.updateCurrentBalance()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     private func updateCurrentBalance() async {
