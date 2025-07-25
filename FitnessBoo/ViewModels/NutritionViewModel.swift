@@ -82,7 +82,6 @@ class NutritionViewModel: ObservableObject {
                 try await dataService.saveDailyNutrition(updatedNutrition)
             } else {
                 // Create new daily nutrition with targets from user goals
-                let targets = try await calculateDailyTargets()
                 var newNutrition = DailyNutrition(
                     date: date,
                     calorieTarget: targets.calories,
@@ -141,6 +140,11 @@ class NutritionViewModel: ObservableObject {
     
     func addWater(milliliters: Double) async {
         do {
+            // Ensure we have daily nutrition loaded
+            if dailyNutrition == nil {
+                await loadDailyNutrition(for: Date())
+            }
+            
             if var currentNutrition = dailyNutrition {
                 currentNutrition.waterConsumed += milliliters
                 try await dataService.saveDailyNutrition(currentNutrition)
@@ -148,10 +152,18 @@ class NutritionViewModel: ObservableObject {
                 
                 // Save to HealthKit
                 try await healthKitService.saveWater(milliliters: milliliters, date: Date())
+                
+                // Update UI calculations
+                updateRealTimeCalculations()
+                
+                print("Water added successfully: \(milliliters)ml, total: \(currentNutrition.waterConsumed)ml")
+            } else {
+                throw NSError(domain: "NutritionViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not create or load daily nutrition"])
             }
             
             errorMessage = nil
         } catch {
+            print("Failed to add water: \(error.localizedDescription)")
             errorMessage = "Failed to add water: \(error.localizedDescription)"
         }
     }

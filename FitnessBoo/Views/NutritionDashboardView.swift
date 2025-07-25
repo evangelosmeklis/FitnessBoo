@@ -73,6 +73,7 @@ struct NutritionDashboardView: View {
             }
             .onAppear {
                 Task {
+                    await nutritionViewModel.loadDailyNutrition()
                     await nutritionViewModel.refreshData()
                 }
             }
