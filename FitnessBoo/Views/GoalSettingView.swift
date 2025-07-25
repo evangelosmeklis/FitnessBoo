@@ -40,6 +40,8 @@ struct GoalSettingView: View {
                     targetDateSection
                 }
                 
+                dailyCalorieAdjustmentSection
+                
                 estimatedTargetsSection
                 
                 if !viewModel.errorMessage.isNilOrEmpty {
@@ -225,6 +227,109 @@ struct GoalSettingView: View {
                 let difference = abs(targetWeight - user.weight)
                 let direction = targetWeight > user.weight ? "gain" : "lose"
                 Text("You need to \(direction) \(difference, specifier: "%.1f") kg")
+                    .font(.caption)
+            }
+        }
+    }
+    
+    private var dailyCalorieAdjustmentSection: some View {
+        Section {
+            VStack(spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Daily Calorie Target")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        if viewModel.selectedGoalType == .maintainWeight {
+                            Text("Maintain current calorie balance")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        } else {
+                            let adjustment = viewModel.calculatedDailyCalorieAdjustment
+                            let adjustmentText = adjustment < 0 ? "Deficit" : "Surplus"
+                            let adjustmentColor: Color = adjustment < 0 ? .red : .green
+                            
+                            Text("\(adjustmentText) of \(Int(abs(adjustment))) calories/day")
+                                .font(.subheadline)
+                                .foregroundColor(adjustmentColor)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    if viewModel.selectedGoalType != .maintainWeight {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            let adjustment = viewModel.calculatedDailyCalorieAdjustment
+                            let sign = adjustment >= 0 ? "+" : ""
+                            Text("\(sign)\(Int(adjustment))")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(adjustment < 0 ? .red : .green)
+                            Text("cal/day")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                
+                if viewModel.selectedGoalType != .maintainWeight && !viewModel.targetWeight.isEmpty && !viewModel.currentWeight.isEmpty {
+                    Divider()
+                    
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Weekly Weight Change:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            let weeklyChange = viewModel.calculatedWeeklyChange
+                            let sign = weeklyChange >= 0 ? "+" : ""
+                            Text("\(sign)\(weeklyChange, specifier: "%.2f") kg/week")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundColor(weeklyChange < 0 ? .red : .green)
+                        }
+                        
+                        if let targetWeight = Double(viewModel.targetWeight),
+                           let currentWeight = Double(viewModel.currentWeight) {
+                            let totalWeightChange = targetWeight - currentWeight
+                            let weeksToGoal = viewModel.targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
+                            
+                            HStack {
+                                Text("Time to Goal:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("\(Int(weeksToGoal)) weeks")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            
+                            HStack {
+                                Text("Total Weight Change:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                let sign = totalWeightChange >= 0 ? "+" : ""
+                                Text("\(sign)\(totalWeightChange, specifier: "%.1f") kg")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(totalWeightChange < 0 ? .red : .green)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        } header: {
+            Text("Daily Calorie Adjustment")
+        } footer: {
+            if viewModel.selectedGoalType != .maintainWeight {
+                Text("This is the daily calorie deficit/surplus needed to reach your target weight by the target date. This target will be reflected in your Nutrition tab.")
+                    .font(.caption)
+            } else {
+                Text("For weight maintenance, focus on balancing calories consumed with calories burned.")
                     .font(.caption)
             }
         }
