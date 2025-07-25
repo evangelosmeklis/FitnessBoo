@@ -9,6 +9,7 @@
         <attribute name="proteinTarget" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="totalCalories" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="totalProtein" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="waterConsumed" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="UserEntity" inverseName="dailyNutrition" inverseEntity="UserEntity"/>
     </entity>
     <entity name="DailyStatsEntity" representedClassName="DailyStatsEntity" syncable="YES" codeGenerationType="class">

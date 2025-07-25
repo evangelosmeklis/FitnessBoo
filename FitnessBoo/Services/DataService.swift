@@ -278,7 +278,7 @@ class DataService: DataServiceProtocol {
             context.perform {
                 do {
                     // Find the user entity
-                    let userRequest: NSFetchRequest<UserEntity> = UserEntity.fetchRequest()
+                    let userRequest = NSFetchRequest<UserEntity>(entityName: "UserEntity")
                     userRequest.predicate = NSPredicate(format: "id == %@", user.id as CVarArg)
                     
                     guard let userEntity = try self.context.fetch(userRequest).first else {
@@ -290,7 +290,7 @@ class DataService: DataServiceProtocol {
                     let startOfDay = calendar.startOfDay(for: nutritionToSave.date)
                     let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
                     
-                    let request: NSFetchRequest<DailyNutritionEntity> = DailyNutritionEntity.fetchRequest()
+                    let request = NSFetchRequest<DailyNutritionEntity>(entityName: "DailyNutritionEntity")
                     request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                         NSPredicate(format: "user.id == %@", user.id as CVarArg),
                         NSPredicate(format: "date >= %@ AND date < %@", startOfDay as NSDate, endOfDay as NSDate)
@@ -315,6 +315,7 @@ class DataService: DataServiceProtocol {
                     dailyNutritionEntity.proteinTarget = nutritionToSave.proteinTarget
                     dailyNutritionEntity.caloriesFromExercise = nutritionToSave.caloriesFromExercise
                     dailyNutritionEntity.netCalories = nutritionToSave.netCalories
+                    dailyNutritionEntity.setValue(nutritionToSave.waterConsumed, forKey: "waterConsumed")
                     
                     try self.saveContext()
                     continuation.resume()
@@ -338,7 +339,7 @@ class DataService: DataServiceProtocol {
                     let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
                     
                     // Always fetch food entries for this date
-                    let foodRequest: NSFetchRequest<FoodEntryEntity> = FoodEntryEntity.fetchRequest()
+                    let foodRequest = NSFetchRequest<FoodEntryEntity>(entityName: "FoodEntryEntity")
                     foodRequest.predicate = NSPredicate(format: "timestamp >= %@ AND timestamp < %@ AND user.id == %@", 
                                                       startOfDay as NSDate, endOfDay as NSDate, user.id as CVarArg)
                     foodRequest.sortDescriptors = [NSSortDescriptor(keyPath: \FoodEntryEntity.timestamp, ascending: true)]
@@ -347,7 +348,7 @@ class DataService: DataServiceProtocol {
                     let foodEntries = foodEntities.compactMap { self.convertToFoodEntry(from: $0) }
                     
                     // Try to fetch existing daily nutrition
-                    let request: NSFetchRequest<DailyNutritionEntity> = DailyNutritionEntity.fetchRequest()
+                    let request = NSFetchRequest<DailyNutritionEntity>(entityName: "DailyNutritionEntity")
                     request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                         NSPredicate(format: "user.id == %@", user.id as CVarArg),
                         NSPredicate(format: "date >= %@ AND date < %@", startOfDay as NSDate, endOfDay as NSDate)
@@ -720,7 +721,7 @@ extension DataService {
             proteinTarget: entity.proteinTarget,
             caloriesFromExercise: entity.caloriesFromExercise,
             netCalories: entity.netCalories,
-            waterConsumed: 0 // Not persisted in Core Data
+            waterConsumed: entity.value(forKey: "waterConsumed") as? Double ?? 0.0
         )
         
         return nutrition

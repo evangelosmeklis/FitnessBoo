@@ -247,13 +247,16 @@ class NutritionViewModel: ObservableObject {
     private func calculateDailyTargets() async throws -> (calories: Double, protein: Double) {
         // Get active goal
         guard let goal = try await dataService.fetchActiveGoal() else {
+            print("No active goal found, using HealthKit data")
             // Use HealthKit energy data if no goal is set
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             let currentWeight = try await healthKitService.fetchWeight() ?? 70.0 // Default fallback
             let proteinTarget = currentWeight * 1.2 // Basic maintenance protein
+            print("Using HealthKit energy: \(totalEnergy), protein: \(proteinTarget)")
             return (calories: totalEnergy > 0 ? totalEnergy : 2000, protein: proteinTarget)
         }
         
+        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget)")
         return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget)
     }
 }

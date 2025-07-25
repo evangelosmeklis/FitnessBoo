@@ -47,9 +47,6 @@ struct DashboardView: View {
                     
                     // Caloric balance section
                     caloricBalanceSection
-                    
-                    // Today's progress
-                    todaysProgressSection
                 }
                 .padding()
             }
@@ -123,39 +120,7 @@ struct DashboardView: View {
         }
     }
     
-    private var todaysProgressSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Today's Progress")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            if let nutrition = nutritionViewModel.todaysNutrition {
-                VStack(spacing: 8) {
-                    ProgressRow(
-                        title: "Calories",
-                        current: nutrition.totalCalories,
-                        target: goalViewModel.currentGoal?.dailyCalorieTarget ?? 2000,
-                        unit: "kcal",
-                        color: .orange
-                    )
-                    
-                    ProgressRow(
-                        title: "Protein",
-                        current: nutrition.totalProtein,
-                        target: goalViewModel.currentGoal?.dailyProteinTarget ?? 100,
-                        unit: "g",
-                        color: .red
-                    )
-                }
-            } else {
-                Text("No nutrition data for today")
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
+
     
     private var energyTrackingSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -288,37 +253,7 @@ struct StatCard: View {
     }
 }
 
-struct ProgressRow: View {
-    let title: String
-    let current: Double
-    let target: Double
-    let unit: String
-    let color: Color
-    
-    private var progress: Double {
-        guard target > 0 else { return 0 }
-        return min(current / target, 1.0)
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                Spacer()
-                
-                Text("\(Int(current))/\(Int(target)) \(unit)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            ProgressView(value: progress)
-                .progressViewStyle(LinearProgressViewStyle(tint: color))
-        }
-    }
-}
+
 
 struct ActionCard: View {
     let title: String
