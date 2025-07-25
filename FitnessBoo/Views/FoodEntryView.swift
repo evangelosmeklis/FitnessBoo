@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Combine
+import HealthKit
 
 struct FoodEntryView: View {
     @Environment(\.dismiss) private var dismiss
@@ -217,9 +219,11 @@ struct FoodEntryView_Previews: PreviewProvider {
     static var previews: some View {
         let mockDataService = MockDataService()
         let mockCalculationService = MockCalculationService()
+        let mockHealthKitService = MockHealthKitService()
         let nutritionViewModel = NutritionViewModel(
             dataService: mockDataService,
-            calculationService: mockCalculationService
+            calculationService: mockCalculationService,
+            healthKitService: mockHealthKitService
         )
         
         Group {
@@ -247,6 +251,9 @@ struct FoodEntryView_Previews: PreviewProvider {
 class MockDataService: DataServiceProtocol {
     func saveUser(_ user: User) async throws { }
     func fetchUser() async throws -> User? { return nil }
+    func createUserFromHealthKit(healthKitService: HealthKitServiceProtocol) async throws -> User {
+        return User(weight: 70.0)
+    }
     func saveFoodEntry(_ entry: FoodEntry, for user: User) async throws { }
     func saveFoodEntry(_ entry: FoodEntry) async throws { }
     func updateFoodEntry(_ entry: FoodEntry) async throws { }
@@ -281,3 +288,5 @@ class MockCalculationService: CalculationServiceProtocol {
     func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double { return 2200 }
     func validateUserData(age: Int, weight: Double, height: Double) throws { }
 }
+
+

@@ -92,10 +92,9 @@ struct OnboardingView: View {
     private var isNextButtonDisabled: Bool {
         switch currentStep {
         case 1:
-            return viewModel.age.isEmpty || viewModel.ageError != nil
+            return false // Skip age validation
         case 2:
-            return viewModel.weight.isEmpty || viewModel.height.isEmpty ||
-                   viewModel.weightError != nil || viewModel.heightError != nil
+            return viewModel.weight.isEmpty || viewModel.weightError != nil
         case 5:
             return viewModel.isLoading
         default:
@@ -107,9 +106,9 @@ struct OnboardingView: View {
         // Validate current step before proceeding
         switch currentStep {
         case 1:
-            guard viewModel.validateAge() else { return }
+            break // Skip age validation
         case 2:
-            guard viewModel.validateWeight() && viewModel.validateHeight() else { return }
+            guard viewModel.validateWeight() else { return }
         default:
             break
         }
@@ -174,31 +173,15 @@ struct BasicInfoStepView: View {
             
             VStack(alignment: .leading, spacing: 15) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Age")
+                    Text("Personal Information")
                         .font(.headline)
                     
-                    TextField("Enter your age", text: $viewModel.age)
-                        .keyboardType(.numberPad)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    if let error = viewModel.ageError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
+                    Text("We'll get your personal information from HealthKit")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
                 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Gender")
-                        .font(.headline)
-                    
-                    Picker("Gender", selection: $viewModel.gender) {
-                        ForEach(Gender.allCases, id: \.self) { gender in
-                            Text(gender.displayName).tag(gender)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
+
                 
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Preferred Units")
@@ -242,18 +225,12 @@ struct PhysicalInfoStepView: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Height (\(viewModel.preferredUnits == .metric ? "cm" : "inches"))")
+                    Text("Height")
                         .font(.headline)
                     
-                    TextField("Enter your height", text: $viewModel.height)
-                        .keyboardType(.decimalPad)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    if let error = viewModel.heightError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
+                    Text("Height will be obtained from HealthKit")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 }
             }
         }
@@ -269,49 +246,30 @@ struct ActivityLevelStepView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
             
-            Text("Select your typical activity level to calculate your daily calorie needs.")
+            Text("Activity level will be determined from your HealthKit workout data.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
             
             VStack(spacing: 10) {
-                ForEach(ActivityLevel.allCases, id: \.self) { level in
-                    Button(action: {
-                        viewModel.activityLevel = level
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(level.displayName)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                Text(level.description)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            if viewModel.activityLevel == level {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                            } else {
-                                Image(systemName: "circle")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(viewModel.activityLevel == level ? Color.blue.opacity(0.1) : Color.gray.opacity(0.1))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(viewModel.activityLevel == level ? Color.blue : Color.clear, lineWidth: 2)
-                        )
+                Text("We'll automatically track your activity through:")
+                    .font(.headline)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "figure.walk")
+                        Text("Daily step count")
                     }
-                    .buttonStyle(.plain)
+                    HStack {
+                        Image(systemName: "heart.fill")
+                        Text("Workout sessions")
+                    }
+                    HStack {
+                        Image(systemName: "flame.fill")
+                        Text("Active energy burned")
+                    }
                 }
+                .foregroundColor(.secondary)
             }
         }
     }

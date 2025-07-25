@@ -7,20 +7,60 @@
 
 import Foundation
 
+enum Gender: String, CaseIterable, Codable {
+    case male, female, other
+    
+    var displayName: String {
+        switch self {
+        case .male: return "Male"
+        case .female: return "Female"
+        case .other: return "Other"
+        }
+    }
+}
+
+enum ActivityLevel: String, CaseIterable, Codable {
+    case sedentary, lightlyActive, moderatelyActive, veryActive, extremelyActive
+    
+    var multiplier: Double {
+        switch self {
+        case .sedentary: return 1.2
+        case .lightlyActive: return 1.375
+        case .moderatelyActive: return 1.55
+        case .veryActive: return 1.725
+        case .extremelyActive: return 1.9
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .sedentary: return "Sedentary"
+        case .lightlyActive: return "Lightly Active"
+        case .moderatelyActive: return "Moderately Active"
+        case .veryActive: return "Very Active"
+        case .extremelyActive: return "Extremely Active"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .sedentary: return "Little or no exercise"
+        case .lightlyActive: return "Light exercise 1-3 days/week"
+        case .moderatelyActive: return "Moderate exercise 3-5 days/week"
+        case .veryActive: return "Hard exercise 6-7 days/week"
+        case .extremelyActive: return "Very hard exercise, physical job"
+        }
+    }
+}
+
 /// Protocol defining calculation service interface
 protocol CalculationServiceProtocol {
-    func calculateBMR(age: Int, weight: Double, height: Double, gender: Gender) -> Double
-    func calculateDailyCalorieNeeds(bmr: Double, activityLevel: ActivityLevel) -> Double
-    func calculateMaintenanceCalories(bmr: Double, activityLevel: ActivityLevel) -> Double
-    func calculateCalorieTargetForGoal(dailyCalorieNeeds: Double, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double
-    func calculateCalorieTarget(bmr: Double, activityLevel: ActivityLevel, goalType: GoalType, weeklyWeightChangeGoal: Double) -> Double
     func calculateProteinTarget(weight: Double, goalType: GoalType) -> Double
     func calculateProteinGoal(for user: User?) -> Double
     func calculateCarbGoal(for user: User?) -> Double
     func calculateFatGoal(for user: User?) -> Double
     func calculateWeightLossCalories(maintenanceCalories: Double, weeklyWeightLoss: Double) -> Double
     func calculateWeightGainCalories(maintenanceCalories: Double, weeklyWeightGain: Double) -> Double
-    func validateUserData(age: Int, weight: Double, height: Double) throws
 }
 
 /// Service responsible for all fitness and nutrition calculations
@@ -117,16 +157,16 @@ class CalculationService: CalculationServiceProtocol {
     }
     
     func calculateCarbGoal(for user: User?) -> Double {
-        guard let user = user else { return 200.0 } // Default carb goal
+        // Use a default daily calorie target since we no longer calculate from user profile
+        let dailyCalories = 2000.0 // Default daily calories
         // Carbs should be about 45-65% of total calories, using 50% as default
-        let dailyCalories = user.dailyCalorieNeeds
         return (dailyCalories * 0.5) / 4 // 4 calories per gram of carbs
     }
     
     func calculateFatGoal(for user: User?) -> Double {
-        guard let user = user else { return 65.0 } // Default fat goal
+        // Use a default daily calorie target since we no longer calculate from user profile
+        let dailyCalories = 2000.0 // Default daily calories
         // Fat should be about 20-35% of total calories, using 30% as default
-        let dailyCalories = user.dailyCalorieNeeds
         return (dailyCalories * 0.3) / 9 // 9 calories per gram of fat
     }
     
@@ -171,14 +211,8 @@ class CalculationService: CalculationServiceProtocol {
     ///   - height: Height in cm
     /// - Throws: ValidationError if data is invalid
     func validateUserData(age: Int, weight: Double, height: Double) throws {
-        guard age > 0 && age < 150 else {
-            throw ValidationError.invalidAge
-        }
         guard weight > 0 && weight < 1000 else {
             throw ValidationError.invalidWeight
-        }
-        guard height > 0 && height < 300 else {
-            throw ValidationError.invalidHeight
         }
     }
     

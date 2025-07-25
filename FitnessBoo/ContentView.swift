@@ -29,7 +29,8 @@ struct ContentView: View {
             
             NutritionDashboardView(
                 dataService: dataService,
-                calculationService: calculationService
+                calculationService: calculationService,
+                healthKitService: healthKitService
             )
             .tabItem {
                 Label("Nutrition", systemImage: "chart.bar.fill")
@@ -38,7 +39,8 @@ struct ContentView: View {
             // Placeholder for Goals view
             GoalSettingView(
                 calculationService: calculationService,
-                dataService: dataService
+                dataService: dataService,
+                healthKitService: healthKitService
             )
             .tabItem {
                 Label("Goals", systemImage: "target")
@@ -71,6 +73,12 @@ struct ContentView: View {
             do {
                 try await healthKitService.requestAuthorization()
                 print("HealthKit authorization completed successfully")
+                
+                // Create user profile if it doesn't exist
+                if try await dataService.fetchUser() == nil {
+                    let user = try await dataService.createUserFromHealthKit(healthKitService: healthKitService)
+                    print("User profile created from HealthKit data: \(user)")
+                }
                 
                 // Also request notification permissions
                 try await NotificationService.shared.requestAuthorization()

@@ -25,13 +25,38 @@ class GoalViewModel: ObservableObject {
     @Published var estimatedDailyProtein: Double = 0
     @Published var estimatedTimeToGoal: String = ""
     
+    // Computed properties for automatic calculations
+    var calculatedWeeklyChange: Double {
+        guard let targetWeightValue = Double(targetWeight),
+              selectedGoalType != .maintainWeight else {
+            return 0
+        }
+        
+        // Get current weight from cached user or use a default
+        let currentWeight = cachedUser?.weight ?? 70.0
+        let weightDifference = targetWeightValue - currentWeight
+        let weeksToTarget = targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
+        
+        guard weeksToTarget > 0 else { return 0 }
+        
+        return weightDifference / weeksToTarget
+    }
+    
+    var calculatedDailyCalorieAdjustment: Double {
+        let weeklyChange = calculatedWeeklyChange
+        // 1 kg = ~7700 calories
+        return (weeklyChange * 7700) / 7
+    }
+    
     private let calculationService: CalculationServiceProtocol
     private let dataService: DataServiceProtocol
+    private let healthKitService: HealthKitServiceProtocol
     private var cancellables = Set<AnyCancellable>()
     
-    init(calculationService: CalculationServiceProtocol, dataService: DataServiceProtocol) {
+    init(calculationService: CalculationServiceProtocol, dataService: DataServiceProtocol, healthKitService: HealthKitServiceProtocol) {
         self.calculationService = calculationService
         self.dataService = dataService
+        self.healthKitService = healthKitService
         
         setupBindings()
     }
@@ -70,14 +95,18 @@ class GoalViewModel: ObservableObject {
                 type: selectedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: weeklyWeightChangeGoal
+                weeklyWeightChangeGoal: calculatedWeeklyChange
             )
             
             // Validate the goal
             try goal.validate()
             
-            // Calculate daily targets
-            goal.calculateDailyTargets(for: user)
+            // Get current weight and energy data from HealthKit
+            let currentWeight = try await healthKitService.fetchWeight() ?? user.weight
+            let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
+            
+            // Calculate daily targets using HealthKit data
+            goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeight)
             
             // Save the goal
             try await dataService.saveGoal(goal, for: user)
@@ -107,14 +136,18 @@ class GoalViewModel: ObservableObject {
             goal.type = selectedGoalType
             goal.targetWeight = targetWeightValue
             goal.targetDate = targetDate
-            goal.weeklyWeightChangeGoal = weeklyWeightChangeGoal
+            goal.weeklyWeightChangeGoal = calculatedWeeklyChange
             goal.updatedAt = Date()
             
             // Validate the updated goal
             try goal.validate()
             
-            // Recalculate daily targets
-            goal.calculateDailyTargets(for: user)
+            // Get current weight and energy data from HealthKit
+            let currentWeight = try await healthKitService.fetchWeight() ?? user.weight
+            let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
+            
+            // Recalculate daily targets using HealthKit data
+            goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeight)
             
             // Save the updated goal
             try await dataService.saveGoal(goal, for: user)
@@ -186,11 +219,15 @@ class GoalViewModel: ObservableObject {
                 type: selectedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: weeklyWeightChangeGoal
+                weeklyWeightChangeGoal: calculatedWeeklyChange
             )
             
-            // Calculate targets
-            tempGoal.calculateDailyTargets(for: user)
+            // Get current weight and energy data from HealthKit
+            let currentWeight = try await healthKitService.fetchWeight() ?? user.weight
+            let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
+            
+            // Calculate targets using HealthKit data
+            tempGoal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeight)
             
             estimatedDailyCalories = tempGoal.dailyCalorieTarget
             estimatedDailyProtein = tempGoal.dailyProteinTarget

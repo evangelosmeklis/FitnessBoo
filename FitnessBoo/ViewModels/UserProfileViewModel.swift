@@ -10,16 +10,18 @@ import Combine
 
 @MainActor
 class UserProfileViewModel: ObservableObject {
-    @Published var age: String = ""
     @Published var weight: String = ""
-    @Published var height: String = ""
-    @Published var gender: Gender = .male
-    @Published var activityLevel: ActivityLevel = .sedentary
     @Published var preferredUnits: UnitSystem = .metric
     
-    @Published var ageError: String?
     @Published var weightError: String?
+    
+    // Stub properties for onboarding compatibility (not used)
+    @Published var age: String = ""
+    @Published var height: String = ""
+    @Published var ageError: String?
     @Published var heightError: String?
+    @Published var gender: Gender = .male
+    @Published var activityLevel: ActivityLevel = .sedentary
     
     @Published var isLoading = false
     @Published var showingError = false
@@ -38,32 +40,11 @@ class UserProfileViewModel: ObservableObject {
     
     private func setupValidation() {
         // Clear errors when user starts typing
-        $age
-            .sink { [weak self] _ in
-                self?.ageError = nil
-            }
-            .store(in: &cancellables)
-        
         $weight
             .sink { [weak self] _ in
                 self?.weightError = nil
             }
             .store(in: &cancellables)
-        
-        $height
-            .sink { [weak self] _ in
-                self?.heightError = nil
-            }
-            .store(in: &cancellables)
-    }
-    
-    func validateAge() -> Bool {
-        guard let ageValue = Int(age), ageValue > 0, ageValue < 150 else {
-            ageError = "Age must be between 1 and 149 years"
-            return false
-        }
-        ageError = nil
-        return true
     }
     
     func validateWeight() -> Bool {
@@ -76,22 +57,12 @@ class UserProfileViewModel: ObservableObject {
         return true
     }
     
-    func validateHeight() -> Bool {
-        guard let heightValue = Double(height), heightValue > 0, heightValue < 300 else {
-            let unit = preferredUnits == .metric ? "cm" : "inches"
-            heightError = "Height must be between 1 and 299 \(unit)"
-            return false
-        }
-        heightError = nil
-        return true
-    }
+    // Stub methods for onboarding compatibility (not used)
+    func validateAge() -> Bool { return true }
+    func validateHeight() -> Bool { return true }
     
     func validateAllFields() -> Bool {
-        let ageValid = validateAge()
-        let weightValid = validateWeight()
-        let heightValid = validateHeight()
-        
-        return ageValid && weightValid && heightValid
+        return validateWeight()
     }
     
     func createUser() async -> User? {
@@ -103,22 +74,15 @@ class UserProfileViewModel: ObservableObject {
         defer { isLoading = false }
         
         do {
-            guard let ageValue = Int(age),
-                  let weightValue = Double(weight),
-                  let heightValue = Double(height) else {
-                throw ValidationError.invalidAge
+            guard let weightValue = Double(weight) else {
+                throw ValidationError.invalidWeight
             }
             
             var user = User(
-                age: ageValue,
                 weight: weightValue,
-                height: heightValue,
-                gender: gender,
-                activityLevel: activityLevel,
                 preferredUnits: preferredUnits
             )
             
-            user.calculateBMR()
             try user.validate()
             
             return user
@@ -130,16 +94,10 @@ class UserProfileViewModel: ObservableObject {
     }
     
     func resetForm() {
-        age = ""
         weight = ""
-        height = ""
-        gender = .male
-        activityLevel = .sedentary
         preferredUnits = .metric
         
-        ageError = nil
         weightError = nil
-        heightError = nil
         
         isLoading = false
         showingError = false

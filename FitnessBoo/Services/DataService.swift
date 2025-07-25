@@ -31,6 +31,7 @@ enum DataServiceError: LocalizedError {
 protocol DataServiceProtocol {
     func saveUser(_ user: User) async throws
     func fetchUser() async throws -> User?
+    func createUserFromHealthKit(healthKitService: HealthKitServiceProtocol) async throws -> User
     func saveFoodEntry(_ entry: FoodEntry, for user: User) async throws
     func saveFoodEntry(_ entry: FoodEntry) async throws
     func updateFoodEntry(_ entry: FoodEntry) async throws
@@ -101,13 +102,8 @@ class DataService: DataServiceProtocol {
                     }
                     
                     // Update user properties
-                    userEntity.age = Int16(user.age)
                     userEntity.weight = user.weight
-                    userEntity.height = user.height
-                    userEntity.gender = user.gender.rawValue
-                    userEntity.activityLevel = user.activityLevel.rawValue
                     userEntity.preferredUnits = user.preferredUnits.rawValue
-                    userEntity.bmr = user.bmr
                     userEntity.updatedAt = user.updatedAt
                     
                     try self.context.save()
@@ -140,6 +136,15 @@ class DataService: DataServiceProtocol {
                 }
             }
         }
+    }
+    
+    func createUserFromHealthKit(healthKitService: HealthKitServiceProtocol) async throws -> User {
+        // Get weight from HealthKit, fallback to default if not available
+        let weight = try await healthKitService.fetchWeight() ?? 70.0 // Default 70kg
+        
+        let user = User(weight: weight)
+        try await saveUser(user)
+        return user
     }
     
     // MARK: - Food Entry Operations
@@ -613,40 +618,28 @@ class DataService: DataServiceProtocol {
 
 extension DataService {
     private func convertToUser(from entity: UserEntity) -> User {
-        var user = User(
-            age: Int(entity.age),
-            weight: entity.weight,
-            height: entity.height,
-            gender: Gender(rawValue: entity.gender ?? "other") ?? .other,
-            activityLevel: ActivityLevel(rawValue: entity.activityLevel ?? "sedentary") ?? .sedentary,
-            preferredUnits: UnitSystem(rawValue: entity.preferredUnits ?? "metric") ?? .metric
-        )
-        
         // Update with stored values including the ID
         if let storedId = entity.id {
-            user = User(
+            return User(
                 id: storedId,
-                age: Int(entity.age),
                 weight: entity.weight,
-                height: entity.height,
-                gender: Gender(rawValue: entity.gender ?? "other") ?? .other,
-                activityLevel: ActivityLevel(rawValue: entity.activityLevel ?? "sedentary") ?? .sedentary,
                 preferredUnits: UnitSystem(rawValue: entity.preferredUnits ?? "metric") ?? .metric,
-                bmr: entity.bmr,
                 createdAt: entity.createdAt ?? Date(),
                 updatedAt: entity.updatedAt ?? Date()
             )
         } else {
-            user.bmr = entity.bmr
+            var user = User(
+                weight: entity.weight,
+                preferredUnits: UnitSystem(rawValue: entity.preferredUnits ?? "metric") ?? .metric
+            )
             if let createdAt = entity.createdAt {
                 user.createdAt = createdAt
             }
             if let updatedAt = entity.updatedAt {
                 user.updatedAt = updatedAt
             }
+            return user
         }
-        
-        return user
     }
     
     private func convertToFoodEntry(from entity: FoodEntryEntity) -> FoodEntry? {

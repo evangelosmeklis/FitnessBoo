@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import Combine
+import HealthKit
 
 struct GoalSettingView: View {
     @StateObject private var viewModel: GoalViewModel
@@ -17,10 +19,12 @@ struct GoalSettingView: View {
     @Environment(\.dismiss) private var dismiss
     
     init(calculationService: CalculationServiceProtocol = CalculationService(), 
-         dataService: DataServiceProtocol = DataService.shared) {
+         dataService: DataServiceProtocol = DataService.shared,
+         healthKitService: HealthKitServiceProtocol) {
         self._viewModel = StateObject(wrappedValue: GoalViewModel(
             calculationService: calculationService,
-            dataService: dataService
+            dataService: dataService,
+            healthKitService: healthKitService
         ))
     }
     
@@ -32,9 +36,9 @@ struct GoalSettingView: View {
                 if viewModel.selectedGoalType != .maintainWeight {
                     targetWeightSection
                     targetDateSection
+                    calculatedWeeklyChangeSection
                 }
                 
-                weeklyChangeSection
                 estimatedTargetsSection
                 
                 if !viewModel.errorMessage.isNilOrEmpty {
@@ -252,35 +256,26 @@ struct GoalSettingView: View {
         }
     }
     
-    private var weeklyChangeSection: some View {
+    private var calculatedWeeklyChangeSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Weekly Change")
-                    Spacer()
-                    Text(viewModel.formatWeightChange(viewModel.weeklyWeightChangeGoal))
-                        .foregroundColor(.secondary)
-                }
-                
-                let range = viewModel.getRecommendedWeightChangeRange()
-                Slider(
-                    value: $viewModel.weeklyWeightChangeGoal,
-                    in: range,
-                    step: 0.1
-                ) {
-                    Text("Weekly Change")
-                } minimumValueLabel: {
-                    Text("\(range.lowerBound, specifier: "%.1f")")
-                        .font(.caption)
-                } maximumValueLabel: {
-                    Text("\(range.upperBound, specifier: "%.1f")")
-                        .font(.caption)
-                }
+            HStack {
+                Text("Required Weekly Change")
+                Spacer()
+                Text(viewModel.formatWeightChange(viewModel.calculatedWeeklyChange))
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack {
+                Text("Daily Calorie Adjustment")
+                Spacer()
+                let adjustment = viewModel.calculatedDailyCalorieAdjustment
+                Text("\(adjustment > 0 ? "+" : "")\(Int(adjustment)) cal")
+                    .foregroundColor(adjustment > 0 ? .green : .red)
             }
         } header: {
-            Text("Rate of Change")
+            Text("Calculated Requirements")
         } footer: {
-            Text(getWeeklyChangeFooterText())
+            Text("Based on your target weight and date. 1 kg = ~7700 calories.")
                 .font(.caption)
         }
     }
@@ -301,9 +296,9 @@ struct GoalSettingView: View {
                     .foregroundColor(.secondary)
             }
         } header: {
-            Text("Estimated Daily Targets")
+            Text("Daily Targets")
         } footer: {
-            Text("These targets are calculated based on your profile and selected goal.")
+            Text("Based on HealthKit energy data and your goal requirements.")
                 .font(.caption)
         }
     }
@@ -428,8 +423,35 @@ extension Optional where Wrapped == String {
 
 // MARK: - Preview
 
+// MARK: - Mock Services for Preview
+
+class MockHealthKitService: HealthKitServiceProtocol {
+    func requestAuthorization() async throws { }
+    func saveDietaryEnergy(calories: Double, date: Date) async throws { }
+    func saveWater(milliliters: Double, date: Date) async throws { }
+    func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData] { return [] }
+    func fetchActiveEnergy(for date: Date) async throws -> Double { return 0 }
+    func fetchRestingEnergy(for date: Date) async throws -> Double { return 0 }
+    func fetchTotalEnergyExpended(for date: Date) async throws -> Double { return 0 }
+    func fetchWeight() async throws -> Double? { return nil }
+    func observeWeightChanges() -> AnyPublisher<Double, Never> { return Just(0).eraseToAnyPublisher() }
+    func observeWorkouts() -> AnyPublisher<[WorkoutData], Never> { return Just([]).eraseToAnyPublisher() }
+    func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never> { return Just((resting: 0, active: 0)).eraseToAnyPublisher() }
+    func manualRefresh() async throws { }
+    func startBackgroundSync() { }
+    func stopBackgroundSync() { }
+    var isHealthKitAvailable: Bool { return false }
+    var authorizationStatus: HKAuthorizationStatus { return .notDetermined }
+    var syncStatus: AnyPublisher<SyncStatus, Never> { return Just(.idle).eraseToAnyPublisher() }
+    var lastSyncDate: Date? { return nil }
+}
+
 struct GoalSettingView_Previews: PreviewProvider {
     static var previews: some View {
-        GoalSettingView()
+        GoalSettingView(
+            calculationService: CalculationService(),
+            dataService: DataService.shared,
+            healthKitService: MockHealthKitService()
+        )
     }
 }

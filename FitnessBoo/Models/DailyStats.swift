@@ -13,7 +13,7 @@ struct DailyStats: Codable, Identifiable {
     var totalCaloriesConsumed: Double
     var totalProtein: Double
     var caloriesFromExercise: Double
-    var bmrCalories: Double
+    var restingCalories: Double
     var netCalories: Double
     var weightRecorded: Double?
     var workouts: [WorkoutData]
@@ -26,7 +26,7 @@ struct DailyStats: Codable, Identifiable {
         self.totalCaloriesConsumed = 0
         self.totalProtein = 0
         self.caloriesFromExercise = 0
-        self.bmrCalories = 0
+        self.restingCalories = 0
         self.netCalories = 0
         self.weightRecorded = nil
         self.workouts = []
@@ -37,7 +37,7 @@ struct DailyStats: Codable, Identifiable {
     // MARK: - Computed Properties
     
     var totalCaloriesBurned: Double {
-        bmrCalories + caloriesFromExercise
+        restingCalories + caloriesFromExercise
     }
     
     var calorieBalance: Double {
@@ -71,8 +71,8 @@ struct DailyStats: Codable, Identifiable {
         updatedAt = Date()
     }
     
-    mutating func updateBMRCalories(_ calories: Double) {
-        bmrCalories = calories
+    mutating func updateRestingCalories(_ calories: Double) {
+        restingCalories = calories
         updateNetCalories()
         updatedAt = Date()
     }
@@ -108,8 +108,8 @@ struct DailyStats: Codable, Identifiable {
         guard caloriesFromExercise >= 0 else {
             throw DailyStatsError.invalidExerciseCalories
         }
-        guard bmrCalories >= 0 else {
-            throw DailyStatsError.invalidBMRCalories
+        guard restingCalories >= 0 else {
+            throw DailyStatsError.invalidRestingCalories
         }
         if let weight = weightRecorded {
             guard weight > 0 && weight < 1000 else {
@@ -151,7 +151,7 @@ enum DailyStatsError: LocalizedError {
     case invalidCaloriesConsumed
     case invalidProtein
     case invalidExerciseCalories
-    case invalidBMRCalories
+    case invalidRestingCalories
     case invalidWeight
     
     var errorDescription: String? {
@@ -162,8 +162,8 @@ enum DailyStatsError: LocalizedError {
             return "Protein intake cannot be negative"
         case .invalidExerciseCalories:
             return "Exercise calories cannot be negative"
-        case .invalidBMRCalories:
-            return "BMR calories cannot be negative"
+        case .invalidRestingCalories:
+            return "Resting calories cannot be negative"
         case .invalidWeight:
             return "Weight must be between 1 and 999 kg/lbs"
         }

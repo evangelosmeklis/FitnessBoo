@@ -32,9 +32,10 @@ struct FitnessGoal: Codable, Identifiable {
         self.updatedAt = Date()
     }
     
-    /// Calculate daily calorie target based on user's BMR and goal
-    mutating func calculateDailyTargets(for user: User) {
-        let baseDailyCalories = user.dailyCalorieNeeds
+    /// Calculate daily calorie target based on HealthKit energy data and goal
+    mutating func calculateDailyTargets(totalEnergyExpended: Double, currentWeight: Double) {
+        // Use actual energy expenditure from HealthKit instead of calculated BMR
+        let baseDailyCalories = totalEnergyExpended > 0 ? totalEnergyExpended : 2000 // Fallback if no HealthKit data
         
         // Calculate calorie adjustment based on weight change goal
         // 1 kg of fat = approximately 7700 calories
@@ -53,17 +54,17 @@ struct FitnessGoal: Codable, Identifiable {
             dailyCalorieTarget = baseDailyCalories
         }
         
-        // Calculate protein target based on goal type
+        // Calculate protein target based on goal type and current weight from HealthKit
         // General recommendations: 0.8-2.2g per kg body weight
         switch type {
         case .loseWeight:
-            dailyProteinTarget = user.weight * 1.6 // Higher protein for weight loss
+            dailyProteinTarget = currentWeight * 1.6 // Higher protein for weight loss
         case .gainMuscle:
-            dailyProteinTarget = user.weight * 2.2 // Highest protein for muscle gain
+            dailyProteinTarget = currentWeight * 2.2 // Highest protein for muscle gain
         case .gainWeight:
-            dailyProteinTarget = user.weight * 1.4 // Moderate protein for weight gain
+            dailyProteinTarget = currentWeight * 1.4 // Moderate protein for weight gain
         case .maintainWeight:
-            dailyProteinTarget = user.weight * 1.2 // Maintenance protein
+            dailyProteinTarget = currentWeight * 1.2 // Maintenance protein
         }
         
         updatedAt = Date()

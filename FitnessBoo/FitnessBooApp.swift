@@ -14,11 +14,7 @@ struct FitnessBooApp: App {
     
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding {
-                ContentView()
-            } else {
-                OnboardingView()
-            }
+            ContentView()
         }
         .onChange(of: scenePhase) { newPhase in
             handleAppLifecycle(newPhase)

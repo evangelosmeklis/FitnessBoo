@@ -148,6 +148,9 @@ struct NutritionDashboardView: View {
     
     // MARK: - Water Tracking Section
     
+    @State private var showingCustomWaterInput = false
+    @State private var customWaterAmount = ""
+    
     private var waterTrackingSection: some View {
         VStack(spacing: 16) {
             HStack {
@@ -159,7 +162,7 @@ struct NutritionDashboardView: View {
                     .fontWeight(.medium)
             }
             
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 WaterButton(amount: 250) {
                     Task { await nutritionViewModel.addWater(milliliters: 250) }
                 }
@@ -169,11 +172,37 @@ struct NutritionDashboardView: View {
                 WaterButton(amount: 750) {
                     Task { await nutritionViewModel.addWater(milliliters: 750) }
                 }
+                
+                Button("Custom") {
+                    showingCustomWaterInput = true
+                }
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color.blue.opacity(0.1))
+                .foregroundColor(.blue)
+                .cornerRadius(8)
             }
         }
         .padding()
         .background(Color(.systemGray6))
         .cornerRadius(12)
+        .alert("Add Water", isPresented: $showingCustomWaterInput) {
+            TextField("Amount (ml)", text: $customWaterAmount)
+                .keyboardType(.numberPad)
+            Button("Add") {
+                if let amount = Double(customWaterAmount), amount > 0 {
+                    Task { await nutritionViewModel.addWater(milliliters: amount) }
+                }
+                customWaterAmount = ""
+            }
+            Button("Cancel", role: .cancel) {
+                customWaterAmount = ""
+            }
+        } message: {
+            Text("Enter the amount of water in milliliters")
+        }
     }
     
     // MARK: - Food Entries Section

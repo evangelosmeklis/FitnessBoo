@@ -26,8 +26,8 @@ struct DashboardView: View {
         self.calculationService = calculationService
         
         self._userProfileViewModel = StateObject(wrappedValue: UserProfileViewModel(dataService: dataService))
-        self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(dataService: dataService, calculationService: calculationService))
-        self._goalViewModel = StateObject(wrappedValue: GoalViewModel(calculationService: calculationService, dataService: dataService))
+        self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(dataService: dataService, calculationService: calculationService, healthKitService: healthKitService))
+        self._goalViewModel = StateObject(wrappedValue: GoalViewModel(calculationService: calculationService, dataService: dataService, healthKitService: healthKitService))
         self._energyViewModel = StateObject(wrappedValue: EnergyViewModel(healthKitService: healthKitService))
         self._calorieBalanceService = StateObject(wrappedValue: CalorieBalanceService(healthKitService: healthKitService, calculationService: calculationService, dataService: dataService))
     }

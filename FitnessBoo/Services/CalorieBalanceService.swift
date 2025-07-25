@@ -168,14 +168,14 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
             let activeEnergy = try await healthKitService.fetchActiveEnergy(for: date)
             let restingEnergy = try await healthKitService.fetchRestingEnergy(for: date)
             
-            // Get calculated BMR as fallback/comparison
-            let calculatedBMR = await getCalculatedBMRForDate(date)
+            // Get resting energy as fallback/comparison
+            let fallbackRestingEnergy = await getRestingEnergyForDate(date)
             
             // Determine which energy data to use
             let (finalRestingEnergy, finalActiveEnergy, isUsingHealthKit) = determineEnergySource(
                 healthKitResting: restingEnergy,
                 healthKitActive: activeEnergy,
-                calculatedBMR: calculatedBMR
+                calculatedResting: fallbackRestingEnergy
             )
             
             let totalEnergyBurned = finalRestingEnergy + finalActiveEnergy
@@ -187,28 +187,28 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
                 restingEnergyBurned: finalRestingEnergy,
                 activeEnergyBurned: finalActiveEnergy,
                 totalEnergyBurned: totalEnergyBurned,
-                calculatedBMR: calculatedBMR,
+                calculatedBMR: fallbackRestingEnergy,
                 balance: balance,
                 isUsingHealthKitData: isUsingHealthKit
             )
             
         } catch {
-            // Fallback to calculated BMR if HealthKit fails
+            // Fallback to resting energy if HealthKit fails
             let caloriesConsumed = await getCaloriesConsumedForDate(date)
-            let calculatedBMR = await getCalculatedBMRForDate(date)
+            let restingEnergy = await getRestingEnergyForDate(date)
             
-            // Estimate active energy as 20% of BMR if no HealthKit data
-            let estimatedActiveEnergy = calculatedBMR * 0.2
-            let totalEnergyBurned = calculatedBMR + estimatedActiveEnergy
+            // Estimate active energy as 20% of resting energy if no HealthKit data
+            let estimatedActiveEnergy = restingEnergy * 0.2
+            let totalEnergyBurned = restingEnergy + estimatedActiveEnergy
             let balance = caloriesConsumed - totalEnergyBurned
             
             return CalorieBalance(
                 date: date,
                 caloriesConsumed: caloriesConsumed,
-                restingEnergyBurned: calculatedBMR,
+                restingEnergyBurned: restingEnergy,
                 activeEnergyBurned: estimatedActiveEnergy,
                 totalEnergyBurned: totalEnergyBurned,
-                calculatedBMR: calculatedBMR,
+                calculatedBMR: restingEnergy,
                 balance: balance,
                 isUsingHealthKitData: false
             )
@@ -218,20 +218,20 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
     private func determineEnergySource(
         healthKitResting: Double,
         healthKitActive: Double,
-        calculatedBMR: Double
+        calculatedResting: Double
     ) -> (resting: Double, active: Double, isUsingHealthKit: Bool) {
         
         // Prefer HealthKit data if it's available and reasonable
         if healthKitResting > 0 || healthKitActive > 0 {
             // Use HealthKit data as it's more accurate
-            let finalResting = healthKitResting > 0 ? healthKitResting : calculatedBMR
+            let finalResting = healthKitResting > 0 ? healthKitResting : calculatedResting
             let finalActive = healthKitActive
             
             return (resting: finalResting, active: finalActive, isUsingHealthKit: true)
         } else {
-            // Fallback to calculated BMR with estimated active energy
-            let estimatedActiveEnergy = calculatedBMR * 0.2
-            return (resting: calculatedBMR, active: estimatedActiveEnergy, isUsingHealthKit: false)
+            // Fallback to resting energy with estimated active energy
+            let estimatedActiveEnergy = calculatedResting * 0.2
+            return (resting: calculatedResting, active: estimatedActiveEnergy, isUsingHealthKit: false)
         }
     }
     
@@ -257,27 +257,14 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
         }
     }
     
-    private func getCalculatedBMRForDate(_ date: Date) async -> Double {
+    private func getRestingEnergyForDate(_ date: Date) async -> Double {
         do {
-            // Get user profile for BMR calculation
-            let user = try await dataService.fetchUser()
-            
-            guard let user = user else {
-                return 1800.0 // Fallback BMR
-            }
-            
-            // Use current weight or fallback to profile weight
-            let weight = (try? await healthKitService.fetchWeight()) ?? user.weight
-            
-            return calculationService.calculateBMR(
-                age: user.age,
-                weight: weight,
-                height: user.height,
-                gender: user.gender
-            )
+            // Use HealthKit resting energy instead of calculated BMR
+            let restingEnergy = try await healthKitService.fetchRestingEnergy(for: date)
+            return restingEnergy > 0 ? restingEnergy : 1800.0 // Fallback if no HealthKit data
         } catch {
-            // Fallback BMR if user profile is not available
-            return 1800.0 // Average adult BMR
+            // Fallback resting energy if HealthKit is not available
+            return 1800.0 // Average adult resting energy
         }
     }
     
