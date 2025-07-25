@@ -96,7 +96,7 @@ class GoalViewModel: ObservableObject {
                 type: selectedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: calculatedWeeklyChange
+                weeklyWeightChangeGoal: weeklyWeightChangeGoal
             )
             
             // Validate the goal
@@ -137,7 +137,7 @@ class GoalViewModel: ObservableObject {
             goal.type = selectedGoalType
             goal.targetWeight = targetWeightValue
             goal.targetDate = targetDate
-            goal.weeklyWeightChangeGoal = calculatedWeeklyChange
+            goal.weeklyWeightChangeGoal = weeklyWeightChangeGoal
             goal.updatedAt = Date()
             
             // Validate the updated goal
@@ -221,7 +221,7 @@ class GoalViewModel: ObservableObject {
                 type: selectedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: calculatedWeeklyChange
+                weeklyWeightChangeGoal: weeklyWeightChangeGoal
             )
             
             // Get current weight and energy data from HealthKit

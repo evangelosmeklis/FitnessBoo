@@ -69,13 +69,20 @@ class ProgressViewModel: ObservableObject {
             
             guard let goal = currentGoal else {
                 // No active goal
+                print("No active goal found")
                 resetProgressData()
                 isLoading = false
                 return
             }
             
+            print("Found goal: \(goal.type.displayName)")
+            print("Goal weeklyWeightChangeGoal: \(goal.weeklyWeightChangeGoal)")
+            print("Goal target weight: \(goal.targetWeight ?? 0)")
+            print("Goal target date: \(goal.targetDate?.description ?? "none")")
+            
             // Calculate goal start date (when goal was created or updated)
             goalStartDate = goal.createdAt
+            print("Goal start date: \(goalStartDate!)")
             
             // Calculate progress
             await calculateWeeklyProgress()
@@ -135,14 +142,21 @@ class ProgressViewModel: ObservableObject {
         
         // Calculate actual weekly balance
         weeklyCalorieBalance = 0
+        print("Calculating weekly balance from \(currentWeekStart) to \(today)")
+        
         for dayOffset in 0..<7 {
             if let dayDate = calendar.date(byAdding: .day, value: dayOffset, to: currentWeekStart),
-               dayDate <= today {
+               dayDate <= today && dayDate >= startDate {  // Only count days after goal started
                 if let balance = await calorieBalanceService.getBalanceForDate(dayDate) {
+                    print("Day \(dayDate): balance = \(balance.balance)")
                     weeklyCalorieBalance += balance.balance
+                } else {
+                    print("Day \(dayDate): no balance data")
                 }
             }
         }
+        
+        print("Weekly balance: \(weeklyCalorieBalance), target: \(weeklyTargetCalorieBalance)")
         
         // Determine if on track
         let tolerance = abs(weeklyTargetCalorieBalance) * 0.1 // 10% tolerance
@@ -160,7 +174,9 @@ class ProgressViewModel: ObservableObject {
         
         // Calculate days since goal started
         let daysSinceStart = today.timeIntervalSince(startDate)
-        let daysElapsed = Int(daysSinceStart / (24 * 60 * 60))
+        let daysElapsed = max(1, Int(daysSinceStart / (24 * 60 * 60))) // At least 1 day
+        
+        print("Days since goal started: \(daysElapsed)")
         
         // Calculate total days to goal
         let totalDaysToGoal: Int
@@ -189,15 +205,24 @@ class ProgressViewModel: ObservableObject {
         // Calculate total target balance
         totalTargetCalorieBalance = dailyTarget * Double(daysElapsed)
         
+        print("Daily target: \(dailyTarget), Days elapsed: \(daysElapsed)")
+        print("Total target balance: \(totalTargetCalorieBalance)")
+        
         // Calculate actual total balance
         totalCalorieBalance = 0
         for dayOffset in 0..<daysElapsed {
-            if let dayDate = calendar.date(byAdding: .day, value: -dayOffset, to: today) {
+            if let dayDate = calendar.date(byAdding: .day, value: -dayOffset, to: today),
+               dayDate >= startDate {  // Only count days after goal started
                 if let balance = await calorieBalanceService.getBalanceForDate(dayDate) {
+                    print("Overall - Day \(dayDate): balance = \(balance.balance)")
                     totalCalorieBalance += balance.balance
+                } else {
+                    print("Overall - Day \(dayDate): no balance data")
                 }
             }
         }
+        
+        print("Total actual balance: \(totalCalorieBalance)")
         
         // Calculate progress percentage
         if totalTargetCalorieBalance != 0 {
@@ -251,13 +276,15 @@ class ProgressViewModel: ObservableObject {
     }
     
     private func calculateDailyCalorieTarget(for goal: FitnessGoal) -> Double {
-        // Calculate daily calorie adjustment needed
-        guard let targetWeight = goal.targetWeight else {
-            return goal.weeklyWeightChangeGoal * 7700 / 7 // 7700 cal per kg
-        }
+        // Calculate daily calorie adjustment needed based on weekly weight change goal
+        // 1 kg of fat = approximately 7700 calories
+        // Negative value = deficit (weight loss), Positive value = surplus (weight gain)
+        let dailyCalorieAdjustment = goal.weeklyWeightChangeGoal * 7700 / 7
         
-        // Use the goal's weekly change to calculate daily target
-        return goal.weeklyWeightChangeGoal * 7700 / 7 // 7700 calories per kg of fat
+        print("Goal weekly change: \(goal.weeklyWeightChangeGoal) kg/week")
+        print("Daily calorie target: \(dailyCalorieAdjustment) cal/day")
+        
+        return dailyCalorieAdjustment
     }
     
     private func generateWeeklyStatusMessages() {
