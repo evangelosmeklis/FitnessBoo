@@ -113,7 +113,14 @@ struct DashboardView: View {
             MetricCard(
                 title: "Calories",
                 value: "\(Int(dataManager.caloriesConsumed))",
-                subtitle: currentBalance?.formattedBalance ?? "Loading...",
+                subtitle: {
+                    if let balance = currentBalance {
+                        let sign = balance.balance >= 0 ? "+" : ""
+                        let type = balance.balance >= 0 ? "surplus" : "deficit"
+                        return "\(sign)\(Int(balance.balance)) kcal \(type)"
+                    }
+                    return "Loading..."
+                }(),
                 icon: "flame.fill",
                 color: (currentBalance?.isPositiveBalance ?? false) ? .green : .red,
                 progress: dataManager.calorieProgress

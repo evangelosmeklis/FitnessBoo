@@ -146,7 +146,7 @@ struct GoalSettingView: View {
     // MARK: - View Components
     
     private var saveButton: some View {
-        GlassButton("Save", icon: "target", isLoading: viewModel.isLoading) {
+        GlassButton("Save", icon: "target", isLoading: viewModel.isLoading, style: .blue) {
             Task {
                 await performSaveAction()
             }
@@ -325,21 +325,37 @@ struct GoalSettingView: View {
     }
     
     private var targetWeightSection: some View {
-        Section {
-            HStack {
-                Text("Target Weight")
-                Spacer()
-                TextField("Enter weight", text: $viewModel.targetWeight)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-                    .focused($isTargetWeightFocused)
-                    .environment(\.locale, Locale(identifier: "en_US"))
-                    .onChange(of: viewModel.targetWeight) { _ in
-                        validateTargetWeight()
-                    }
-                Text("kg")
-                    .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Target Weight")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                HStack {
+                    Image(systemName: "target")
+                        .font(.title2)
+                        .foregroundStyle(.blue)
+                        .frame(width: 24, height: 24)
+                    
+                    Text("Target Weight")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    TextField("Enter weight", text: $viewModel.targetWeight)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isTargetWeightFocused)
+                        .environment(\.locale, Locale(identifier: "en_US"))
+                        .onChange(of: viewModel.targetWeight) { _ in
+                            validateTargetWeight()
+                        }
+                    
+                    Text("kg")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             
             // Show validation error if any
@@ -348,9 +364,8 @@ struct GoalSettingView: View {
                     .font(.caption)
                     .foregroundColor(.red)
             }
-        } header: {
-            Text("Target")
-        } footer: {
+            
+            // Show progress info
             if let user = user, !viewModel.targetWeight.isEmpty,
                let targetWeight = Double(viewModel.targetWeight),
                getTargetWeightValidationError() == nil {
@@ -358,6 +373,7 @@ struct GoalSettingView: View {
                 let direction = targetWeight > user.weight ? "gain" : "lose"
                 Text("You need to \(direction) \(difference, specifier: "%.1f") kg")
                     .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -527,13 +543,28 @@ struct GoalSettingView: View {
     }
     
     private var targetDateSection: some View {
-        Section {
-            HStack {
-                Text("Target Date")
-                Spacer()
-                Button(action: { showingDatePicker.toggle() }) {
-                    Text(viewModel.targetDate.formatted(date: .abbreviated, time: .omitted))
-                        .foregroundColor(.blue)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Target Date")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                HStack {
+                    Image(systemName: "calendar")
+                        .font(.title2)
+                        .foregroundStyle(.green)
+                        .frame(width: 24, height: 24)
+                    
+                    Text("Target Date")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    Button(action: { showingDatePicker.toggle() }) {
+                        Text(viewModel.targetDate.formatted(date: .abbreviated, time: .omitted))
+                            .foregroundColor(.blue)
+                            .fontWeight(.medium)
+                    }
                 }
             }
             .sheet(isPresented: $showingDatePicker) {
@@ -557,10 +588,14 @@ struct GoalSettingView: View {
                 }
                 .presentationDetents([.medium])
             }
-        } footer: {
+            
+            // Show estimated time info
             if !viewModel.estimatedTimeToGoal.isEmpty && viewModel.estimatedTimeToGoal != "N/A" {
-                Text("Estimated time to goal: \(viewModel.estimatedTimeToGoal)")
+                let timeInWeeks = viewModel.estimatedTimeToGoal
+                let days = Int(viewModel.targetDate.timeIntervalSince(Date()) / (24 * 60 * 60))
+                Text("Estimated time to goal: \(days) days (\(timeInWeeks))")
                     .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }

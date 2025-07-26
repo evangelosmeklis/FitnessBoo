@@ -46,9 +46,10 @@ struct FitnessGoal: Codable, Identifiable {
         
         switch type {
         case .loseWeight:
-            // For weight loss, subtract calories but ensure minimum of 1200 calories
+            // For weight loss, the target is the goal-adjusted calories
             let targetCalories = baseDailyCalories + dailyCalorieAdjustment // dailyCalorieAdjustment is negative
-            dailyCalorieTarget = max(targetCalories, 1200) // Never go below 1200 calories
+            dailyCalorieTarget = targetCalories // Show actual goal target, not minimum
+            print("🎯 Weight loss goal calculation: \(baseDailyCalories) + \(dailyCalorieAdjustment) = \(targetCalories)")
         case .gainWeight:
             // For weight gain, add calories
             dailyCalorieTarget = baseDailyCalories + abs(dailyCalorieAdjustment)

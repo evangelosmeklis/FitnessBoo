@@ -132,7 +132,14 @@ struct NutritionDashboardView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text(currentBalance?.formattedBalance ?? "Loading...")
+                            Text({
+                                if let balance = currentBalance {
+                                    let sign = balance.balance >= 0 ? "+" : ""
+                                    let type = balance.balance >= 0 ? "surplus" : "deficit"
+                                    return "\(sign)\(Int(balance.balance)) kcal \(type)"
+                                }
+                                return "Loading..."
+                            }())
                                 .font(.caption)
                                 .foregroundStyle((currentBalance?.isPositiveBalance ?? false) ? .green : .red)
                                 .fontWeight(.medium)
@@ -176,11 +183,28 @@ struct NutritionDashboardView: View {
             GridItem(.flexible())
         ], spacing: 16) {
             MetricCard(
-                title: "Calories Remaining",
-                value: "\(Int(max(0, nutritionViewModel.remainingCalories)))",
-                subtitle: nutritionViewModel.remainingCalories >= 0 ? "remaining today" : "\(Int(abs(nutritionViewModel.remainingCalories))) over target",
+                title: "Daily Target",
+                value: "\(Int(nutritionViewModel.dailyNutrition?.calorieTarget ?? 0))",
+                subtitle: {
+                    let goalTarget = nutritionViewModel.dailyNutrition?.calorieTarget ?? 0
+                    let consumed = nutritionViewModel.totalCalories
+                    let remaining = goalTarget - consumed
+                    
+                    if remaining > 0 {
+                        return "Eat \(Int(remaining)) more to reach goal"
+                    } else if remaining < 0 {
+                        return "Burn \(Int(abs(remaining))) more or stop eating"
+                    } else {
+                        return "Daily goal reached!"
+                    }
+                }(),
                 icon: "target",
-                color: nutritionViewModel.remainingCalories >= 0 ? .blue : .orange,
+                color: {
+                    let remaining = (nutritionViewModel.dailyNutrition?.calorieTarget ?? 0) - nutritionViewModel.totalCalories
+                    if remaining > 0 { return .blue }
+                    else if remaining < 0 { return .orange }
+                    else { return .green }
+                }(),
                 progress: nutritionViewModel.calorieProgress
             )
             
