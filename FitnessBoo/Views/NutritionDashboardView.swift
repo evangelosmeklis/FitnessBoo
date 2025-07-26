@@ -49,7 +49,7 @@ struct NutritionDashboardView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 // Floating Action Button with Glass Effect
-                GlassButton("Add Food", icon: "plus") {
+                GlassButton("Add Food", icon: "plus", style: .blue) {
                     showingAddFood = true
                 }
                 .padding(.trailing, 20)
@@ -108,15 +108,37 @@ struct NutritionDashboardView: View {
             
             GlassCard {
                 VStack(spacing: 16) {
-                    // Calorie Progress
-                    NutritionProgressRow(
-                        title: "Calories",
-                        current: Int(nutritionViewModel.totalCalories),
-                        target: Int(nutritionViewModel.dailyNutrition?.calorieTarget ?? 2000),
-                        unit: "kcal",
-                        color: .orange,
-                        icon: "flame.fill"
-                    )
+                    // Caloric Balance
+                    HStack(spacing: 12) {
+                        Image(systemName: "flame.fill")
+                            .font(.title2)
+                            .foregroundStyle(.orange)
+                            .frame(width: 24, height: 24)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Caloric Balance")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text(nutritionViewModel.deficitSurplusText)
+                                .font(.caption)
+                                .foregroundStyle(nutritionViewModel.isDeficit ? .red : .green)
+                                .fontWeight(.medium)
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("\(Int(nutritionViewModel.totalCalories)) cal")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                            
+                            Text("consumed today")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     
                     Divider()
                     
@@ -142,12 +164,12 @@ struct NutritionDashboardView: View {
             GridItem(.flexible())
         ], spacing: 16) {
             MetricCard(
-                title: "Calories Left",
-                value: "\(Int(nutritionViewModel.remainingCalories))",
-                subtitle: "remaining today",
-                icon: "flame.fill",
-                color: .orange,
-                progress: nutritionViewModel.calorieProgress
+                title: nutritionViewModel.isDeficit ? "Calorie Deficit" : "Calorie Surplus",
+                value: "\(Int(abs(nutritionViewModel.caloricDeficitSurplus)))",
+                subtitle: nutritionViewModel.isDeficit ? "under target" : "over target",
+                icon: nutritionViewModel.isDeficit ? "minus.circle.fill" : "plus.circle.fill",
+                color: nutritionViewModel.isDeficit ? .red : .green,
+                progress: min(abs(nutritionViewModel.caloricDeficitSurplus) / (nutritionViewModel.dailyNutrition?.calorieTarget ?? 2000), 1.0)
             )
             
             MetricCard(

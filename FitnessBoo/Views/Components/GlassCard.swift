@@ -131,12 +131,19 @@ struct GlassButton: View {
     let icon: String?
     let action: () -> Void
     let isLoading: Bool
+    let style: GlassButtonStyle
     
-    init(_ title: String, icon: String? = nil, isLoading: Bool = false, action: @escaping () -> Void) {
+    enum GlassButtonStyle {
+        case `default`
+        case blue
+    }
+    
+    init(_ title: String, icon: String? = nil, isLoading: Bool = false, style: GlassButtonStyle = .default, action: @escaping () -> Void) {
         self.title = title
         self.icon = icon
         self.action = action
         self.isLoading = isLoading
+        self.style = style
     }
     
     var body: some View {
@@ -157,28 +164,65 @@ struct GlassButton: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.4),
-                                        Color.white.opacity(0.1)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    )
-            )
+            .background(backgroundView)
         }
         .disabled(isLoading)
         .scaleEffect(isLoading ? 0.95 : 1.0)
         .animation(.easeInOut(duration: 0.1), value: isLoading)
+    }
+    
+    @ViewBuilder
+    private var backgroundView: some View {
+        switch style {
+        case .default:
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.4),
+                                    Color.white.opacity(0.1)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        case .blue:
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.8),
+                            Color.blue.opacity(0.6)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.ultraThinMaterial.opacity(0.3))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.6),
+                                    Color.blue.opacity(0.3)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
     }
 }
 

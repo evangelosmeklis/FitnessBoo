@@ -324,6 +324,21 @@ extension NutritionViewModel {
     var dailySummary: DailyNutritionSummary? {
         dailyNutrition?.summary
     }
+    
+    var caloricDeficitSurplus: Double {
+        guard let nutrition = dailyNutrition else { return 0 }
+        return nutrition.totalCalories - nutrition.calorieTarget
+    }
+    
+    var isDeficit: Bool {
+        caloricDeficitSurplus < 0
+    }
+    
+    var deficitSurplusText: String {
+        let value = abs(caloricDeficitSurplus)
+        let type = isDeficit ? "Deficit" : "Surplus"
+        return "\(Int(value)) cal \(type.lowercased())"
+    }
 }
 
 enum NutritionViewModelError: LocalizedError {

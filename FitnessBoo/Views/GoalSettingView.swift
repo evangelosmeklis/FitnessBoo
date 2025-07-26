@@ -49,8 +49,6 @@ struct GoalSettingView: View {
                     
                     dailyCalorieAdjustmentSection
                     
-                    estimatedTargetsSection
-                    
                     if !viewModel.errorMessage.isNilOrEmpty {
                         errorSection
                     }
@@ -477,7 +475,7 @@ struct GoalSettingView: View {
     private var calorieAdjustmentFooter: some View {
         Group {
             if viewModel.selectedGoalType != .maintainWeight {
-                Text("This is the daily calorie deficit/surplus needed to reach your target weight by the target date. This target will be reflected in your Nutrition tab.")
+                Text("This is the daily calorie deficit/surplus needed to reach your target weight by the target date. Your Nutrition tab will show your progress toward this target.")
                     .font(.caption)
             } else {
                 Text("For weight maintenance, focus on balancing calories consumed with calories burned.")
@@ -525,21 +523,7 @@ struct GoalSettingView: View {
         }
     }
     
-    private var estimatedTargetsSection: some View {
-        Section {
-            HStack {
-                Text("Daily Calories")
-                Spacer()
-                Text("\(Int(viewModel.estimatedDailyCalories)) cal")
-                    .foregroundColor(.secondary)
-            }
-        } header: {
-            Text("Daily Targets")
-        } footer: {
-            Text("Based on HealthKit energy data and your goal requirements.")
-                .font(.caption)
-        }
-    }
+
     
     private var errorSection: some View {
         Section {
