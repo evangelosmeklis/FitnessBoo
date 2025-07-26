@@ -57,9 +57,31 @@ class NutritionViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+        
+        // Listen for weight and goal updates to recalculate targets
+        NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshTargetsAndNutrition()
+                }
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshTargetsAndNutrition()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Public Methods
+    
+    private func refreshTargetsAndNutrition() async {
+        // Reload daily nutrition with updated targets
+        await loadDailyNutrition(for: currentDate)
+    }
     
     func loadDailyNutrition(for date: Date = Date()) async {
         isLoading = true

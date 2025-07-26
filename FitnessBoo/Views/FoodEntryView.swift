@@ -64,6 +64,7 @@ struct FoodEntryView: View {
                         Spacer()
                         TextField("Optional", text: $protein)
                             .keyboardType(.decimalPad)
+                            .environment(\.locale, Locale(identifier: "en_US"))
                             .multilineTextAlignment(.trailing)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .frame(width: 100)

@@ -104,6 +104,38 @@ class UserProfileViewModel: ObservableObject {
         errorMessage = ""
     }
     
+    func updateUserWeight(_ newWeight: Double) async -> Bool {
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            guard let user = try await dataService.fetchUser() else {
+                errorMessage = "User not found"
+                showingError = true
+                return false
+            }
+            
+            var updatedUser = user
+            updatedUser.weight = newWeight
+            updatedUser.updatedAt = Date()
+            
+            try updatedUser.validate()
+            try await dataService.saveUser(updatedUser)
+            
+            currentUser = updatedUser
+            weight = String(newWeight)
+            
+            // Notify other components that weight has been updated
+            NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
+            
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            showingError = true
+            return false
+        }
+    }
+    
     func loadCurrentUser() {
         Task {
             do {

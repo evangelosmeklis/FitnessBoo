@@ -84,6 +84,7 @@ class DataService: DataServiceProtocol {
     // MARK: - User Operations
     
     func saveUser(_ user: User) async throws {
+        print("💾 DataService.saveUser called with weight: \(user.weight)")
         try await withCheckedThrowingContinuation { continuation in
             context.perform {
                 do {
@@ -95,21 +96,26 @@ class DataService: DataServiceProtocol {
                     let userEntity: UserEntity
                     
                     if let existing = existingUsers.first {
+                        print("📝 Updating existing user entity")
                         userEntity = existing
                     } else {
+                        print("🆕 Creating new user entity")
                         userEntity = UserEntity(context: self.context)
                         userEntity.id = user.id
                         userEntity.createdAt = user.createdAt
                     }
                     
                     // Update user properties
+                    print("⚖️ Setting weight from \(userEntity.weight) to \(user.weight)")
                     userEntity.weight = user.weight
                     userEntity.preferredUnits = user.preferredUnits.rawValue
                     userEntity.updatedAt = user.updatedAt
                     
                     try self.context.save()
+                    print("✅ User saved successfully with weight: \(userEntity.weight)")
                     continuation.resume()
                 } catch {
+                    print("❌ Failed to save user: \(error)")
                     continuation.resume(throwing: error)
                 }
             }
@@ -128,11 +134,14 @@ class DataService: DataServiceProtocol {
                     
                     if let userEntity = userEntities.first {
                         let user = self.convertToUser(from: userEntity)
+                        print("📖 Fetched user with weight: \(user.weight)")
                         continuation.resume(returning: user)
                     } else {
+                        print("❌ No user found in database")
                         continuation.resume(returning: nil)
                     }
                 } catch {
+                    print("❌ Failed to fetch user: \(error)")
                     continuation.resume(throwing: error)
                 }
             }

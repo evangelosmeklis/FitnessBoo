@@ -215,6 +215,7 @@ struct PhysicalInfoStepView: View {
                     
                     TextField("Enter your weight", text: $viewModel.weight)
                         .keyboardType(.decimalPad)
+                        .environment(\.locale, Locale(identifier: "en_US"))
                         .textFieldStyle(.roundedBorder)
                     
                     if let error = viewModel.weightError {

@@ -62,10 +62,10 @@ class GoalViewModel: ObservableObject {
     }
     
     private func setupBindings() {
-        // Update calculations when goal parameters change
+        // Update calculations when goal parameters change (with shorter debounce for better responsiveness)
         Publishers.CombineLatest4($selectedGoalType, $currentWeight, $targetWeight, $weeklyWeightChangeGoal)
             .combineLatest($targetDate)
-            .debounce(for: .milliseconds(1000), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 // Only update calculations if we have meaningful data
                 guard let self = self else { return }
@@ -106,11 +106,22 @@ class GoalViewModel: ObservableObject {
             let currentWeightValue = Double(currentWeight) ?? user.weight
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             
+            // Update user's weight if it has changed
+            var updatedUser = user
+            if let newWeight = Double(currentWeight), newWeight != user.weight {
+                updatedUser.weight = newWeight
+                updatedUser.updatedAt = Date()
+                try await dataService.saveUser(updatedUser)
+                
+                // Update cached user
+                cachedUser = updatedUser
+            }
+            
             // Calculate daily targets using HealthKit data
             goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
             // Save the goal
-            try await dataService.saveGoal(goal, for: user)
+            try await dataService.saveGoal(goal, for: updatedUser)
             
             currentGoal = goal
             
@@ -151,11 +162,22 @@ class GoalViewModel: ObservableObject {
             let currentWeightValue = Double(currentWeight) ?? user.weight
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             
+            // Update user's weight if it has changed
+            var updatedUser = user
+            if let newWeight = Double(currentWeight), newWeight != user.weight {
+                updatedUser.weight = newWeight
+                updatedUser.updatedAt = Date()
+                try await dataService.saveUser(updatedUser)
+                
+                // Update cached user
+                cachedUser = updatedUser
+            }
+            
             // Recalculate daily targets using HealthKit data
             goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
             // Save the updated goal
-            try await dataService.saveGoal(goal, for: user)
+            try await dataService.saveGoal(goal, for: updatedUser)
             
             currentGoal = goal
             
@@ -199,9 +221,65 @@ class GoalViewModel: ObservableObject {
         isLoading = false
     }
     
+    func updateCurrentWeight(_ newWeightString: String) async {
+        print("🔄 Attempting to update weight to: \(newWeightString)")
+        
+        let user: User
+        if let cachedUser = cachedUser {
+            user = cachedUser
+        } else {
+            do {
+                guard let fetchedUser = try await dataService.fetchUser() else {
+                    print("❌ No user found for weight update")
+                    return
+                }
+                user = fetchedUser
+            } catch {
+                print("❌ Failed to fetch user: \(error)")
+                return
+            }
+        }
+        
+        guard let newWeight = Double(newWeightString) else {
+            print("❌ Invalid weight string: \(newWeightString)")
+            return
+        }
+        
+        print("✅ Parsed weight: \(newWeight)")
+        
+        guard newWeight != user.weight else {
+            print("ℹ️ Weight unchanged: \(newWeight)")
+            return
+        }
+        
+        print("💾 Saving weight change: \(user.weight) -> \(newWeight)")
+        
+        do {
+            var updatedUser = user
+            updatedUser.weight = newWeight
+            updatedUser.updatedAt = Date()
+            
+            try updatedUser.validate()
+            try await dataService.saveUser(updatedUser)
+            cachedUser = updatedUser
+            
+            print("✅ Weight updated successfully to \(newWeight)")
+            
+            // Notify other components that weight has been updated
+            NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
+            
+        } catch {
+            print("❌ Failed to update weight: \(error)")
+            errorMessage = "Failed to update weight: \(error.localizedDescription)"
+            showingError = true
+        }
+    }
+    
     // MARK: - Calculations and Validation
     
     private var cachedUser: User?
+    
+
     
     private func updateCalculations() async {
         do {

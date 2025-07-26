@@ -56,6 +56,26 @@ class ProgressViewModel: ObservableObject {
             calculationService: calculationService,
             dataService: dataService
         )
+        setupObservers()
+    }
+    
+    private func setupObservers() {
+        // Listen for weight and goal updates to refresh progress data
+        NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshData()
+                }
+            }
+            .store(in: &cancellables)
+        
+        NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshData()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Public Methods

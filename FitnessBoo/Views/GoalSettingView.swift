@@ -21,6 +21,9 @@ struct GoalSettingView: View {
     @FocusState private var isCurrentWeightFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
+    // Debounced weight update
+    @State private var weightUpdateTask: Task<Void, Never>?
+    
     init(calculationService: CalculationServiceProtocol = CalculationService(), 
          dataService: DataServiceProtocol = DataService.shared,
          healthKitService: HealthKitServiceProtocol) {
@@ -57,32 +60,7 @@ struct GoalSettingView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        Task {
-                            if let user = user {
-                                if viewModel.currentGoal != nil {
-                                    await viewModel.updateGoal(for: user)
-                                } else {
-                                    await viewModel.createGoal(for: user)
-                                }
-                                
-                                if !viewModel.showingError {
-                                    // Notify other views that goal was updated
-                                    NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
-                                    
-                                    // Show success message
-                                    showSuccessMessage = true
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                        showSuccessMessage = false
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                        dismiss()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .disabled(!viewModel.validateCurrentGoal() || viewModel.isLoading || !hasValidInput())
+                    saveButton
                 }
             }
             .task {
@@ -93,17 +71,28 @@ struct GoalSettingView: View {
                 isTargetWeightFocused = false
                 isCurrentWeightFocused = false
             }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        handleKeyboardDone()
+                    }
+                }
+            }
             .onChange(of: viewModel.selectedGoalType) { _ in
-                checkForChanges()
+                handleGoalParameterChange()
             }
             .onChange(of: viewModel.targetWeight) { _ in
-                checkForChanges()
+                handleGoalParameterChange()
             }
             .onChange(of: viewModel.targetDate) { _ in
-                checkForChanges()
+                handleGoalParameterChange()
             }
             .onChange(of: viewModel.weeklyWeightChangeGoal) { _ in
-                checkForChanges()
+                handleGoalParameterChange()
+            }
+            .onChange(of: viewModel.currentWeight) { newWeight in
+                handleWeightChange(newWeight)
             }
             .alert("Goal Error", isPresented: $viewModel.showingError) {
                 Button("OK") {
@@ -122,28 +111,104 @@ struct GoalSettingView: View {
             } message: {
                 Text("This will permanently delete all your goals, food entries, and nutrition data. This action cannot be undone. HealthKit data will not be affected.")
             }
-            .overlay(
-                Group {
-                    if showSuccessMessage {
-                        VStack {
-                            Spacer()
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("Goal saved successfully!")
-                                    .fontWeight(.medium)
-                            }
-                            .padding()
-                            .background(Color(.systemBackground))
-                            .cornerRadius(10)
-                            .shadow(radius: 5)
-                            .padding(.bottom, 50)
-                        }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .animation(.easeInOut, value: showSuccessMessage)
+            .overlay(successMessageOverlay)
+        }
+        .onDisappear {
+            // Cancel any pending weight update task
+            weightUpdateTask?.cancel()
+        }
+    }
+    
+    // MARK: - View Components
+    
+    private var saveButton: some View {
+        Button("Save") {
+            Task {
+                await performSaveAction()
+            }
+        }
+        .disabled(!viewModel.validateCurrentGoal() || viewModel.isLoading || !hasValidInput())
+    }
+    
+    private var successMessageOverlay: some View {
+        Group {
+            if showSuccessMessage {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("Goal saved successfully!")
+                            .fontWeight(.medium)
                     }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .cornerRadius(10)
+                    .shadow(radius: 5)
+                    .padding(.bottom, 50)
                 }
-            )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.easeInOut, value: showSuccessMessage)
+            }
+        }
+    }
+    
+    // MARK: - Actions
+    
+    private func handleGoalParameterChange() {
+        Task { @MainActor in
+            checkForChanges()
+        }
+    }
+    
+    private func handleWeightChange(_ newWeight: String) {
+        // Cancel previous weight update task
+        weightUpdateTask?.cancel()
+        
+        // Debounce weight updates to avoid excessive saves
+        weightUpdateTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
+            
+            if !Task.isCancelled {
+                await viewModel.updateCurrentWeight(newWeight)
+            }
+        }
+    }
+    
+    private func handleKeyboardDone() {
+        if isCurrentWeightFocused {
+            Task {
+                await viewModel.updateCurrentWeight(viewModel.currentWeight)
+            }
+            isCurrentWeightFocused = false
+        }
+        if isTargetWeightFocused {
+            isTargetWeightFocused = false
+            validateTargetWeight()
+        }
+    }
+    
+    private func performSaveAction() async {
+        guard let user = user else { return }
+        
+        if viewModel.currentGoal != nil {
+            await viewModel.updateGoal(for: user)
+        } else {
+            await viewModel.createGoal(for: user)
+        }
+        
+        if !viewModel.showingError {
+            // Notify other views that goal was updated
+            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+            
+            // Show success message
+            showSuccessMessage = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                showSuccessMessage = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                dismiss()
+            }
         }
     }
     
@@ -197,12 +262,10 @@ struct GoalSettingView: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
                     .focused($isCurrentWeightFocused)
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") {
-                                isCurrentWeightFocused = false
-                            }
+                    .environment(\.locale, Locale(identifier: "en_US"))
+                    .onSubmit {
+                        Task {
+                            await viewModel.updateCurrentWeight(viewModel.currentWeight)
                         }
                     }
                 Text("kg")
@@ -221,15 +284,7 @@ struct GoalSettingView: View {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 100)
                     .focused($isTargetWeightFocused)
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") {
-                                isTargetWeightFocused = false
-                                validateTargetWeight()
-                            }
-                        }
-                    }
+                    .environment(\.locale, Locale(identifier: "en_US"))
                     .onChange(of: viewModel.targetWeight) { _ in
                         validateTargetWeight()
                     }
@@ -260,96 +315,125 @@ struct GoalSettingView: View {
     private var dailyCalorieAdjustmentSection: some View {
         Section {
             VStack(spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Daily Calorie Target")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        if viewModel.selectedGoalType == .maintainWeight {
-                            Text("Maintain current calorie balance")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        } else {
-                            let adjustment = viewModel.calculatedDailyCalorieAdjustment
-                            let adjustmentText = adjustment < 0 ? "Deficit" : "Surplus"
-                            let adjustmentColor: Color = adjustment < 0 ? .red : .green
-                            
-                            Text("\(adjustmentText) of \(Int(abs(adjustment))) calories/day")
-                                .font(.subheadline)
-                                .foregroundColor(adjustmentColor)
-                                .fontWeight(.medium)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    if viewModel.selectedGoalType != .maintainWeight {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            let adjustment = viewModel.calculatedDailyCalorieAdjustment
-                            let sign = adjustment >= 0 ? "+" : ""
-                            Text("\(sign)\(Int(adjustment))")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(adjustment < 0 ? .red : .green)
-                            Text("cal/day")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
+                calorieTargetHeader
                 
-                if viewModel.selectedGoalType != .maintainWeight && !viewModel.targetWeight.isEmpty && !viewModel.currentWeight.isEmpty {
+                if shouldShowDetailedCalorieInfo {
                     Divider()
-                    
-                    VStack(spacing: 8) {
-                        HStack {
-                            Text("Weekly Weight Change:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            let weeklyChange = viewModel.calculatedWeeklyChange
-                            let sign = weeklyChange >= 0 ? "+" : ""
-                            Text("\(sign)\(weeklyChange, specifier: "%.2f") kg/week")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                                .foregroundColor(weeklyChange < 0 ? .red : .green)
-                        }
-                        
-                        if let targetWeight = Double(viewModel.targetWeight),
-                           let currentWeight = Double(viewModel.currentWeight) {
-                            let totalWeightChange = targetWeight - currentWeight
-                            let weeksToGoal = viewModel.targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
-                            
-                            HStack {
-                                Text("Time to Goal:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                Text("\(Int(weeksToGoal)) weeks")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                            
-                            HStack {
-                                Text("Total Weight Change:")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                let sign = totalWeightChange >= 0 ? "+" : ""
-                                Text("\(sign)\(totalWeightChange, specifier: "%.1f") kg")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(totalWeightChange < 0 ? .red : .green)
-                            }
-                        }
-                    }
+                    calorieDetailsView
                 }
             }
             .padding(.vertical, 8)
         } header: {
             Text("Daily Calorie Adjustment")
         } footer: {
+            calorieAdjustmentFooter
+        }
+    }
+    
+    private var calorieTargetHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Daily Calorie Target")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                calorieTargetSubtitle
+            }
+            
+            Spacer()
+            
+            if viewModel.selectedGoalType != .maintainWeight {
+                calorieAdjustmentDisplay
+            }
+        }
+    }
+    
+    private var calorieTargetSubtitle: some View {
+        Group {
+            if viewModel.selectedGoalType == .maintainWeight {
+                Text("Maintain current calorie balance")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            } else {
+                let adjustment = viewModel.calculatedDailyCalorieAdjustment
+                let adjustmentText = adjustment < 0 ? "Deficit" : "Surplus"
+                let adjustmentColor: Color = adjustment < 0 ? .red : .green
+                
+                Text("\(adjustmentText) of \(Int(abs(adjustment))) calories/day")
+                    .font(.subheadline)
+                    .foregroundColor(adjustmentColor)
+                    .fontWeight(.medium)
+            }
+        }
+    }
+    
+    private var calorieAdjustmentDisplay: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            let adjustment = viewModel.calculatedDailyCalorieAdjustment
+            let sign = adjustment >= 0 ? "+" : ""
+            Text("\(sign)\(Int(adjustment))")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(adjustment < 0 ? .red : .green)
+            Text("cal/day")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+    
+    private var shouldShowDetailedCalorieInfo: Bool {
+        viewModel.selectedGoalType != .maintainWeight && 
+        !viewModel.targetWeight.isEmpty && 
+        !viewModel.currentWeight.isEmpty
+    }
+    
+    private var calorieDetailsView: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Text("Weekly Weight Change:")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                let weeklyChange = viewModel.calculatedWeeklyChange
+                let sign = weeklyChange >= 0 ? "+" : ""
+                Text("\(sign)\(weeklyChange, specifier: "%.2f") kg/week")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(weeklyChange < 0 ? .red : .green)
+            }
+            
+            if let targetWeight = Double(viewModel.targetWeight),
+               let currentWeight = Double(viewModel.currentWeight) {
+                let totalWeightChange = targetWeight - currentWeight
+                let weeksToGoal = viewModel.targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
+                
+                HStack {
+                    Text("Time to Goal:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text("\(Int(weeksToGoal)) weeks")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                
+                HStack {
+                    Text("Total Weight Change:")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    let sign = totalWeightChange >= 0 ? "+" : ""
+                    Text("\(sign)\(totalWeightChange, specifier: "%.1f") kg")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(totalWeightChange < 0 ? .red : .green)
+                }
+            }
+        }
+    }
+    
+    private var calorieAdjustmentFooter: some View {
+        Group {
             if viewModel.selectedGoalType != .maintainWeight {
                 Text("This is the daily calorie deficit/surplus needed to reach your target weight by the target date. This target will be reflected in your Nutrition tab.")
                     .font(.caption)
