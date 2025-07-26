@@ -36,26 +36,30 @@ struct GoalSettingView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                goalTypeSection
-                
-                currentWeightSection
-                
-                if viewModel.selectedGoalType != .maintainWeight {
-                    targetWeightSection
-                    targetDateSection
+            ScrollView {
+                LazyVStack(spacing: 24) {
+                    goalTypeSection
+                    
+                    currentWeightSection
+                    
+                    if viewModel.selectedGoalType != .maintainWeight {
+                        targetWeightSection
+                        targetDateSection
+                    }
+                    
+                    dailyCalorieAdjustmentSection
+                    
+                    estimatedTargetsSection
+                    
+                    if !viewModel.errorMessage.isNilOrEmpty {
+                        errorSection
+                    }
+                    
+                    resetDataSection
                 }
-                
-                dailyCalorieAdjustmentSection
-                
-                estimatedTargetsSection
-                
-                if !viewModel.errorMessage.isNilOrEmpty {
-                    errorSection
-                }
-                
-                resetDataSection
+                .padding()
             }
+            .background(backgroundGradient)
             .navigationTitle("Set Your Goal")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -117,6 +121,21 @@ struct GoalSettingView: View {
             // Cancel any pending weight update task
             weightUpdateTask?.cancel()
         }
+    }
+    
+    // MARK: - Background
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(.systemBackground),
+                Color(.systemBackground).opacity(0.8),
+                Color.purple.opacity(0.05)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
     }
     
     // MARK: - View Components
@@ -215,61 +234,84 @@ struct GoalSettingView: View {
     // MARK: - View Sections
     
     private var goalTypeSection: some View {
-        Section {
-            ForEach(GoalType.allCases, id: \.self) { goalType in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(goalType.displayName)
-                            .font(.headline)
-                        Text(goalType.description)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Goal Type")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            VStack(spacing: 12) {
+                ForEach(GoalType.allCases, id: \.self) { goalType in
+                    GlassCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(goalType.displayName)
+                                    .font(.headline)
+                                Text(goalType.description)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if viewModel.selectedGoalType == goalType {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                                    .font(.title2)
+                            }
+                        }
                     }
-                    
-                    Spacer()
-                    
-                    if viewModel.selectedGoalType == goalType {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.blue)
-                    }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // Use withAnimation for smooth transitions
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        viewModel.selectedGoalType = goalType
-                    }
-                    
-                    // Clear target weight for maintain weight goal
-                    if goalType == .maintainWeight {
-                        viewModel.targetWeight = ""
-                        viewModel.errorMessage = nil
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Use withAnimation for smooth transitions
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.selectedGoalType = goalType
+                        }
+                        
+                        // Clear target weight for maintain weight goal
+                        if goalType == .maintainWeight {
+                            viewModel.targetWeight = ""
+                            viewModel.errorMessage = nil
+                        }
                     }
                 }
             }
-        } header: {
-            Text("Goal Type")
         }
     }
     
     private var currentWeightSection: some View {
-        Section(header: Text("Current Weight")) {
-            HStack {
-                Text("Current Weight")
-                Spacer()
-                TextField("Enter weight", text: $viewModel.currentWeight)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 100)
-                    .focused($isCurrentWeightFocused)
-                    .environment(\.locale, Locale(identifier: "en_US"))
-                    .onSubmit {
-                        Task {
-                            await viewModel.updateCurrentWeight(viewModel.currentWeight)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Current Weight")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                HStack {
+                    Image(systemName: "scalemass.fill")
+                        .font(.title2)
+                        .foregroundStyle(.purple)
+                        .frame(width: 24, height: 24)
+                    
+                    Text("Current Weight")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    TextField("Enter weight", text: $viewModel.currentWeight)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isCurrentWeightFocused)
+                        .environment(\.locale, Locale(identifier: "en_US"))
+                        .onSubmit {
+                            Task {
+                                await viewModel.updateCurrentWeight(viewModel.currentWeight)
+                            }
                         }
-                    }
-                Text("kg")
-                    .foregroundColor(.secondary)
+                    
+                    Text("kg")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

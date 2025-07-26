@@ -24,12 +24,12 @@ struct NutritionDashboardView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
+                LazyVStack(spacing: 24) {
                     // Daily Progress Section
                     dailyProgressSection
                     
-                    // Quick Add Button
-                    quickAddButton
+                    // Quick Stats Grid
+                    quickStatsGrid
                     
                     // Water Tracking Section
                     waterTrackingSection
@@ -41,23 +41,16 @@ struct NutritionDashboardView: View {
                 }
                 .padding()
             }
+            .background(backgroundGradient)
             .navigationTitle("Nutrition")
+            .navigationBarTitleDisplayMode(.large)
             .refreshable {
                 await nutritionViewModel.refreshData()
             }
             .overlay(alignment: .bottomTrailing) {
-                // Floating Action Button
-                Button {
+                // Floating Action Button with Glass Effect
+                GlassButton("Add Food", icon: "plus") {
                     showingAddFood = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.accentColor)
-                        .clipShape(Circle())
-                        .shadow(radius: 4)
                 }
                 .padding(.trailing, 20)
                 .padding(.bottom, 20)
@@ -90,44 +83,81 @@ struct NutritionDashboardView: View {
         }
     }
     
+    // MARK: - Background
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(.systemBackground),
+                Color(.systemBackground).opacity(0.8),
+                Color.green.opacity(0.05)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+    
     // MARK: - Daily Progress Section
     
     private var dailyProgressSection: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Today's Progress")
                 .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .fontWeight(.semibold)
             
-            VStack(spacing: 12) {
-                // Caloric Balance Progress
-                CaloricBalanceCard()
+            GlassCard {
+                VStack(spacing: 16) {
+                    // Calorie Progress
+                    NutritionProgressRow(
+                        title: "Calories",
+                        current: Int(nutritionViewModel.totalCalories),
+                        target: Int(nutritionViewModel.dailyNutrition?.calorieTarget ?? 2000),
+                        unit: "kcal",
+                        color: .orange,
+                        icon: "flame.fill"
+                    )
+                    
+                    Divider()
+                    
+                    // Protein Progress
+                    NutritionProgressRow(
+                        title: "Protein",
+                        current: Int(nutritionViewModel.totalProtein),
+                        target: Int(nutritionViewModel.dailyNutrition?.proteinTarget ?? 100),
+                        unit: "g",
+                        color: .green,
+                        icon: "leaf.fill"
+                    )
+                }
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
     }
     
-    // MARK: - Quick Add Button
+    // MARK: - Quick Stats Grid
     
-    private var quickAddButton: some View {
-        Button {
-            showingAddFood = true
-        } label: {
-            HStack {
-                Image(systemName: "plus.circle.fill")
-                    .font(.title2)
-                Text("Log Food")
-                    .font(.headline)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding()
-            .background(Color.accentColor.opacity(0.1))
-            .foregroundColor(.accentColor)
-            .cornerRadius(12)
+    private var quickStatsGrid: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: 16) {
+            MetricCard(
+                title: "Calories Left",
+                value: "\(Int(nutritionViewModel.remainingCalories))",
+                subtitle: "remaining today",
+                icon: "flame.fill",
+                color: .orange,
+                progress: nutritionViewModel.calorieProgress
+            )
+            
+            MetricCard(
+                title: "Protein Left",
+                value: "\(Int(nutritionViewModel.remainingProtein))g",
+                subtitle: "remaining today",
+                icon: "leaf.fill",
+                color: .green,
+                progress: nutritionViewModel.proteinProgress
+            )
         }
     }
     
@@ -137,42 +167,62 @@ struct NutritionDashboardView: View {
     @State private var customWaterAmount = ""
     
     private var waterTrackingSection: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Text("Water Intake")
-                    .font(.headline)
-                Spacer()
-                Text("\(Int(nutritionViewModel.totalWater)) ml")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-            }
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Water Intake")
+                .font(.headline)
+                .fontWeight(.semibold)
             
-            HStack(spacing: 8) {
-                WaterButton(amount: 250) {
-                    Task { await nutritionViewModel.addWater(milliliters: 250) }
+            GlassCard {
+                VStack(spacing: 16) {
+                    HStack {
+                        Image(systemName: "drop.fill")
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Today's Water")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            
+                            Text("\(Int(nutritionViewModel.totalWater)) ml")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                        }
+                        
+                        Spacer()
+                        
+                        CircularProgressView(
+                            progress: min(nutritionViewModel.totalWater / 2000, 1.0),
+                            color: .blue
+                        )
+                        .frame(width: 40, height: 40)
+                    }
+                    
+                    Divider()
+                    
+                        WaterButton(amount: 250) {
+                            Task { await nutritionViewModel.addWater(milliliters: 250) }
+                        }
+                        WaterButton(amount: 500) {
+                            Task { await nutritionViewModel.addWater(milliliters: 500) }
+                        }
+                        WaterButton(amount: 750) {
+                            Task { await nutritionViewModel.addWater(milliliters: 750) }
+                        }
+                        
+                        Button("Custom") {
+                            showingCustomWaterInput = true
+                        }
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(8)
+                    }
                 }
-                WaterButton(amount: 500) {
-                    Task { await nutritionViewModel.addWater(milliliters: 500) }
-                }
-                WaterButton(amount: 750) {
-                    Task { await nutritionViewModel.addWater(milliliters: 750) }
-                }
-                
-                Button("Custom") {
-                    showingCustomWaterInput = true
-                }
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity)
-                .background(Color.blue.opacity(0.1))
-                .foregroundColor(.blue)
-                .cornerRadius(8)
             }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
         .alert("Add Water", isPresented: $showingCustomWaterInput) {
             TextField("Amount (ml)", text: $customWaterAmount)
                 .keyboardType(.numberPad)
@@ -193,40 +243,42 @@ struct NutritionDashboardView: View {
     // MARK: - Food Entries Section
     
     private var foodEntriesSection: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Today's Meals")
                     .font(.headline)
+                    .fontWeight(.semibold)
                 Spacer()
                 if !nutritionViewModel.foodEntries.isEmpty {
                     Text("\(nutritionViewModel.foodEntries.count) entries")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             
-            // Debug info
-
-            
             if nutritionViewModel.foodEntries.isEmpty {
-                emptyStateView
+                GlassCard {
+                    emptyStateContent
+                }
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(MealType.allCases, id: \.self) { mealType in
                         let entries = nutritionViewModel.entriesByMealType[mealType] ?? []
                         if !entries.isEmpty {
-                            MealSection(
-                                mealType: mealType,
-                                entries: entries,
-                                onEntryTapped: { entry in
-                                    selectedEntry = entry
-                                },
-                                onEntryDeleted: { entry in
-                                    Task {
-                                        await nutritionViewModel.deleteFoodEntry(entry)
+                            GlassCard {
+                                MealSection(
+                                    mealType: mealType,
+                                    entries: entries,
+                                    onEntryTapped: { entry in
+                                        selectedEntry = entry
+                                    },
+                                    onEntryDeleted: { entry in
+                                        Task {
+                                            await nutritionViewModel.deleteFoodEntry(entry)
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -234,19 +286,19 @@ struct NutritionDashboardView: View {
         }
     }
     
-    private var emptyStateView: some View {
+    private var emptyStateContent: some View {
         VStack(spacing: 16) {
             Image(systemName: "fork.knife.circle")
                 .font(.system(size: 48))
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             
             Text("No meals logged today")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             
-            Text("Tap the + button to start tracking your nutrition")
+            Text("Tap 'Add Food' to start tracking your nutrition")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.vertical, 40)
@@ -613,6 +665,54 @@ struct CaloricBalanceCard: View {
             return currentBalanceValue <= targetAdjustment ? .green : .orange
         } else { // Weight gain
             return currentBalanceValue >= targetAdjustment ? .green : .orange
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+struct NutritionProgressRow: View {
+    let title: String
+    let current: Int
+    let target: Int
+    let unit: String
+    let color: Color
+    let icon: String
+    
+    private var progress: Double {
+        guard target > 0 else { return 0 }
+        return min(Double(current) / Double(target), 1.0)
+    }
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color)
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text("\(current) / \(target) \(unit)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(color)
+                
+                SwiftUI.ProgressView(value: progress)
+                    .progressViewStyle(LinearProgressViewStyle(tint: color))
+                    .frame(width: 60)
+            }
         }
     }
 }
