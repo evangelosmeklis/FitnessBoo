@@ -9,15 +9,23 @@ import SwiftUI
 
 struct NutritionDashboardView: View {
     @StateObject private var nutritionViewModel: NutritionViewModel
+    @StateObject private var calorieBalanceService: CalorieBalanceService
     @State private var showingAddFood = false
     @State private var selectedEntry: FoodEntry?
     @State private var showingEditFood = false
+    @State private var currentBalance: CalorieBalance?
     
     init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol, healthKitService: HealthKitServiceProtocol) {
         self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(
             dataService: dataService,
             calculationService: calculationService,
             healthKitService: healthKitService
+        ))
+        
+        self._calorieBalanceService = StateObject(wrappedValue: CalorieBalanceService(
+            healthKitService: healthKitService,
+            calculationService: calculationService,
+            dataService: dataService
         ))
     }
     
@@ -63,21 +71,25 @@ struct NutritionDashboardView: View {
             }
             .task {
                 await nutritionViewModel.loadDailyNutrition()
+                currentBalance = await calorieBalanceService.getCurrentBalance()
             }
             .onAppear {
                 Task {
                     await nutritionViewModel.loadDailyNutrition()
                     await nutritionViewModel.refreshData()
+                    currentBalance = await calorieBalanceService.getCurrentBalance()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
                 Task {
                     await nutritionViewModel.refreshData()
+                    currentBalance = await calorieBalanceService.getCurrentBalance()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))) { _ in
                 Task {
                     await nutritionViewModel.refreshData()
+                    currentBalance = await calorieBalanceService.getCurrentBalance()
                 }
             }
         }
@@ -120,9 +132,9 @@ struct NutritionDashboardView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             
-                            Text(nutritionViewModel.deficitSurplusText)
+                            Text(currentBalance?.formattedBalance ?? "Loading...")
                                 .font(.caption)
-                                .foregroundStyle(nutritionViewModel.isDeficit ? .red : .green)
+                                .foregroundStyle((currentBalance?.isPositiveBalance ?? false) ? .green : .red)
                                 .fontWeight(.medium)
                         }
                         
@@ -164,12 +176,12 @@ struct NutritionDashboardView: View {
             GridItem(.flexible())
         ], spacing: 16) {
             MetricCard(
-                title: nutritionViewModel.isDeficit ? "Calorie Deficit" : "Calorie Surplus",
-                value: "\(Int(abs(nutritionViewModel.goalBasedDeficitSurplus)))",
-                subtitle: nutritionViewModel.isDeficit ? "beyond goal" : "over goal",
-                icon: nutritionViewModel.isDeficit ? "minus.circle.fill" : "plus.circle.fill",
-                color: nutritionViewModel.isDeficit ? .red : .green,
-                progress: min(abs(nutritionViewModel.goalBasedDeficitSurplus) / (nutritionViewModel.dailyNutrition?.calorieTarget ?? 2000), 1.0)
+                title: "Calories Remaining",
+                value: "\(Int(max(0, nutritionViewModel.remainingCalories)))",
+                subtitle: nutritionViewModel.remainingCalories >= 0 ? "remaining today" : "\(Int(abs(nutritionViewModel.remainingCalories))) over target",
+                icon: "target",
+                color: nutritionViewModel.remainingCalories >= 0 ? .blue : .orange,
+                progress: nutritionViewModel.calorieProgress
             )
             
             MetricCard(

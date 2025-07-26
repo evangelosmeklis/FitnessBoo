@@ -242,9 +242,11 @@ extension AppDataManager {
         guard let goal = currentGoal else { return caloriesConsumed - calorieTarget }
         
         let goalAdjustment = goal.weeklyWeightChangeGoal * 7700 / 7 // Convert weekly to daily
-        let targetWithGoal = calorieTarget + goalAdjustment
+        // For weight loss (negative goal), we need MORE deficit, so subtract adjustment from consumed
+        // For weight gain (positive goal), we need MORE surplus, so add adjustment to consumed
+        let adjustedConsumed = caloriesConsumed - goalAdjustment
         
-        return caloriesConsumed - targetWithGoal
+        return adjustedConsumed - calorieTarget
     }
     
     var isCalorieDeficit: Bool {

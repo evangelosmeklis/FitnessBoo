@@ -319,14 +319,15 @@ class NutritionViewModel: ObservableObject {
         
         do {
             if let goal = try await dataService.fetchActiveGoal() {
-                // Calculate the goal's daily calorie adjustment (e.g., -307)
+                // Calculate the goal's daily calorie adjustment (e.g., -550 for 0.5kg/week loss)
                 let goalAdjustment = goal.weeklyWeightChangeGoal * 7700 / 7
                 
-                // The target with goal adjustment
-                let targetWithGoal = nutrition.calorieTarget + goalAdjustment
+                // For weight loss (negative goal), we need MORE deficit, so subtract adjustment from consumed
+                // For weight gain (positive goal), we need MORE surplus, so add adjustment to consumed
+                let adjustedConsumed = nutrition.totalCalories - goalAdjustment
                 
-                // Compare actual consumption vs target with goal adjustment
-                goalBasedDeficitSurplus = nutrition.totalCalories - targetWithGoal
+                // Compare adjusted consumption vs target
+                goalBasedDeficitSurplus = adjustedConsumed - nutrition.calorieTarget
             } else {
                 // Fallback to basic deficit/surplus if no goal
                 goalBasedDeficitSurplus = caloricDeficitSurplus

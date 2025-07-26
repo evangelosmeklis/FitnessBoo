@@ -113,9 +113,9 @@ struct DashboardView: View {
             MetricCard(
                 title: "Calories",
                 value: "\(Int(dataManager.caloriesConsumed))",
-                subtitle: dataManager.caloricDeficitSurplusText,
+                subtitle: currentBalance?.formattedBalance ?? "Loading...",
                 icon: "flame.fill",
-                color: dataManager.isCalorieDeficit ? .red : .green,
+                color: (currentBalance?.isPositiveBalance ?? false) ? .green : .red,
                 progress: dataManager.calorieProgress
             )
             
