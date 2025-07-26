@@ -113,9 +113,9 @@ struct DashboardView: View {
             MetricCard(
                 title: "Calories",
                 value: "\(Int(dataManager.caloriesConsumed))",
-                subtitle: "\(Int(dataManager.caloriesRemaining)) remaining",
+                subtitle: dataManager.caloricDeficitSurplusText,
                 icon: "flame.fill",
-                color: .orange,
+                color: dataManager.isCalorieDeficit ? .red : .green,
                 progress: dataManager.calorieProgress
             )
             

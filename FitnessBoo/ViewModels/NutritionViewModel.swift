@@ -28,6 +28,8 @@ class NutritionViewModel: ObservableObject {
     @Published var waterProgress: Double = 0
     @Published var dailyWaterTarget: Double = 2000
     @Published var goalBasedDeficitSurplus: Double = 0
+    @Published var caloriesBurned: Double = 0
+    @Published var netCalories: Double = 0
     
     private let dataService: DataServiceProtocol
     private let calculationService: CalculationServiceProtocol

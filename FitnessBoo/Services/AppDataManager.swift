@@ -228,10 +228,32 @@ extension AppDataManager {
     }
     
     var waterTarget: Double {
-        2000 // 2L default
+        currentGoal?.dailyWaterTarget ?? 2000
     }
     
     var waterProgress: Double {
         min(waterConsumed / waterTarget, 1.0)
+    }
+    
+    // MARK: - Caloric Deficit/Surplus Properties
+    
+    var caloricDeficitSurplus: Double {
+        // Calculate based on goal's daily calorie adjustment
+        guard let goal = currentGoal else { return caloriesConsumed - calorieTarget }
+        
+        let goalAdjustment = goal.weeklyWeightChangeGoal * 7700 / 7 // Convert weekly to daily
+        let targetWithGoal = calorieTarget + goalAdjustment
+        
+        return caloriesConsumed - targetWithGoal
+    }
+    
+    var isCalorieDeficit: Bool {
+        caloricDeficitSurplus < 0
+    }
+    
+    var caloricDeficitSurplusText: String {
+        let value = abs(caloricDeficitSurplus)
+        let type = isCalorieDeficit ? "deficit" : "surplus"
+        return "\(Int(value)) cal \(type)"
     }
 }
