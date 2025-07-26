@@ -25,6 +25,9 @@ class NutritionViewModel: ObservableObject {
     @Published var calorieProgress: Double = 0
     @Published var proteinProgress: Double = 0
     @Published var totalWater: Double = 0
+    @Published var waterProgress: Double = 0
+    @Published var dailyWaterTarget: Double = 2000
+    @Published var goalBasedDeficitSurplus: Double = 0
     
     private let dataService: DataServiceProtocol
     private let calculationService: CalculationServiceProtocol
@@ -91,6 +94,7 @@ class NutritionViewModel: ObservableObject {
         do {
             // Always get the latest targets from goals
             let targets = try await calculateDailyTargets()
+            dailyWaterTarget = targets.water
             
             // Try to load existing daily nutrition
             if let existingNutrition = try await dataService.fetchDailyNutrition(for: date) {
@@ -269,6 +273,12 @@ class NutritionViewModel: ObservableObject {
         calorieProgress = nutrition.calorieProgress
         proteinProgress = nutrition.proteinProgress
         totalWater = nutrition.waterConsumed
+        waterProgress = dailyWaterTarget > 0 ? min(totalWater / dailyWaterTarget, 1.0) : 0
+        
+        // Update goal-based deficit/surplus
+        Task {
+            await updateGoalBasedDeficitSurplus()
+        }
     }
     
     private func resetCalculations() {
@@ -279,9 +289,11 @@ class NutritionViewModel: ObservableObject {
         calorieProgress = 0
         proteinProgress = 0
         totalWater = 0
+        waterProgress = 0
+        goalBasedDeficitSurplus = 0
     }
     
-    private func calculateDailyTargets() async throws -> (calories: Double, protein: Double) {
+    private func calculateDailyTargets() async throws -> (calories: Double, protein: Double, water: Double) {
         // Get active goal
         guard let goal = try await dataService.fetchActiveGoal() else {
             print("No active goal found, using HealthKit data")
@@ -290,11 +302,52 @@ class NutritionViewModel: ObservableObject {
             let currentWeight = try await healthKitService.fetchWeight() ?? 70.0 // Default fallback
             let proteinTarget = currentWeight * 1.2 // Basic maintenance protein
             print("Using HealthKit energy: \(totalEnergy), protein: \(proteinTarget)")
-            return (calories: totalEnergy > 0 ? totalEnergy : 2000, protein: proteinTarget)
+            return (calories: totalEnergy > 0 ? totalEnergy : 2000, protein: proteinTarget, water: 2000)
         }
         
-        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget)")
-        return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget)
+        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget), water=\(goal.dailyWaterTarget)")
+        return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget, water: goal.dailyWaterTarget)
+    }
+    
+    private func updateGoalBasedDeficitSurplus() async {
+        guard let nutrition = dailyNutrition else { 
+            goalBasedDeficitSurplus = 0
+            return 
+        }
+        
+        do {
+            if let goal = try await dataService.fetchActiveGoal() {
+                // Calculate the goal's daily calorie adjustment (e.g., -307)
+                let goalAdjustment = goal.weeklyWeightChangeGoal * 7700 / 7
+                
+                // The target with goal adjustment
+                let targetWithGoal = nutrition.calorieTarget + goalAdjustment
+                
+                // Compare actual consumption vs target with goal adjustment
+                goalBasedDeficitSurplus = nutrition.totalCalories - targetWithGoal
+            } else {
+                // Fallback to basic deficit/surplus if no goal
+                goalBasedDeficitSurplus = caloricDeficitSurplus
+            }
+        } catch {
+            print("Error calculating goal-based deficit: \(error)")
+            goalBasedDeficitSurplus = caloricDeficitSurplus
+        }
+    }
+    
+    var caloricDeficitSurplus: Double {
+        guard let nutrition = dailyNutrition else { return 0 }
+        return nutrition.totalCalories - nutrition.calorieTarget
+    }
+    
+    var isDeficit: Bool {
+        goalBasedDeficitSurplus < 0
+    }
+    
+    var deficitSurplusText: String {
+        let value = abs(goalBasedDeficitSurplus)
+        let type = isDeficit ? "Deficit" : "Surplus"
+        return "\(Int(value)) cal \(type.lowercased())"
     }
 }
 
@@ -323,21 +376,6 @@ extension NutritionViewModel {
     
     var dailySummary: DailyNutritionSummary? {
         dailyNutrition?.summary
-    }
-    
-    var caloricDeficitSurplus: Double {
-        guard let nutrition = dailyNutrition else { return 0 }
-        return nutrition.totalCalories - nutrition.calorieTarget
-    }
-    
-    var isDeficit: Bool {
-        caloricDeficitSurplus < 0
-    }
-    
-    var deficitSurplusText: String {
-        let value = abs(caloricDeficitSurplus)
-        let type = isDeficit ? "Deficit" : "Surplus"
-        return "\(Int(value)) cal \(type.lowercased())"
     }
 }
 

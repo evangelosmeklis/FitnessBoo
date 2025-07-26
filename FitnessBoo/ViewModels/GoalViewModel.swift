@@ -15,6 +15,7 @@ class GoalViewModel: ObservableObject {
     @Published var targetWeight: String = ""
     @Published var targetDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
     @Published var weeklyWeightChangeGoal: Double = -0.5
+    @Published var dailyWaterTarget: String = "2000"
     @Published var currentGoal: FitnessGoal?
     @Published var activeGoals: [FitnessGoal] = []
     @Published var isLoading = false
@@ -65,6 +66,7 @@ class GoalViewModel: ObservableObject {
         // Update calculations when goal parameters change (with shorter debounce for better responsiveness)
         Publishers.CombineLatest4($selectedGoalType, $currentWeight, $targetWeight, $weeklyWeightChangeGoal)
             .combineLatest($targetDate)
+            .combineLatest($dailyWaterTarget)
             .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 // Only update calculations if we have meaningful data
@@ -96,7 +98,8 @@ class GoalViewModel: ObservableObject {
                 type: selectedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: weeklyWeightChangeGoal
+                weeklyWeightChangeGoal: weeklyWeightChangeGoal,
+                dailyWaterTarget: Double(dailyWaterTarget) ?? 2000
             )
             
             // Validate the goal
@@ -153,6 +156,7 @@ class GoalViewModel: ObservableObject {
             goal.targetWeight = targetWeightValue
             goal.targetDate = targetDate
             goal.weeklyWeightChangeGoal = weeklyWeightChangeGoal
+            goal.dailyWaterTarget = Double(dailyWaterTarget) ?? 2000
             goal.updatedAt = Date()
             
             // Validate the updated goal
@@ -211,6 +215,7 @@ class GoalViewModel: ObservableObject {
                 targetWeight = goal.targetWeight != nil ? String(goal.targetWeight!) : ""
                 targetDate = goal.targetDate ?? targetDate
                 weeklyWeightChangeGoal = goal.weeklyWeightChangeGoal
+                dailyWaterTarget = String(goal.dailyWaterTarget)
             }
             
         } catch {
@@ -320,7 +325,8 @@ class GoalViewModel: ObservableObject {
                 type: selectedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: weeklyWeightChangeGoal
+                weeklyWeightChangeGoal: weeklyWeightChangeGoal,
+                dailyWaterTarget: Double(dailyWaterTarget) ?? 2000
             )
             
             // Get current weight and energy data from HealthKit
@@ -356,6 +362,7 @@ class GoalViewModel: ObservableObject {
         targetWeight = ""
         targetDate = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
         weeklyWeightChangeGoal = -0.5
+        dailyWaterTarget = "2000"
         errorMessage = nil
         showingError = false
         cachedUser = nil // Clear cache

@@ -480,7 +480,7 @@ class DataService: DataServiceProtocol {
     // MARK: - Goal Operations
     
     func saveGoal(_ goal: FitnessGoal, for user: User) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     // Find the user entity
@@ -513,6 +513,10 @@ class DataService: DataServiceProtocol {
                     goalEntity.weeklyWeightChangeGoal = goal.weeklyWeightChangeGoal
                     goalEntity.dailyCalorieTarget = goal.dailyCalorieTarget
                     goalEntity.dailyProteinTarget = goal.dailyProteinTarget
+                    // Set dailyWaterTarget if the property exists (Core Data model updated)
+                    if goalEntity.responds(to: Selector(("setDailyWaterTarget:"))) {
+                        goalEntity.setValue(goal.dailyWaterTarget, forKey: "dailyWaterTarget")
+                    }
                     goalEntity.isActive = goal.isActive
                     
                     try self.context.save()
@@ -726,6 +730,7 @@ extension DataService {
             weeklyWeightChangeGoal: entity.weeklyWeightChangeGoal,
             dailyCalorieTarget: entity.dailyCalorieTarget,
             dailyProteinTarget: entity.dailyProteinTarget,
+            dailyWaterTarget: entity.value(forKey: "dailyWaterTarget") as? Double ?? 2000.0,
             isActive: entity.isActive,
             createdAt: Date(), // Core Data entities don't store creation date for goals
             updatedAt: Date()
@@ -773,7 +778,7 @@ extension DataService {
 // MARK: - FitnessGoal Model Extensions
 
 extension FitnessGoal {
-    init(id: UUID, type: GoalType, targetWeight: Double?, targetDate: Date?, weeklyWeightChangeGoal: Double, dailyCalorieTarget: Double, dailyProteinTarget: Double, isActive: Bool, createdAt: Date, updatedAt: Date) {
+    init(id: UUID, type: GoalType, targetWeight: Double?, targetDate: Date?, weeklyWeightChangeGoal: Double, dailyCalorieTarget: Double, dailyProteinTarget: Double, dailyWaterTarget: Double, isActive: Bool, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.type = type
         self.targetWeight = targetWeight
@@ -781,6 +786,7 @@ extension FitnessGoal {
         self.weeklyWeightChangeGoal = weeklyWeightChangeGoal
         self.dailyCalorieTarget = dailyCalorieTarget
         self.dailyProteinTarget = dailyProteinTarget
+        self.dailyWaterTarget = dailyWaterTarget
         self.isActive = isActive
         self.createdAt = createdAt
         self.updatedAt = updatedAt

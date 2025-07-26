@@ -19,6 +19,7 @@ struct GoalSettingView: View {
     @State private var isResetting = false
     @FocusState private var isTargetWeightFocused: Bool
     @FocusState private var isCurrentWeightFocused: Bool
+    @FocusState private var isWaterTargetFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     // Debounced weight update
@@ -47,6 +48,8 @@ struct GoalSettingView: View {
                         targetDateSection
                     }
                     
+                    dailyWaterTargetSection
+                    
                     dailyCalorieAdjustmentSection
                     
                     if !viewModel.errorMessage.isNilOrEmpty {
@@ -72,6 +75,7 @@ struct GoalSettingView: View {
                 // Dismiss keyboard when tapping outside
                 isTargetWeightFocused = false
                 isCurrentWeightFocused = false
+                isWaterTargetFocused = false
             }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -91,6 +95,9 @@ struct GoalSettingView: View {
                 handleGoalParameterChange()
             }
             .onChange(of: viewModel.weeklyWeightChangeGoal) { _ in
+                handleGoalParameterChange()
+            }
+            .onChange(of: viewModel.dailyWaterTarget) { _ in
                 handleGoalParameterChange()
             }
             .onChange(of: viewModel.currentWeight) { newWeight in
@@ -202,6 +209,9 @@ struct GoalSettingView: View {
         if isTargetWeightFocused {
             isTargetWeightFocused = false
             validateTargetWeight()
+        }
+        if isWaterTargetFocused {
+            isWaterTargetFocused = false
         }
     }
     
@@ -348,6 +358,38 @@ struct GoalSettingView: View {
                 let direction = targetWeight > user.weight ? "gain" : "lose"
                 Text("You need to \(direction) \(difference, specifier: "%.1f") kg")
                     .font(.caption)
+            }
+        }
+    }
+    
+    private var dailyWaterTargetSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Water Goal")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                HStack {
+                    Image(systemName: "drop.fill")
+                        .font(.title2)
+                        .foregroundStyle(.blue)
+                        .frame(width: 24, height: 24)
+                    
+                    Text("Daily Water Target")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    TextField("Enter amount", text: $viewModel.dailyWaterTarget)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isWaterTargetFocused)
+                    
+                    Text("ml")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -601,8 +643,9 @@ struct GoalSettingView: View {
         let goalTypeChanged = currentGoal.type != viewModel.selectedGoalType
         let weeklyChangeChanged = abs(currentGoal.weeklyWeightChangeGoal - viewModel.weeklyWeightChangeGoal) > 0.01
         let targetDateChanged = currentGoal.targetDate != viewModel.targetDate
+        let waterTargetChanged = String(currentGoal.dailyWaterTarget) != viewModel.dailyWaterTarget
         
-        hasChanges = targetWeightChanged || goalTypeChanged || weeklyChangeChanged || targetDateChanged
+        hasChanges = targetWeightChanged || goalTypeChanged || weeklyChangeChanged || targetDateChanged || waterTargetChanged
     }
     
     private func hasValidInput() -> Bool {

@@ -165,11 +165,11 @@ struct NutritionDashboardView: View {
         ], spacing: 16) {
             MetricCard(
                 title: nutritionViewModel.isDeficit ? "Calorie Deficit" : "Calorie Surplus",
-                value: "\(Int(abs(nutritionViewModel.caloricDeficitSurplus)))",
-                subtitle: nutritionViewModel.isDeficit ? "under target" : "over target",
+                value: "\(Int(abs(nutritionViewModel.goalBasedDeficitSurplus)))",
+                subtitle: nutritionViewModel.isDeficit ? "beyond goal" : "over goal",
                 icon: nutritionViewModel.isDeficit ? "minus.circle.fill" : "plus.circle.fill",
                 color: nutritionViewModel.isDeficit ? .red : .green,
-                progress: min(abs(nutritionViewModel.caloricDeficitSurplus) / (nutritionViewModel.dailyNutrition?.calorieTarget ?? 2000), 1.0)
+                progress: min(abs(nutritionViewModel.goalBasedDeficitSurplus) / (nutritionViewModel.dailyNutrition?.calorieTarget ?? 2000), 1.0)
             )
             
             MetricCard(
@@ -206,7 +206,7 @@ struct NutritionDashboardView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             
-                            Text("\(Int(nutritionViewModel.totalWater)) ml")
+                            Text("\(Int(nutritionViewModel.totalWater)) / \(Int(nutritionViewModel.dailyWaterTarget)) ml")
                                 .font(.title2)
                                 .fontWeight(.semibold)
                         }
@@ -214,7 +214,7 @@ struct NutritionDashboardView: View {
                         Spacer()
                         
                         CircularProgressView(
-                            progress: min(nutritionViewModel.totalWater / 2000, 1.0),
+                            progress: nutritionViewModel.waterProgress,
                             color: .blue
                         )
                         .frame(width: 40, height: 40)

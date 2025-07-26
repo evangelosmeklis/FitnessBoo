@@ -15,11 +15,12 @@ struct FitnessGoal: Codable, Identifiable {
     var weeklyWeightChangeGoal: Double
     var dailyCalorieTarget: Double
     var dailyProteinTarget: Double
+    var dailyWaterTarget: Double
     var isActive: Bool
     var createdAt: Date
     var updatedAt: Date
     
-    init(type: GoalType, targetWeight: Double? = nil, targetDate: Date? = nil, weeklyWeightChangeGoal: Double = 0) {
+    init(type: GoalType, targetWeight: Double? = nil, targetDate: Date? = nil, weeklyWeightChangeGoal: Double = 0, dailyWaterTarget: Double = 2000) {
         self.id = UUID()
         self.type = type
         self.targetWeight = targetWeight
@@ -27,6 +28,7 @@ struct FitnessGoal: Codable, Identifiable {
         self.weeklyWeightChangeGoal = weeklyWeightChangeGoal
         self.dailyCalorieTarget = 0 // Will be calculated
         self.dailyProteinTarget = 0 // Will be calculated
+        self.dailyWaterTarget = dailyWaterTarget
         self.isActive = true
         self.createdAt = Date()
         self.updatedAt = Date()
