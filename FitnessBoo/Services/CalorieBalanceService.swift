@@ -53,6 +53,7 @@ protocol CalorieBalanceServiceProtocol {
     func stopRealTimeTracking()
     func getCurrentBalance() async -> CalorieBalance?
     func getBalanceForDate(_ date: Date) async -> CalorieBalance?
+    func getDailyGoalAdjustment() async -> Double
     var currentBalance: AnyPublisher<CalorieBalance?, Never> { get }
     var isTracking: Bool { get }
 }
@@ -130,6 +131,21 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
     
     func getBalanceForDate(_ date: Date) async -> CalorieBalance? {
         return await calculateBalanceForDate(date)
+    }
+    
+    func getDailyGoalAdjustment() async -> Double {
+        // Calculate daily calorie adjustment needed for weight goal
+        do {
+            if let goal = try await dataService.fetchActiveGoal() {
+                // Calculate the daily calorie adjustment from weight change goal
+                // 1 kg = 7700 calories, divide by 7 for daily amount
+                let dailyAdjustment = (goal.weeklyWeightChangeGoal * 7700) / 7
+                return dailyAdjustment
+            }
+        } catch {
+            print("Error fetching goal for adjustment: \(error)")
+        }
+        return 0.0 // No goal or error
     }
     
     // MARK: - Private Methods

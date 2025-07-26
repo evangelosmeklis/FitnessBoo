@@ -14,6 +14,7 @@ struct NutritionDashboardView: View {
     @State private var selectedEntry: FoodEntry?
     @State private var showingEditFood = false
     @State private var currentBalance: CalorieBalance?
+    @State private var dailyGoalAdjustment: Double = 0.0
     
     init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol, healthKitService: HealthKitServiceProtocol) {
         self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(
@@ -72,24 +73,28 @@ struct NutritionDashboardView: View {
             .task {
                 await nutritionViewModel.loadDailyNutrition()
                 currentBalance = await calorieBalanceService.getCurrentBalance()
+                dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
             }
             .onAppear {
                 Task {
                     await nutritionViewModel.loadDailyNutrition()
                     await nutritionViewModel.refreshData()
                     currentBalance = await calorieBalanceService.getCurrentBalance()
+                    dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
                 Task {
                     await nutritionViewModel.refreshData()
                     currentBalance = await calorieBalanceService.getCurrentBalance()
+                    dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))) { _ in
                 Task {
                     await nutritionViewModel.refreshData()
                     currentBalance = await calorieBalanceService.getCurrentBalance()
+                    dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
                 }
             }
         }
@@ -183,29 +188,57 @@ struct NutritionDashboardView: View {
             GridItem(.flexible())
         ], spacing: 16) {
             MetricCard(
-                title: "Daily Target",
-                value: "\(Int(nutritionViewModel.dailyNutrition?.calorieTarget ?? 0))",
+                title: "Daily Goal",
+                value: {
+                    // Show daily deficit/surplus goal from weight change goal
+                    let sign = dailyGoalAdjustment >= 0 ? "+" : ""
+                    return "\(sign)\(Int(dailyGoalAdjustment))"
+                }(),
                 subtitle: {
-                    let goalTarget = nutritionViewModel.dailyNutrition?.calorieTarget ?? 0
-                    let consumed = nutritionViewModel.totalCalories
-                    let remaining = goalTarget - consumed
-                    
-                    if remaining > 0 {
-                        return "Eat \(Int(remaining)) more to reach goal"
-                    } else if remaining < 0 {
-                        return "Burn \(Int(abs(remaining))) more or stop eating"
-                    } else {
-                        return "Daily goal reached!"
+                    if let balance = currentBalance {
+                        let currentBalanceValue = balance.balance
+                        let difference = currentBalanceValue - dailyGoalAdjustment
+                        
+                        if abs(difference) < 50 {
+                            return "Goal achieved!"
+                        } else if difference < 0 {
+                            // Need more deficit/surplus
+                            if dailyGoalAdjustment < 0 {
+                                return "Burn \(Int(abs(difference))) more calories"
+                            } else {
+                                return "Eat \(Int(abs(difference))) more calories"
+                            }
+                        } else {
+                            // Too much deficit/surplus
+                            if dailyGoalAdjustment < 0 {
+                                return "Eat \(Int(difference)) more calories"
+                            } else {
+                                return "Burn \(Int(difference)) more calories"
+                            }
+                        }
                     }
+                    return "Loading..."
                 }(),
                 icon: "target",
                 color: {
-                    let remaining = (nutritionViewModel.dailyNutrition?.calorieTarget ?? 0) - nutritionViewModel.totalCalories
-                    if remaining > 0 { return .blue }
-                    else if remaining < 0 { return .orange }
-                    else { return .green }
+                    if let balance = currentBalance {
+                        let currentBalanceValue = balance.balance
+                        let difference = abs(currentBalanceValue - dailyGoalAdjustment)
+                        
+                        if difference < 50 { return .green }
+                        else if difference < 150 { return .orange }
+                        else { return .red }
+                    }
+                    return .blue
                 }(),
-                progress: nutritionViewModel.calorieProgress
+                progress: {
+                    if let balance = currentBalance {
+                        let currentBalanceValue = balance.balance
+                        let progress = abs(dailyGoalAdjustment) > 0 ? min(abs(currentBalanceValue) / abs(dailyGoalAdjustment), 2.0) / 2.0 : 0.5
+                        return progress
+                    }
+                    return 0.0
+                }()
             )
             
             MetricCard(

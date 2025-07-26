@@ -292,4 +292,5 @@ class MockCalorieBalanceService: CalorieBalanceServiceProtocol {
     func stopRealTimeTracking() {}
     func getCurrentBalance() async -> CalorieBalance? { nil }
     func getBalanceForDate(_ date: Date) async -> CalorieBalance? { nil }
+    func getDailyGoalAdjustment() async -> Double { return -308.0 }
 }
