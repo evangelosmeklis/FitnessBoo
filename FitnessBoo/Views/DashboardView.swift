@@ -11,254 +11,348 @@ import Combine
 import HealthKit
 
 struct DashboardView: View {
-    @StateObject private var userProfileViewModel: UserProfileViewModel
-    @StateObject private var nutritionViewModel: NutritionViewModel
-    @StateObject private var goalViewModel: GoalViewModel
+    @StateObject private var dataManager = AppDataManager.shared
     @StateObject private var energyViewModel: EnergyViewModel
     @StateObject private var calorieBalanceService: CalorieBalanceService
-    
-    private let healthKitService: HealthKitServiceProtocol
+    @State private var currentBalance: CalorieBalance?
     
     init(healthKitService: HealthKitServiceProtocol, dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
-        self.healthKitService = healthKitService
+        self._energyViewModel = StateObject(wrappedValue: EnergyViewModel(
+            healthKitService: healthKitService
+        ))
         
-        self._userProfileViewModel = StateObject(wrappedValue: UserProfileViewModel(dataService: dataService))
-        self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(dataService: dataService, calculationService: calculationService, healthKitService: healthKitService))
-        self._goalViewModel = StateObject(wrappedValue: GoalViewModel(calculationService: calculationService, dataService: dataService, healthKitService: healthKitService))
-        self._energyViewModel = StateObject(wrappedValue: EnergyViewModel(healthKitService: healthKitService))
-        self._calorieBalanceService = StateObject(wrappedValue: CalorieBalanceService(healthKitService: healthKitService, calculationService: calculationService, dataService: dataService))
+        self._calorieBalanceService = StateObject(wrappedValue: CalorieBalanceService(
+            healthKitService: healthKitService,
+            calculationService: calculationService,
+            dataService: dataService
+        ))
     }
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Welcome section
+                LazyVStack(spacing: 24) {
+                    // Welcome Section
                     welcomeSection
                     
-                    // Quick stats cards
-                    quickStatsSection
+                    // Quick Stats Grid
+                    quickStatsGrid
                     
-                    // Energy tracking section
-                    energyTrackingSection
+                    // Energy Balance Section
+                    energyBalanceSection
                     
-                    // Caloric balance section
-                    caloricBalanceSection
+                    // Calorie Balance Section
+                    calorieBalanceSection
                 }
                 .padding()
             }
+            .background(backgroundGradient)
             .navigationTitle("Dashboard")
-            .task {
-                userProfileViewModel.loadCurrentUser()
-                await nutritionViewModel.loadTodaysNutrition()
-                await goalViewModel.loadGoals()
-                await energyViewModel.loadTodaysEnergy()
-                calorieBalanceService.startRealTimeTracking()
-            }
+            .navigationBarTitleDisplayMode(.large)
             .refreshable {
-                do {
-                    try await healthKitService.manualRefresh()
-                    userProfileViewModel.loadCurrentUser()
-                    await nutritionViewModel.loadTodaysNutrition()
-                    await goalViewModel.loadGoals()
-                    await energyViewModel.refreshEnergyData()
-                } catch {
-                    print("HealthKit refresh failed: \(error)")
-                }
+                await refreshData()
             }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
-                Task { await goalViewModel.loadGoals() }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("DayChanged"))) { _ in
-                Task {
-                    userProfileViewModel.loadCurrentUser()
-                    await nutritionViewModel.loadTodaysNutrition()
-                    await goalViewModel.loadGoals()
-                    await energyViewModel.loadTodaysEnergy()
-                }
+            .task {
+                await loadData()
             }
         }
+    }
+    
+    // MARK: - Background
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(.systemBackground),
+                Color(.systemBackground).opacity(0.8),
+                Color.blue.opacity(0.05)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
     }
     
     private var welcomeSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let user = userProfileViewModel.currentUser {
-                Text("Welcome back!")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+        GlassCard {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let user = dataManager.currentUser {
+                        Text("Welcome back!")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Let's crush your fitness goals today!")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Welcome to FitnessBoo!")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("Start your fitness journey today!")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 
-                Text("Let's crush your fitness goals today!")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            } else {
-                Text("Welcome to FitnessBoo!")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                Spacer()
+                
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundStyle(.blue)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    private var quickStatsSection: some View {
+    private var quickStatsGrid: some View {
         LazyVGrid(columns: [
             GridItem(.flexible()),
             GridItem(.flexible())
         ], spacing: 16) {
-            StatCard(
-                title: "Calories Consumed",
-                value: "\(Int(nutritionViewModel.todaysNutrition?.totalCalories ?? 0))",
-                subtitle: "kcal",
-                color: .green
+            MetricCard(
+                title: "Calories",
+                value: "\(Int(dataManager.caloriesConsumed))",
+                subtitle: "\(Int(dataManager.caloriesRemaining)) remaining",
+                icon: "flame.fill",
+                color: .orange,
+                progress: dataManager.calorieProgress
             )
             
-            StatCard(
-                title: "Calories Burned",
-                value: energyViewModel.formattedTotalEnergy,
-                subtitle: "kcal",
-                color: .red
+            MetricCard(
+                title: "Protein",
+                value: "\(Int(dataManager.proteinConsumed))g",
+                subtitle: "\(Int(dataManager.proteinRemaining))g remaining",
+                icon: "leaf.fill",
+                color: .green,
+                progress: dataManager.proteinProgress
             )
             
-            StatCard(
-                title: "Active Energy",
-                value: energyViewModel.formattedActiveEnergy,
-                subtitle: "kcal",
-                color: .orange
+            MetricCard(
+                title: "Water",
+                value: "\(Int(dataManager.waterConsumed))ml",
+                subtitle: "\(Int(dataManager.waterTarget - dataManager.waterConsumed))ml remaining",
+                icon: "drop.fill",
+                color: .blue,
+                progress: dataManager.waterProgress
             )
             
-            StatCard(
-                title: "Resting Energy",
-                value: energyViewModel.formattedRestingEnergy,
-                subtitle: "kcal",
-                color: .blue
+            MetricCard(
+                title: "Weight",
+                value: "\(String(format: "%.1f", dataManager.currentUser?.weight ?? 0))kg",
+                subtitle: dataManager.currentGoal?.type.displayName ?? "No goal set",
+                icon: "scalemass.fill",
+                color: .purple
             )
         }
     }
     
 
-    
-    private var energyTrackingSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private var energyBalanceSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Energy Balance")
                 .font(.headline)
                 .fontWeight(.semibold)
             
             if energyViewModel.isLoading {
-                SwiftUI.ProgressView("Loading energy data...")
+                GlassCard {
+                    HStack {
+                        SwiftUI.ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Loading energy data...")
+                            .foregroundStyle(.secondary)
+                    }
                     .frame(maxWidth: .infinity)
-            } else if let errorMessage = energyViewModel.errorMessage {
-                Text("Error: \(errorMessage)")
-                    .foregroundColor(.red)
-                    .font(.caption)
+                }
             } else {
-                VStack(spacing: 12) {
-                    // Energy breakdown chart
-                    EnergyBreakdownView(
-                        activeEnergy: energyViewModel.activeEnergy,
-                        restingEnergy: energyViewModel.restingEnergy,
-                        totalEnergy: energyViewModel.totalEnergyExpended
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 16) {
+                    EnergyCard(
+                        title: "Resting Energy",
+                        value: "\(Int(energyViewModel.restingEnergy))",
+                        unit: "kcal",
+                        color: .blue,
+                        icon: "bed.double.fill"
                     )
                     
-                    // Energy details
-                    HStack(spacing: 20) {
-                        EnergyDetailView(
-                            title: "Active",
-                            value: energyViewModel.formattedActiveEnergy,
-                            color: .orange,
-                            percentage: energyViewModel.activeEnergyPercentage
-                        )
+                    EnergyCard(
+                        title: "Active Energy",
+                        value: "\(Int(energyViewModel.activeEnergy))",
+                        unit: "kcal",
+                        color: .green,
+                        icon: "figure.run"
+                    )
+                    
+                    EnergyCard(
+                        title: "Total Burned",
+                        value: "\(Int(energyViewModel.totalEnergyExpended))",
+                        unit: "kcal",
+                        color: .orange,
+                        icon: "flame.fill"
+                    )
+                    
+                    EnergyCard(
+                        title: "Workouts",
+                        value: "\(energyViewModel.workoutCount)",
+                        unit: "today",
+                        color: .purple,
+                        icon: "dumbbell.fill"
+                    )
+                }
+            }
+        }
+    }
+    
+    private var calorieBalanceSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Caloric Balance")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            if let balance = currentBalance {
+                CalorieBalanceCard(balance: balance)
+            } else {
+                GlassCard {
+                    HStack {
+                        SwiftUI.ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Calculating balance...")
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func loadData() async {
+        async let dataManagerLoad = dataManager.loadInitialData()
+        async let energyData = energyViewModel.refreshEnergyData()
+        async let balanceData = loadCalorieBalance()
+        
+        await dataManagerLoad
+        await energyData
+        await balanceData
+    }
+    
+    private func refreshData() async {
+        await loadData()
+    }
+    
+    private func loadCalorieBalance() async {
+        currentBalance = await calorieBalanceService.getCurrentBalance()
+    }
+    
+}
+
+// MARK: - Supporting Views
+
+struct EnergyCard: View {
+    let title: String
+    let value: String
+    let unit: String
+    let color: Color
+    let icon: String
+    
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundStyle(color)
+                        .font(.title2)
+                        .frame(width: 24, height: 24)
+                    
+                    Spacer()
+                }
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text(value)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(color)
                         
-                        EnergyDetailView(
-                            title: "Resting",
-                            value: energyViewModel.formattedRestingEnergy,
-                            color: .blue,
-                            percentage: energyViewModel.restingEnergyPercentage
-                        )
+                        Text(unit)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
                     }
                 }
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
     }
+}
+
+struct CalorieBalanceCard: View {
+    let balance: CalorieBalance
     
-    private var caloricBalanceSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Caloric Balance")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                
-                Spacer()
-                
-                NavigationLink(destination: CalorieBalanceView(calorieBalanceService: calorieBalanceService)) {
-                    Text("View Details")
-                        .font(.caption)
-                        .foregroundColor(.blue)
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text(balance.balanceDescription)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(balance.isPositiveBalance ? .orange : .green)
+                    
+                    Spacer()
+                    
+                    Text(balance.formattedBalance)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(balance.isPositiveBalance ? .orange : .green)
                 }
+                
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Consumed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(Int(balance.caloriesConsumed))")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text("kcal")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    
+                    Image(systemName: "minus")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Burned")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("\(Int(balance.totalEnergyBurned))")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text("kcal")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    
+                    Spacer()
+                }
+                
+                Text("Data from \(balance.energySourceDescription)")
+                    .font(.caption2)
+                    .foregroundStyle(.quaternary)
             }
-            
-            CalorieBalanceSummaryView(calorieBalanceService: calorieBalanceService)
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-}
-
-struct StatCard: View {
-    let title: String
-    let value: String
-    let subtitle: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(color)
-            
-            Text(subtitle)
-                .font(.caption2)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
     }
 }
 
 
 
-struct ActionCard: View {
-    let title: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-            
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-}
 
 #Preview {
     DashboardView(
@@ -342,98 +436,3 @@ private class DashboardMockHealthKitService: HealthKitServiceProtocol {
     func stopBackgroundSync() { }
 }
 
-// MARK: - Calorie Balance Summary View
-
-struct CalorieBalanceSummaryView: View {
-    @StateObject private var viewModel: CalorieBalanceSummaryViewModel
-    
-    init(calorieBalanceService: CalorieBalanceServiceProtocol) {
-        self._viewModel = StateObject(wrappedValue: CalorieBalanceSummaryViewModel(calorieBalanceService: calorieBalanceService))
-    }
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            if let balance = viewModel.currentBalance {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Today's Balance")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(balance.formattedBalance)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundColor(balance.isPositiveBalance ? .orange : .green)
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(balance.balanceDescription)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text("\(Int(balance.caloriesConsumed)) - \(Int(balance.totalEnergyExpended))")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                // Simple balance bar
-                GeometryReader { geometry in
-                    let consumedWidth = min(balance.caloriesConsumed / max(balance.totalEnergyExpended, balance.caloriesConsumed) * geometry.size.width, geometry.size.width)
-                    let burnedWidth = min(balance.totalEnergyExpended / max(balance.totalEnergyExpended, balance.caloriesConsumed) * geometry.size.width, geometry.size.width)
-                    
-                    ZStack(alignment: .leading) {
-                        Rectangle()
-                            .fill(Color(.systemGray5))
-                            .frame(height: 6)
-                        
-                        Rectangle()
-                            .fill(Color.green)
-                            .frame(width: consumedWidth, height: 6)
-                        
-                        Rectangle()
-                            .fill(Color.red)
-                            .frame(width: burnedWidth, height: 6)
-                            .opacity(0.7)
-                    }
-                }
-                .frame(height: 6)
-                .cornerRadius(3)
-                
-            } else {
-                HStack {
-                    SwiftUI.ProgressView()
-                        .scaleEffect(0.8)
-                    
-                    Text("Calculating balance...")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-    }
-}
-
-@MainActor
-class CalorieBalanceSummaryViewModel: ObservableObject {
-    @Published var currentBalance: CalorieBalance?
-    
-    private let calorieBalanceService: CalorieBalanceServiceProtocol
-    private var cancellables = Set<AnyCancellable>()
-    
-    init(calorieBalanceService: CalorieBalanceServiceProtocol) {
-        self.calorieBalanceService = calorieBalanceService
-        setupObservers()
-    }
-    
-    private func setupObservers() {
-        calorieBalanceService.currentBalance
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] balance in
-                self?.currentBalance = balance
-            }
-            .store(in: &cancellables)
-    }
-}

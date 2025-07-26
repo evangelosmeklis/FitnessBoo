@@ -16,6 +16,7 @@ class EnergyViewModel: ObservableObject {
     @Published var activeEnergy: Double = 0
     @Published var restingEnergy: Double = 0
     @Published var totalEnergyExpended: Double = 0
+    @Published var workoutCount: Int = 0
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -103,13 +104,17 @@ class EnergyViewModel: ObservableObject {
         
         do {
             let today = Date()
+            let startOfDay = Calendar.current.startOfDay(for: today)
+            let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) ?? today
             
             async let activeEnergyTask = healthKitService.fetchActiveEnergy(for: today)
             async let restingEnergyTask = healthKitService.fetchRestingEnergy(for: today)
+            async let workoutsTask = healthKitService.fetchWorkouts(from: startOfDay, to: endOfDay)
             
-            let (fetchedActiveEnergy, fetchedRestingEnergy) = try await (activeEnergyTask, restingEnergyTask)
+            let (fetchedActiveEnergy, fetchedRestingEnergy, fetchedWorkouts) = try await (activeEnergyTask, restingEnergyTask, workoutsTask)
             
             updateEnergyData(resting: fetchedRestingEnergy, active: fetchedActiveEnergy)
+            workoutCount = fetchedWorkouts.count
             
         } catch {
             errorMessage = error.localizedDescription

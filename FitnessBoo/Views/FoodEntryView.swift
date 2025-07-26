@@ -107,7 +107,7 @@ struct FoodEntryView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(isEditing ? "Update" : "Add") {
+                    GlassButton(isEditing ? "Update" : "Add", icon: "plus.circle.fill", isLoading: isLoading) {
                         saveEntry()
                     }
                     .disabled(calories.isEmpty || isLoading)

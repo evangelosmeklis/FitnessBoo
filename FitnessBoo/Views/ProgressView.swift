@@ -296,7 +296,11 @@ struct ProgressView: View {
 }
 
 #Preview {
-    ProgressView(healthKitService: ProgressMockHealthKitService())
+    ProgressView(
+        dataService: DataService.shared,
+        calculationService: CalculationService(),
+        healthKitService: ProgressMockHealthKitService()
+    )
 }
 
 // Mock service for preview

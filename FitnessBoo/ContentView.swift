@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var dataManager = AppDataManager.shared
+    
     // Service dependencies - in a real app these would be injected via dependency injection
     private let healthKitService: HealthKitServiceProtocol = HealthKitService()
     private let dataService: DataServiceProtocol = DataService.shared
@@ -48,6 +50,9 @@ struct ContentView: View {
         }
         .onAppear {
             requestHealthKitAuthorizationIfNeeded()
+        }
+        .task {
+            await dataManager.loadInitialData()
         }
         .onChange(of: scenePhase) { newPhase in
             handleScenePhaseChange(newPhase)

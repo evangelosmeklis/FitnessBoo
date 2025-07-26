@@ -122,7 +122,7 @@ struct GoalSettingView: View {
     // MARK: - View Components
     
     private var saveButton: some View {
-        Button("Save") {
+        GlassButton("Save", icon: "target", isLoading: viewModel.isLoading) {
             Task {
                 await performSaveAction()
             }
