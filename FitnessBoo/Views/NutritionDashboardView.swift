@@ -190,14 +190,19 @@ struct NutritionDashboardView: View {
             MetricCard(
                 title: "Daily Goal",
                 value: {
-                    // Show daily deficit/surplus goal from weight change goal
-                    let sign = dailyGoalAdjustment >= 0 ? "+" : ""
-                    return "\(sign)\(Int(dailyGoalAdjustment))"
+                    if let balance = currentBalance {
+                        let currentSign = balance.balance >= 0 ? "+" : ""
+                        let goalSign = dailyGoalAdjustment >= 0 ? "+" : ""
+                        return "\(currentSign)\(Int(balance.balance)) / \(goalSign)\(Int(dailyGoalAdjustment))"
+                    }
+                    return "Loading..."
                 }(),
                 subtitle: {
                     if let balance = currentBalance {
                         let currentBalanceValue = balance.balance
                         let difference = currentBalanceValue - dailyGoalAdjustment
+                        
+                        print("🎯 Daily Goal Debug: Current=\(currentBalanceValue), Goal=\(dailyGoalAdjustment), Difference=\(difference)")
                         
                         if abs(difference) < 50 {
                             return "Goal achieved!"

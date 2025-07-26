@@ -140,6 +140,7 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
                 // Calculate the daily calorie adjustment from weight change goal
                 // 1 kg = 7700 calories, divide by 7 for daily amount
                 let dailyAdjustment = (goal.weeklyWeightChangeGoal * 7700) / 7
+                print("🎯 Goal Adjustment Debug: weeklyWeightChangeGoal=\(goal.weeklyWeightChangeGoal), calculated dailyAdjustment=\(dailyAdjustment)")
                 return dailyAdjustment
             }
         } catch {
