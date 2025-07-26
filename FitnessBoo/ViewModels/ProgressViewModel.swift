@@ -63,6 +63,7 @@ class ProgressViewModel: ObservableObject {
         // Listen for weight and goal updates to refresh progress data
         NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))
             .sink { [weak self] _ in
+                print("📊 ProgressViewModel: Received WeightDataUpdated notification")
                 Task { @MainActor in
                     await self?.refreshData()
                 }
@@ -71,6 +72,7 @@ class ProgressViewModel: ObservableObject {
         
         NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))
             .sink { [weak self] _ in
+                print("📊 ProgressViewModel: Received GoalUpdated notification")
                 Task { @MainActor in
                     await self?.refreshData()
                 }
@@ -119,6 +121,7 @@ class ProgressViewModel: ObservableObject {
     }
     
     func refreshData() async {
+        print("📊 ProgressViewModel: Refreshing progress data...")
         await loadProgressData()
     }
     
@@ -301,8 +304,8 @@ class ProgressViewModel: ObservableObject {
         // Negative value = deficit (weight loss), Positive value = surplus (weight gain)
         let dailyCalorieAdjustment = goal.weeklyWeightChangeGoal * 7700 / 7
         
-        print("Goal weekly change: \(goal.weeklyWeightChangeGoal) kg/week")
-        print("Daily calorie target: \(dailyCalorieAdjustment) cal/day")
+        print("📊 Goal weekly change: \(goal.weeklyWeightChangeGoal) kg/week")
+        print("📊 Daily calorie adjustment target: \(dailyCalorieAdjustment) cal/day")
         
         return dailyCalorieAdjustment
     }

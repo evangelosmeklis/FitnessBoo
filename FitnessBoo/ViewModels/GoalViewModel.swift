@@ -265,8 +265,21 @@ class GoalViewModel: ObservableObject {
             
             print("✅ Weight updated successfully to \(newWeight)")
             
+            // Recalculate current goal with new weight
+            if var goal = currentGoal {
+                let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
+                goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: newWeight)
+                
+                // Save the updated goal
+                try await dataService.saveGoal(goal, for: updatedUser)
+                currentGoal = goal
+                
+                print("🎯 Goal recalculated with new weight - Daily calories: \(goal.dailyCalorieTarget), Daily protein: \(goal.dailyProteinTarget)")
+            }
+            
             // Notify other components that weight has been updated
             NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
+            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
             
         } catch {
             print("❌ Failed to update weight: \(error)")
