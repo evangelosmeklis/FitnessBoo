@@ -259,6 +259,7 @@ struct NutritionDashboardView: View {
     
     // MARK: - Water Tracking Section
     
+    @State private var showingWaterOptions = false
     @State private var showingCustomWaterInput = false
     @State private var customWaterAmount = ""
     
@@ -296,29 +297,24 @@ struct NutritionDashboardView: View {
                     
                     Divider()
                     
-                        WaterButton(amount: 250) {
-                            Task { await nutritionViewModel.addWater(milliliters: 250) }
-                        }
-                        WaterButton(amount: 500) {
-                            Task { await nutritionViewModel.addWater(milliliters: 500) }
-                        }
-                        WaterButton(amount: 750) {
-                            Task { await nutritionViewModel.addWater(milliliters: 750) }
-                        }
-                        
-                        Button("Custom") {
-                            showingCustomWaterInput = true
-                        }
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(8)
+                    GlassButton("Log Water", icon: "drop.fill", style: .blue) {
+                        showingWaterOptions = true
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showingWaterOptions) {
+            WaterOptionsSheet(
+                onWaterAdded: { amount in
+                    Task { await nutritionViewModel.addWater(milliliters: amount) }
+                    showingWaterOptions = false
+                },
+                onCustomWater: {
+                    showingCustomWaterInput = true
+                }
+            )
+            .presentationDetents([.medium])
+        }
         .alert("Add Water", isPresented: $showingCustomWaterInput) {
             TextField("Amount (ml)", text: $customWaterAmount)
                 .keyboardType(.numberPad)
@@ -814,6 +810,111 @@ struct NutritionProgressRow: View {
 }
 
 // MARK: - Preview
+
+// MARK: - Water Options Sheet
+
+struct WaterOptionsSheet: View {
+    let onWaterAdded: (Double) -> Void
+    let onCustomWater: () -> Void
+    
+    private let waterAmounts = [250, 330, 500, 750, 1000]
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    Text("Select Water Amount")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .padding(.top)
+                    
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ], spacing: 16) {
+                        ForEach(waterAmounts, id: \.self) { amount in
+                            GlassCard {
+                                VStack(spacing: 8) {
+                                    Image(systemName: "drop.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.blue)
+                                    
+                                    Text("\(amount) ml")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                    
+                                    Text(getAmountDescription(amount))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.vertical, 8)
+                            }
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                onWaterAdded(Double(amount))
+                            }
+                        }
+                        
+                        // Custom amount option
+                        GlassCard {
+                            VStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(.green)
+                                
+                                Text("Custom")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                
+                                Text("Enter your own amount")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.vertical, 8)
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            onCustomWater()
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(.systemBackground),
+                        Color.blue.opacity(0.05)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .navigationTitle("Log Water")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        // This will be handled by the parent view
+                    }
+                }
+            }
+        }
+    }
+    
+    private func getAmountDescription(_ amount: Int) -> String {
+        switch amount {
+        case 250: return "Small glass"
+        case 330: return "Can/small bottle"
+        case 500: return "Standard bottle"
+        case 750: return "Large bottle"
+        case 1000: return "1 liter bottle"
+        default: return "Custom amount"
+        }
+    }
+}
 
 struct NutritionDashboardView_Previews: PreviewProvider {
     static var previews: some View {

@@ -28,10 +28,27 @@ class GoalViewModel: ObservableObject {
     @Published var estimatedTimeToGoal: String = ""
     
     // Computed properties for automatic calculations
+    var calculatedGoalType: GoalType {
+        guard let targetWeightValue = Double(targetWeight),
+              let currentWeightValue = Double(currentWeight) else {
+            return .maintainWeight
+        }
+        
+        let weightDifference = targetWeightValue - currentWeightValue
+        
+        if abs(weightDifference) <= 1.0 { // Within 1kg = maintain
+            return .maintainWeight
+        } else if weightDifference < 0 { // Target is less than current = lose
+            return .loseWeight
+        } else { // Target is more than current = gain
+            return .gainWeight
+        }
+    }
+    
     var calculatedWeeklyChange: Double {
         guard let targetWeightValue = Double(targetWeight),
               let currentWeightValue = Double(currentWeight),
-              selectedGoalType != .maintainWeight else {
+              calculatedGoalType != .maintainWeight else {
             return 0
         }
         
@@ -63,11 +80,28 @@ class GoalViewModel: ObservableObject {
     }
     
     private func setupBindings() {
+        // Auto-update goal type when weights change
+        Publishers.CombineLatest($currentWeight, $targetWeight)
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .sink { [weak self] currentWeight, targetWeight in
+                guard let self = self else { return }
+                
+                // Auto-calculate goal type if both weights are provided
+                if !currentWeight.isEmpty && !targetWeight.isEmpty {
+                    let autoGoalType = self.calculatedGoalType
+                    if self.selectedGoalType != autoGoalType {
+                        self.selectedGoalType = autoGoalType
+                        self.weeklyWeightChangeGoal = self.calculatedWeeklyChange
+                    }
+                }
+            }
+            .store(in: &cancellables)
+        
         // Update calculations when goal parameters change (with shorter debounce for better responsiveness)
         Publishers.CombineLatest4($selectedGoalType, $currentWeight, $targetWeight, $weeklyWeightChangeGoal)
             .combineLatest($targetDate)
             .combineLatest($dailyWaterTarget)
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .debounce(for: .milliseconds(500), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 // Only update calculations if we have meaningful data
                 guard let self = self else { return }
@@ -95,10 +129,10 @@ class GoalViewModel: ObservableObject {
             let targetWeightValue = targetWeight.isEmpty ? nil : Double(targetWeight)
             
             var goal = FitnessGoal(
-                type: selectedGoalType,
+                type: calculatedGoalType,
                 targetWeight: targetWeightValue,
                 targetDate: targetDate,
-                weeklyWeightChangeGoal: weeklyWeightChangeGoal,
+                weeklyWeightChangeGoal: calculatedWeeklyChange,
                 dailyWaterTarget: Double(dailyWaterTarget) ?? 2000
             )
             
@@ -152,10 +186,10 @@ class GoalViewModel: ObservableObject {
         do {
             let targetWeightValue = targetWeight.isEmpty ? nil : Double(targetWeight)
             
-            goal.type = selectedGoalType
+            goal.type = calculatedGoalType
             goal.targetWeight = targetWeightValue
             goal.targetDate = targetDate
-            goal.weeklyWeightChangeGoal = weeklyWeightChangeGoal
+            goal.weeklyWeightChangeGoal = calculatedWeeklyChange
             goal.dailyWaterTarget = Double(dailyWaterTarget) ?? 2000
             goal.updatedAt = Date()
             

@@ -43,7 +43,7 @@ struct GoalSettingView: View {
                     
                     currentWeightSection
                     
-                    if viewModel.selectedGoalType != .maintainWeight {
+                    if viewModel.calculatedGoalType != .maintainWeight {
                         targetWeightSection
                         targetDateSection
                     }
@@ -63,11 +63,6 @@ struct GoalSettingView: View {
             .background(backgroundGradient)
             .navigationTitle("Set Your Goal")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    saveButton
-                }
-            }
             .task {
                 await loadUserAndGoal()
             }
@@ -182,6 +177,16 @@ struct GoalSettingView: View {
     private func handleGoalParameterChange() {
         Task { @MainActor in
             checkForChanges()
+            
+            // Auto-save if we have valid input and changes
+            if hasValidInput() && hasChanges {
+                // Debounce auto-save to avoid excessive saves
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second delay
+                
+                if !Task.isCancelled && hasValidInput() && hasChanges {
+                    await performAutoSave()
+                }
+            }
         }
     }
     
@@ -239,48 +244,60 @@ struct GoalSettingView: View {
         }
     }
     
+    private func performAutoSave() async {
+        guard let user = user else { return }
+        
+        if viewModel.currentGoal != nil {
+            await viewModel.updateGoal(for: user)
+        } else {
+            await viewModel.createGoal(for: user)
+        }
+        
+        if !viewModel.showingError {
+            // Notify other views that goal was updated (but don't show success message)
+            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+            hasChanges = false // Reset changes flag after successful save
+        }
+    }
+    
     // MARK: - View Sections
     
     private var goalTypeSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Goal Type")
+            Text("Goal Type (Auto-detected)")
                 .font(.headline)
                 .fontWeight(.semibold)
             
-            VStack(spacing: 12) {
-                ForEach(GoalType.allCases, id: \.self) { goalType in
-                    GlassCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(goalType.displayName)
-                                    .font(.headline)
-                                Text(goalType.description)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            if viewModel.selectedGoalType == goalType {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.blue)
-                                    .font(.title2)
-                            }
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        // Use withAnimation for smooth transitions
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            viewModel.selectedGoalType = goalType
-                        }
+            GlassCard {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(viewModel.calculatedGoalType.displayName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        Text(viewModel.calculatedGoalType.description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         
-                        // Clear target weight for maintain weight goal
-                        if goalType == .maintainWeight {
-                            viewModel.targetWeight = ""
-                            viewModel.errorMessage = nil
+                        if !viewModel.currentWeight.isEmpty && !viewModel.targetWeight.isEmpty {
+                            let currentWeight = Double(viewModel.currentWeight) ?? 0
+                            let targetWeight = Double(viewModel.targetWeight) ?? 0
+                            let difference = targetWeight - currentWeight
+                            let direction = difference < 0 ? "lose" : (difference > 0 ? "gain" : "maintain")
+                            let amount = abs(difference)
+                            
+                            if amount > 1.0 {
+                                Text("Need to \(direction) \(amount, specifier: "%.1f") kg")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.blue)
+                        .font(.title2)
                 }
             }
         }

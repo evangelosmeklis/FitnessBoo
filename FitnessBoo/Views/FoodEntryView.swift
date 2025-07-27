@@ -43,60 +43,158 @@ struct FoodEntryView: View {
     
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Food Details")) {
-                    // Calories input
-                    HStack {
-                        Label("Calories", systemImage: "flame.fill")
-                            .foregroundColor(.orange)
-                        Spacer()
-                        TextField("0", text: $calories)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 100)
+            ScrollView {
+                LazyVStack(spacing: 24) {
+                    // Food Details Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Food Details")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        GlassCard {
+                            VStack(spacing: 16) {
+                                // Calories input
+                                HStack {
+                                    Image(systemName: "flame.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.orange)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text("Calories")
+                                        .font(.subheadline)
+                                    
+                                    Spacer()
+                                    
+                                    TextField("0", text: $calories)
+                                        .keyboardType(.numberPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 80)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                    
+                                    Text("kcal")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Divider()
+                                
+                                // Protein input (optional)
+                                HStack {
+                                    Image(systemName: "leaf.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.green)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text("Protein")
+                                        .font(.subheadline)
+                                    
+                                    Spacer()
+                                    
+                                    TextField("Optional", text: $protein)
+                                        .keyboardType(.decimalPad)
+                                        .environment(\.locale, Locale(identifier: "en_US"))
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 80)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                    
+                                    Text("g")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
                     }
                     
-                    // Protein input (optional)
-                    HStack {
-                        Label("Protein (g)", systemImage: "leaf.fill")
-                            .foregroundColor(.green)
-                        Spacer()
-                        TextField("Optional", text: $protein)
-                            .keyboardType(.decimalPad)
-                            .environment(\.locale, Locale(identifier: "en_US"))
-                            .multilineTextAlignment(.trailing)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .frame(width: 100)
-                    }
-                }
-                
-                Section(header: Text("Meal Type")) {
-                    Picker("Meal Type", selection: $selectedMealType) {
-                        ForEach(MealType.allCases, id: \.self) { mealType in
-                            HStack {
-                                Image(systemName: mealType.icon)
-                                Text(mealType.displayName)
+                    // Meal Type Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Meal Type")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        GlassCard {
+                            VStack(spacing: 12) {
+                                ForEach(MealType.allCases, id: \.self) { mealType in
+                                    HStack {
+                                        Image(systemName: mealType.icon)
+                                            .font(.title2)
+                                            .foregroundStyle(selectedMealType == mealType ? .blue : .secondary)
+                                            .frame(width: 24, height: 24)
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(mealType.displayName)
+                                                .font(.subheadline)
+                                                .fontWeight(.medium)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        if selectedMealType == mealType {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundStyle(.blue)
+                                                .font(.title2)
+                                        }
+                                    }
+                                    .padding(.vertical, 8)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        selectedMealType = mealType
+                                    }
+                                    
+                                    if mealType != MealType.allCases.last {
+                                        Divider()
+                                    }
+                                }
                             }
-                            .tag(mealType)
                         }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                }
-                
-                Section(header: Text("Notes (Optional)")) {
-                    TextField("Add notes about this food...", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-                
-                if isEditing {
-                    Section {
-                        Button("Delete Entry", role: .destructive) {
-                            deleteEntry()
+                    
+                    // Notes Section
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Notes (Optional)")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        GlassCard {
+                            TextField("Add notes about this food...", text: $notes, axis: .vertical)
+                                .lineLimit(3...6)
+                                .padding(.vertical, 8)
+                        }
+                    }
+                    
+                    // Delete Button for Editing
+                    if isEditing {
+                        GlassCard {
+                            Button("Delete Entry") {
+                                deleteEntry()
+                            }
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
                         }
                     }
                 }
+                .padding()
             }
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(.systemBackground),
+                        Color(.systemBackground).opacity(0.8),
+                        Color.orange.opacity(0.05)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
             .navigationTitle(isEditing ? "Edit Food Entry" : "Add Food Entry")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -104,10 +202,16 @@ struct FoodEntryView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundStyle(.secondary)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    GlassButton(isEditing ? "Update" : "Add", icon: "plus.circle.fill", isLoading: isLoading) {
+                    GlassButton(
+                        isEditing ? "Update" : "Add", 
+                        icon: isEditing ? "checkmark.circle.fill" : "plus.circle.fill", 
+                        isLoading: isLoading, 
+                        style: .blue
+                    ) {
                         saveEntry()
                     }
                     .disabled(calories.isEmpty || isLoading)
