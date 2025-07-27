@@ -15,8 +15,6 @@ struct GoalSettingView: View {
     @State private var showingDatePicker = false
     @State private var hasChanges = false
     @State private var showSuccessMessage = false
-    @State private var showingResetConfirmation = false
-    @State private var isResetting = false
     @FocusState private var isTargetWeightFocused: Bool
     @FocusState private var isCurrentWeightFocused: Bool
     @FocusState private var isWaterTargetFocused: Bool
@@ -55,8 +53,6 @@ struct GoalSettingView: View {
                     if !viewModel.errorMessage.isNilOrEmpty {
                         errorSection
                     }
-                    
-                    resetDataSection
                 }
                 .padding()
             }
@@ -104,16 +100,6 @@ struct GoalSettingView: View {
                 }
             } message: {
                 Text(viewModel.errorMessage ?? "An unknown error occurred")
-            }
-            .confirmationDialog("Reset All Data", isPresented: $showingResetConfirmation, titleVisibility: .visible) {
-                Button("Reset All Data", role: .destructive) {
-                    Task {
-                        await resetAllData()
-                    }
-                }
-                Button("Cancel", role: .cancel) { }
-            } message: {
-                Text("This will permanently delete all your goals, food entries, and nutrition data. This action cannot be undone. HealthKit data will not be affected.")
             }
             .overlay(successMessageOverlay)
         }
@@ -608,9 +594,8 @@ struct GoalSettingView: View {
             
             // Show estimated time info
             if !viewModel.estimatedTimeToGoal.isEmpty && viewModel.estimatedTimeToGoal != "N/A" {
-                let timeInWeeks = viewModel.estimatedTimeToGoal
                 let days = Int(viewModel.targetDate.timeIntervalSince(Date()) / (24 * 60 * 60))
-                Text("Estimated time to goal: \(days) days (\(timeInWeeks))")
+                Text("Estimated time to goal: \(days) days")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -630,31 +615,6 @@ struct GoalSettingView: View {
         }
     }
     
-    private var resetDataSection: some View {
-        Section {
-            Button(action: {
-                showingResetConfirmation = true
-            }) {
-                HStack {
-                    Image(systemName: "trash.fill")
-                        .foregroundColor(.red)
-                    Text("Reset All Data")
-                        .foregroundColor(.red)
-                        .fontWeight(.medium)
-                    Spacer()
-                    if isResetting {
-                        SwiftUI.ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                }
-            }
-            .disabled(isResetting)
-        } footer: {
-            Text("This will permanently delete all your goals, food entries, and nutrition data from the app. HealthKit data will remain unchanged.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
     
     // MARK: - Helper Methods
     
@@ -736,37 +696,6 @@ struct GoalSettingView: View {
         return validation.isValid ? nil : validation.errorMessage
     }
     
-    private func resetAllData() async {
-        isResetting = true
-        
-        do {
-            // Reset all app data through DataService
-            try await DataService.shared.resetAllData()
-            
-            // Reset the view model
-            viewModel.resetToDefaults()
-            
-            // Clear user state
-            user = nil
-            
-            // Post notifications to refresh all tabs
-            NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
-            NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
-            NotificationCenter.default.post(name: .nutritionDataUpdated, object: nil)
-            
-            // Show success message
-            showSuccessMessage = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showSuccessMessage = false
-            }
-            
-        } catch {
-            viewModel.errorMessage = "Failed to reset data: \(error.localizedDescription)"
-            viewModel.showingError = true
-        }
-        
-        isResetting = false
-    }
 }
 
 // MARK: - Extensions

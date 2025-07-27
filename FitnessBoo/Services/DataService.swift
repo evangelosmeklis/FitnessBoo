@@ -85,7 +85,7 @@ class DataService: DataServiceProtocol {
     
     func saveUser(_ user: User) async throws {
         print("💾 DataService.saveUser called with weight: \(user.weight)")
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     // Check if user already exists
@@ -123,7 +123,7 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchUser() async throws -> User? {
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<User?, Error>) in
             context.perform {
                 do {
                     let request: NSFetchRequest<UserEntity> = UserEntity.fetchRequest()
@@ -160,7 +160,7 @@ class DataService: DataServiceProtocol {
     // MARK: - Food Entry Operations
     
     func saveFoodEntry(_ entry: FoodEntry, for user: User) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     // Find the user entity
@@ -207,7 +207,7 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchFoodEntries(for date: Date, user: User) async throws -> [FoodEntry] {
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[FoodEntry], Error>) in
             context.perform {
                 do {
                     let calendar = Calendar.current
@@ -233,7 +233,7 @@ class DataService: DataServiceProtocol {
     }
     
     func deleteFoodEntry(withId id: UUID) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     let request: NSFetchRequest<FoodEntryEntity> = FoodEntryEntity.fetchRequest()
@@ -284,7 +284,7 @@ class DataService: DataServiceProtocol {
         var nutritionToSave = nutrition
         nutritionToSave.recalculateTotals()
         
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     // Find the user entity
@@ -401,7 +401,7 @@ class DataService: DataServiceProtocol {
     // MARK: - Daily Stats Operations
     
     func saveDailyStats(_ stats: DailyStats, for user: User) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     // Find the user entity
@@ -452,7 +452,7 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchDailyStats(for dateRange: ClosedRange<Date>, user: User) async throws -> [DailyStats] {
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[DailyStats], Error>) in
             context.perform {
                 do {
                     let calendar = Calendar.current
@@ -529,7 +529,7 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchActiveGoal(for user: User) async throws -> FitnessGoal? {
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<FitnessGoal?, Error>) in
             context.perform {
                 do {
                     let request: NSFetchRequest<GoalEntity> = GoalEntity.fetchRequest()
@@ -563,7 +563,7 @@ class DataService: DataServiceProtocol {
     }
     
     func fetchAllGoals(for user: User) async throws -> [FitnessGoal] {
-        return try await withCheckedThrowingContinuation { continuation in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[FitnessGoal], Error>) in
             context.perform {
                 do {
                     let request: NSFetchRequest<GoalEntity> = GoalEntity.fetchRequest()
@@ -591,7 +591,7 @@ class DataService: DataServiceProtocol {
     }
     
     func deleteGoal(_ goal: FitnessGoal) async throws {
-        try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             context.perform {
                 do {
                     let request: NSFetchRequest<GoalEntity> = GoalEntity.fetchRequest()

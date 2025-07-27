@@ -375,8 +375,8 @@ class GoalViewModel: ObservableObject {
             
             // Calculate estimated time to goal
             if let timeInterval = tempGoal.estimatedTimeToGoal(currentWeight: user.weight) {
-                let weeks = Int(timeInterval / (7 * 24 * 60 * 60))
-                estimatedTimeToGoal = "\(weeks) weeks"
+                let days = Int(timeInterval / (24 * 60 * 60))
+                estimatedTimeToGoal = "\(days) days"
             } else {
                 estimatedTimeToGoal = "N/A"
             }

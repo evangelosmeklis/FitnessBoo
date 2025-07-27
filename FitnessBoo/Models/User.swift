@@ -48,12 +48,13 @@ struct User: Codable, Identifiable {
 // Removed Gender and ActivityLevel enums as we'll use HealthKit data instead
 
 enum UnitSystem: String, CaseIterable, Codable {
-    case metric, imperial
+    case metric = "metric"
+    case imperial = "imperial"
     
     var displayName: String {
         switch self {
-        case .metric: return "Metric"
-        case .imperial: return "Imperial"
+        case .metric: return "Metric (kg, cm)"
+        case .imperial: return "Imperial (lbs, ft)"
         }
     }
 }
