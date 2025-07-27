@@ -10,6 +10,7 @@ import SwiftUI
 struct NutritionDashboardView: View {
     @StateObject private var nutritionViewModel: NutritionViewModel
     @StateObject private var calorieBalanceService: CalorieBalanceService
+    @StateObject private var goalViewModel: GoalViewModel
     @State private var showingAddFood = false
     @State private var selectedEntry: FoodEntry?
     @State private var showingEditFood = false
@@ -27,6 +28,12 @@ struct NutritionDashboardView: View {
             healthKitService: healthKitService,
             calculationService: calculationService,
             dataService: dataService
+        ))
+        
+        self._goalViewModel = StateObject(wrappedValue: GoalViewModel(
+            calculationService: calculationService,
+            dataService: dataService,
+            healthKitService: healthKitService
         ))
     }
     
@@ -73,28 +80,48 @@ struct NutritionDashboardView: View {
             .task {
                 await nutritionViewModel.loadDailyNutrition()
                 currentBalance = await calorieBalanceService.getCurrentBalance()
-                dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
+                
+                // Load goal data first to get proper calculation
+                if let user = try? await DataService.shared.fetchUser() {
+                    await goalViewModel.loadCurrentGoal(for: user)
+                }
+                dailyGoalAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
             }
             .onAppear {
                 Task {
                     await nutritionViewModel.loadDailyNutrition()
                     await nutritionViewModel.refreshData()
                     currentBalance = await calorieBalanceService.getCurrentBalance()
-                    dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
+                    
+                    // Load goal data first to get proper calculation
+                    if let user = try? await DataService.shared.fetchUser() {
+                        await goalViewModel.loadCurrentGoal(for: user)
+                    }
+                    dailyGoalAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("GoalUpdated"))) { _ in
                 Task {
                     await nutritionViewModel.refreshData()
                     currentBalance = await calorieBalanceService.getCurrentBalance()
-                    dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
+                    
+                    // Reload goal data when goal updates
+                    if let user = try? await DataService.shared.fetchUser() {
+                        await goalViewModel.loadCurrentGoal(for: user)
+                    }
+                    dailyGoalAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("WeightDataUpdated"))) { _ in
                 Task {
                     await nutritionViewModel.refreshData()
                     currentBalance = await calorieBalanceService.getCurrentBalance()
-                    dailyGoalAdjustment = await calorieBalanceService.getDailyGoalAdjustment()
+                    
+                    // Reload goal data when weight updates
+                    if let user = try? await DataService.shared.fetchUser() {
+                        await goalViewModel.loadCurrentGoal(for: user)
+                    }
+                    dailyGoalAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
                 }
             }
         }
@@ -202,24 +229,11 @@ struct NutritionDashboardView: View {
                         let currentBalanceValue = balance.balance
                         let difference = currentBalanceValue - dailyGoalAdjustment
                         
-                        print("🎯 Daily Goal Debug: Current=\(currentBalanceValue), Goal=\(dailyGoalAdjustment), Difference=\(difference)")
-                        
                         if abs(difference) < 50 {
                             return "Goal achieved!"
-                        } else if difference < 0 {
-                            // Need more deficit/surplus
-                            if dailyGoalAdjustment < 0 {
-                                return "Burn \(Int(abs(difference))) more calories"
-                            } else {
-                                return "Eat \(Int(abs(difference))) more calories"
-                            }
                         } else {
-                            // Too much deficit/surplus
-                            if dailyGoalAdjustment < 0 {
-                                return "Eat \(Int(difference)) more calories"
-                            } else {
-                                return "Burn \(Int(difference)) more calories"
-                            }
+                            let diffSign = difference >= 0 ? "+" : ""
+                            return "\(diffSign)\(Int(difference)) cal vs goal"
                         }
                     }
                     return "Loading..."
