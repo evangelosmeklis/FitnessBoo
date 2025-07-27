@@ -200,6 +200,7 @@ struct SettingsView: View {
                             }
                         }
                         
+                        
                         // Time pickers for notification schedule
                         if notificationFrequency >= 1 {
                             Divider()
@@ -440,6 +441,46 @@ struct SettingsView: View {
     }
     
     private func updateNotificationSchedules() {
+        // First check if any notifications are enabled
+        let anyEnabled = calorieNotificationsEnabled || waterNotificationsEnabled || proteinNotificationsEnabled
+        
+        guard anyEnabled else {
+            // If no notifications enabled, clear all
+            NotificationService.shared.clearAllProgressNotifications()
+            return
+        }
+        
+        // Check notification permission status first
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                switch settings.authorizationStatus {
+                case .notDetermined:
+                    // Request permission first
+                    Task {
+                        do {
+                            try await NotificationService.shared.requestAuthorization()
+                            await self.scheduleNotifications()
+                        } catch {
+                            print("Failed to get notification permission: \(error)")
+                        }
+                    }
+                case .authorized, .provisional:
+                    // Permission granted, schedule notifications
+                    Task {
+                        await self.scheduleNotifications()
+                    }
+                case .denied:
+                    // Permission denied, show alert
+                    print("Notification permission denied. User needs to enable in Settings app.")
+                    // Could show an alert here directing user to Settings
+                @unknown default:
+                    break
+                }
+            }
+        }
+    }
+    
+    private func scheduleNotifications() async {
         let times = getNotificationTimes()
         
         NotificationService.shared.scheduleCalorieProgressNotifications(
