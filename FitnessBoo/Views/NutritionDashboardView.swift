@@ -69,7 +69,7 @@ struct NutritionDashboardView: View {
                     showingAddFood = true
                 }
                 .padding(.trailing, 20)
-                .padding(.bottom, 20)
+                .padding(.bottom, 120)
             }
             .sheet(isPresented: $showingAddFood) {
                 FoodEntryView(nutritionViewModel: nutritionViewModel)

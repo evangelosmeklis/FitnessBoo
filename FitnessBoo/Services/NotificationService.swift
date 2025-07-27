@@ -142,9 +142,7 @@ class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
             let identifiersToRemove = requests
                 .filter { identifier in
-                    identifier.identifier.hasPrefix(prefix) ||
-                    identifier.identifier.contains(prefix + "_first") ||
-                    identifier.identifier.contains(prefix + "_daily")
+                    identifier.identifier.hasPrefix(prefix)
                 }
                 .map { $0.identifier }
             
@@ -179,27 +177,14 @@ class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         // If the time has already passed today, schedule for tomorrow
         let targetDate = todayAtTime < now ? calendar.date(byAdding: .day, value: 1, to: todayAtTime)! : todayAtTime
         
-        // Use interval trigger for the first occurrence, then rely on repeating
-        let timeInterval = targetDate.timeIntervalSince(now)
-        
-        // For immediate scheduling (within next 24 hours), use interval trigger
-        if timeInterval <= 24 * 60 * 60 {
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
-            let request = UNNotificationRequest(identifier: identifier + "_first", content: content, trigger: trigger)
-            
-            UNUserNotificationCenter.current().add(request) { error in
-                // Silently handle any errors
-            }
-        }
-        
-        // Also schedule the repeating daily notification
+        // Only schedule the repeating daily notification to avoid duplicates
         var dailyComponents = DateComponents()
         dailyComponents.hour = hour
         dailyComponents.minute = minute
         dailyComponents.second = 0
         
         let dailyTrigger = UNCalendarNotificationTrigger(dateMatching: dailyComponents, repeats: true)
-        let dailyRequest = UNNotificationRequest(identifier: identifier + "_daily", content: content, trigger: dailyTrigger)
+        let dailyRequest = UNNotificationRequest(identifier: identifier, content: content, trigger: dailyTrigger)
         
         UNUserNotificationCenter.current().add(dailyRequest) { error in
             // Silently handle any errors
@@ -217,24 +202,42 @@ class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
     
     @MainActor
     private func getCalorieProgressMessage() async -> String {
-        let dataManager = AppDataManager.shared
-        await dataManager.loadInitialData()
-        
-        let consumed = dataManager.caloriesConsumed
-        let progress = dataManager.calorieProgress
-        
-        if let goal = dataManager.currentGoal {
-            let target = goal.dailyCalorieTarget
-            let remaining = target - consumed
-            
-            if remaining > 0 {
-                return "You've consumed \(Int(consumed)) of \(Int(target)) calories today. \(Int(remaining)) calories remaining to reach your goal!"
-            } else {
-                let excess = abs(remaining)
-                return "You've consumed \(Int(consumed)) calories today, \(Int(excess)) over your \(Int(target)) calorie goal."
+        do {
+            // Get current goal data
+            let dataService = DataService.shared
+            guard let goal = try await dataService.fetchActiveGoal() else {
+                return "Set your daily calorie goal to track your progress!"
             }
-        } else {
-            return "You've consumed \(Int(consumed)) calories today. Set a goal to track your progress!"
+            
+            // Calculate daily goal adjustment like in GoalViewModel
+            // Based on weekly weight change: (weeklyChange * 7700) / 7
+            let weeklyChange = goal.weeklyWeightChangeGoal
+            let dailyGoalAdjustment = (weeklyChange * 7700) / 7
+            
+            // Calculate current balance like in NutritionDashboardView
+            let healthKitService = HealthKitService()
+            let today = Date()
+            
+            // Get consumed calories from nutrition data
+            let nutrition = try? await dataService.fetchDailyNutrition(for: today)
+            let consumed = nutrition?.totalCalories ?? 0
+            
+            // Get energy burned (same as CalorieBalanceService)
+            let restingEnergy = (try? await healthKitService.fetchRestingEnergy(for: today)) ?? 1800.0
+            let activeEnergy = (try? await healthKitService.fetchActiveEnergy(for: today)) ?? (restingEnergy * 0.2)
+            let totalBurned = restingEnergy + activeEnergy
+            
+            // Calculate balance: consumed - burned
+            let currentBalance = consumed - totalBurned
+            
+            // Format like NutritionDashboardView: current balance vs daily goal adjustment
+            let currentSign = currentBalance >= 0 ? "+" : ""
+            let goalSign = dailyGoalAdjustment >= 0 ? "+" : ""
+            
+            return "Your balance is \(currentSign)\(Int(currentBalance)) kcal vs goal of \(goalSign)\(Int(dailyGoalAdjustment)) kcal"
+            
+        } catch {
+            return "Check your calorie balance toward your daily goal!"
         }
     }
     
