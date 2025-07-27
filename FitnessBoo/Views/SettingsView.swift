@@ -17,6 +17,9 @@ struct SettingsView: View {
     @State private var waterNotificationsEnabled = false
     @State private var proteinNotificationsEnabled = false
     @State private var notificationFrequency = 2 // Up to 3 times a day
+    @State private var notificationTime1 = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var notificationTime2 = Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var notificationTime3 = Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var showingResetConfirmation = false
     @State private var isResetting = false
     @State private var showSuccessMessage = false
@@ -52,6 +55,11 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.large)
             .task {
                 await loadSettings()
+            }
+            .onAppear {
+                Task {
+                    await loadSettings()
+                }
             }
             .confirmationDialog("Reset All Data", isPresented: $showingResetConfirmation, titleVisibility: .visible) {
                 Button("Reset All Data", role: .destructive) {
@@ -183,6 +191,58 @@ struct SettingsView: View {
                             }
                             .pickerStyle(SegmentedPickerStyle())
                             .frame(width: 120)
+                            .onChange(of: notificationFrequency) { newValue in
+                                UserDefaults.standard.set(newValue, forKey: "NotificationFrequency")
+                            }
+                        }
+                        
+                        // Time pickers for notification schedule
+                        if notificationFrequency >= 1 {
+                            Divider()
+                            
+                            VStack(spacing: 12) {
+                                Text("Notification Times")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                
+                                HStack {
+                                    Text("1st notification:")
+                                        .font(.caption)
+                                    Spacer()
+                                    DatePicker("", selection: $notificationTime1, displayedComponents: .hourAndMinute)
+                                        .labelsHidden()
+                                        .onChange(of: notificationTime1) { newValue in
+                                            saveNotificationTime(1, time: newValue)
+                                        }
+                                }
+                                
+                                if notificationFrequency >= 2 {
+                                    HStack {
+                                        Text("2nd notification:")
+                                            .font(.caption)
+                                        Spacer()
+                                        DatePicker("", selection: $notificationTime2, displayedComponents: .hourAndMinute)
+                                            .labelsHidden()
+                                            .onChange(of: notificationTime2) { newValue in
+                                                saveNotificationTime(2, time: newValue)
+                                            }
+                                    }
+                                }
+                                
+                                if notificationFrequency >= 3 {
+                                    HStack {
+                                        Text("3rd notification:")
+                                            .font(.caption)
+                                        Spacer()
+                                        DatePicker("", selection: $notificationTime3, displayedComponents: .hourAndMinute)
+                                            .labelsHidden()
+                                            .onChange(of: notificationTime3) { newValue in
+                                                saveNotificationTime(3, time: newValue)
+                                            }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -283,11 +343,22 @@ struct SettingsView: View {
         }
         
         // Load notification settings
-        calorieNotificationsEnabled = UserDefaults.standard.bool(forKey: "CalorieNotificationsEnabled")
-        waterNotificationsEnabled = UserDefaults.standard.bool(forKey: "WaterNotificationsEnabled")
-        proteinNotificationsEnabled = UserDefaults.standard.bool(forKey: "ProteinNotificationsEnabled")
+        calorieNotificationsEnabled = UserDefaults.standard.bool(forKey: "CalorieProgressNotificationsEnabled")
+        waterNotificationsEnabled = UserDefaults.standard.bool(forKey: "WaterIntakeNotificationsEnabled")
+        proteinNotificationsEnabled = UserDefaults.standard.bool(forKey: "ProteinGoalNotificationsEnabled")
         notificationFrequency = UserDefaults.standard.integer(forKey: "NotificationFrequency")
         if notificationFrequency == 0 { notificationFrequency = 2 } // Default to 2x per day
+        
+        // Load notification times
+        if let time1Data = UserDefaults.standard.object(forKey: "NotificationTime1") as? Date {
+            notificationTime1 = time1Data
+        }
+        if let time2Data = UserDefaults.standard.object(forKey: "NotificationTime2") as? Date {
+            notificationTime2 = time2Data
+        }
+        if let time3Data = UserDefaults.standard.object(forKey: "NotificationTime3") as? Date {
+            notificationTime3 = time3Data
+        }
     }
     
     private func updateUnitSystem() async {
@@ -354,6 +425,10 @@ struct SettingsView: View {
         }
         
         isResetting = false
+    }
+    
+    private func saveNotificationTime(_ index: Int, time: Date) {
+        UserDefaults.standard.set(time, forKey: "NotificationTime\(index)")
     }
 }
 

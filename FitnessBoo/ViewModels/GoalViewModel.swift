@@ -469,12 +469,92 @@ class GoalViewModel: ObservableObject {
             break // Already handled above
         }
         
-        // Check for reasonable weight change (not more than 50kg difference)
+        // Enhanced health-based validation
         let weightDifference = abs(targetWeightValue - currentWeightValue)
+        
+        // Check for extremely low target weights (potential eating disorder concerns)
+        if targetWeightValue < 40 {
+            return (false, "Target weight is too low. Please consult with a healthcare professional for safe weight goals.")
+        }
+        
+        // Check for extremely high target weights
+        if targetWeightValue > 200 {
+            return (false, "Target weight seems unrealistic. Please choose a more moderate target weight.")
+        }
+        
+        // Check for unrealistic weight change (more than 50kg difference)
         if weightDifference > 50 {
-            return (false, "Target weight seems unrealistic. Please choose a target within 50kg of your current weight")
+            return (false, "Target weight seems unrealistic. Please choose a target within 50kg of your current weight.")
+        }
+        
+        // Calculate time to goal and check for aggressive weight loss/gain
+        let daysToGoal = max(1, targetDate.timeIntervalSince(Date()) / (24 * 60 * 60))
+        let weeksToGoal = daysToGoal / 7
+        let weightChangePerWeek = weightDifference / weeksToGoal
+        
+        // Check for dangerously aggressive weight loss (more than 1kg per week)
+        if selectedGoalType == .loseWeight && weightChangePerWeek > 1.0 {
+            return (false, "Weight loss goal is too aggressive. Safe weight loss is 0.5-1kg per week. Try extending your target date or reducing target weight.")
+        }
+        
+        // Check for very aggressive weight gain (more than 0.5kg per week)
+        if selectedGoalType == .gainWeight && weightChangePerWeek > 0.5 {
+            return (false, "Weight gain goal is too aggressive. Healthy weight gain is 0.2-0.5kg per week. Try extending your target date or reducing target weight.")
+        }
+        
+        // Check for extremely short timeframes (less than 2 weeks)
+        if weeksToGoal < 2 && weightDifference > 2 {
+            return (false, "Timeframe is too short for safe weight change. Please allow at least 2 weeks for significant weight goals.")
+        }
+        
+        // Warning for moderate weight loss (0.75-1kg per week)
+        if selectedGoalType == .loseWeight && weightChangePerWeek >= 0.75 && weightChangePerWeek <= 1.0 {
+            // This is still within safe limits but on the upper end
         }
         
         return (true, nil)
+    }
+    
+    func getTargetWeightWarning(currentWeight: Double) -> String? {
+        // For maintain weight, no warnings needed
+        if selectedGoalType == .maintainWeight {
+            return nil
+        }
+        
+        guard !targetWeight.isEmpty,
+              let targetWeightValue = Double(targetWeight),
+              targetWeightValue > 0 else {
+            return nil
+        }
+        
+        let currentWeightValue = Double(self.currentWeight) ?? currentWeight
+        let weightDifference = abs(targetWeightValue - currentWeightValue)
+        
+        // Calculate time to goal and weight change per week
+        let daysToGoal = max(1, targetDate.timeIntervalSince(Date()) / (24 * 60 * 60))
+        let weeksToGoal = daysToGoal / 7
+        let weightChangePerWeek = weightDifference / weeksToGoal
+        
+        // Warning for aggressive but still safe weight loss (0.75-1kg per week)
+        if selectedGoalType == .loseWeight && weightChangePerWeek >= 0.75 && weightChangePerWeek <= 1.0 {
+            return "⚠️ This is an aggressive weight loss goal (\(String(format: "%.1f", weightChangePerWeek))kg/week). Consider a more gradual approach for sustainable results."
+        }
+        
+        // Warning for aggressive weight gain (0.3-0.5kg per week)
+        if selectedGoalType == .gainWeight && weightChangePerWeek >= 0.3 && weightChangePerWeek <= 0.5 {
+            return "⚠️ This is an aggressive weight gain goal (\(String(format: "%.1f", weightChangePerWeek))kg/week). Ensure you're eating nutritious foods and exercising."
+        }
+        
+        // Warning for very small weight changes (less than 2kg total)
+        if weightDifference < 2 && weeksToGoal > 8 {
+            return "💡 This is a very modest weight change. You might achieve this goal sooner than expected."
+        }
+        
+        // Warning for low target weights (40-50kg)
+        if targetWeightValue >= 40 && targetWeightValue <= 50 {
+            return "⚠️ This is a low target weight. Please ensure this aligns with your health professional's recommendations."
+        }
+        
+        return nil
     }
 }

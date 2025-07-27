@@ -368,6 +368,15 @@ struct GoalSettingView: View {
                     .foregroundColor(.red)
             }
             
+            // Show warning if any (only when no validation error)
+            if let user = user, getTargetWeightValidationError() == nil,
+               let warning = getTargetWeightWarning() {
+                Text(warning)
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .padding(.top, 4)
+            }
+            
             // Show progress info
             if let user = user, !viewModel.targetWeight.isEmpty,
                let targetWeight = Double(viewModel.targetWeight),
@@ -506,14 +515,14 @@ struct GoalSettingView: View {
             if let targetWeight = Double(viewModel.targetWeight),
                let currentWeight = Double(viewModel.currentWeight) {
                 let totalWeightChange = targetWeight - currentWeight
-                let weeksToGoal = viewModel.targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
+                let daysToGoal = viewModel.targetDate.timeIntervalSince(Date()) / (24 * 60 * 60)
                 
                 HStack {
                     Text("Time to Goal:")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()
-                    Text("\(Int(weeksToGoal)) weeks")
+                    Text("\(Int(daysToGoal)) days")
                         .font(.caption)
                         .fontWeight(.medium)
                 }
@@ -694,6 +703,11 @@ struct GoalSettingView: View {
         guard let user = user else { return nil }
         let validation = viewModel.validateTargetWeight(currentWeight: user.weight)
         return validation.isValid ? nil : validation.errorMessage
+    }
+    
+    private func getTargetWeightWarning() -> String? {
+        guard let user = user else { return nil }
+        return viewModel.getTargetWeightWarning(currentWeight: user.weight)
     }
     
 }
