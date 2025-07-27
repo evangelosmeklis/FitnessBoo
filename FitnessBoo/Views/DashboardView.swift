@@ -15,6 +15,7 @@ struct DashboardView: View {
     @StateObject private var energyViewModel: EnergyViewModel
     @StateObject private var calorieBalanceService: CalorieBalanceService
     @State private var currentBalance: CalorieBalance?
+    @State private var currentUnitSystem: UnitSystem = .metric
     
     init(healthKitService: HealthKitServiceProtocol, dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
         self._energyViewModel = StateObject(wrappedValue: EnergyViewModel(
@@ -54,6 +55,12 @@ struct DashboardView: View {
             }
             .task {
                 await loadData()
+                loadUnitSystem()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UnitSystemChanged"))) { notification in
+                if let unitSystem = notification.object as? UnitSystem {
+                    currentUnitSystem = unitSystem
+                }
             }
         }
     }
@@ -146,7 +153,7 @@ struct DashboardView: View {
             
             MetricCard(
                 title: "Weight",
-                value: "\(String(format: "%.1f", dataManager.currentUser?.weight ?? 0))kg",
+                value: "\(String(format: "%.1f", dataManager.currentUser?.weight ?? 0))\(weightUnit)",
                 subtitle: dataManager.currentGoal?.type.displayName ?? "No goal set",
                 icon: "scalemass.fill",
                 color: .purple
@@ -252,6 +259,17 @@ struct DashboardView: View {
     
     private func loadCalorieBalance() async {
         currentBalance = await calorieBalanceService.getCurrentBalance()
+    }
+    
+    private func loadUnitSystem() {
+        if let savedUnit = UserDefaults.standard.string(forKey: "UnitSystem"),
+           let unitSystem = UnitSystem(rawValue: savedUnit) {
+            currentUnitSystem = unitSystem
+        }
+    }
+    
+    private var weightUnit: String {
+        return currentUnitSystem == .metric ? "kg" : "lbs"
     }
     
 }

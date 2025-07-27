@@ -12,6 +12,7 @@ import HealthKit
 struct GoalSettingView: View {
     @StateObject private var viewModel: GoalViewModel
     @State private var user: User?
+    @State private var currentUnitSystem: UnitSystem = .metric
     @State private var showingDatePicker = false
     @State private var hasChanges = false
     @State private var showSuccessMessage = false
@@ -61,6 +62,12 @@ struct GoalSettingView: View {
             .navigationBarTitleDisplayMode(.large)
             .task {
                 await loadUserAndGoal()
+                loadUnitSystem()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UnitSystemChanged"))) { notification in
+                if let unitSystem = notification.object as? UnitSystem {
+                    currentUnitSystem = unitSystem
+                }
             }
             .onTapGesture {
                 // Dismiss keyboard when tapping outside
@@ -272,7 +279,7 @@ struct GoalSettingView: View {
                             let amount = abs(difference)
                             
                             if amount > 1.0 {
-                                Text("Need to \(direction) \(amount, specifier: "%.1f") kg")
+                                Text("Need to \(direction) \(amount, specifier: "%.1f") \(weightUnit)")
                                     .font(.caption2)
                                     .foregroundStyle(.tertiary)
                             }
@@ -319,7 +326,7 @@ struct GoalSettingView: View {
                             }
                         }
                     
-                    Text("kg")
+                    Text(weightUnit)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -355,7 +362,7 @@ struct GoalSettingView: View {
                             validateTargetWeight()
                         }
                     
-                    Text("kg")
+                    Text(weightUnit)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -383,7 +390,7 @@ struct GoalSettingView: View {
                getTargetWeightValidationError() == nil {
                 let difference = abs(targetWeight - user.weight)
                 let direction = targetWeight > user.weight ? "gain" : "lose"
-                Text("You need to \(direction) \(difference, specifier: "%.1f") kg")
+                Text("You need to \(direction) \(difference, specifier: "%.1f") \(weightUnit)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -506,7 +513,7 @@ struct GoalSettingView: View {
                 Spacer()
                 let weeklyChange = viewModel.calculatedWeeklyChange
                 let sign = weeklyChange >= 0 ? "+" : ""
-                Text("\(sign)\(weeklyChange, specifier: "%.2f") kg/week")
+                Text("\(sign)\(weeklyChange, specifier: "%.2f") \(weightUnit)/week")
                     .font(.caption)
                     .fontWeight(.medium)
                     .foregroundColor(weeklyChange < 0 ? .red : .green)
@@ -533,7 +540,7 @@ struct GoalSettingView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                     let sign = totalWeightChange >= 0 ? "+" : ""
-                    Text("\(sign)\(totalWeightChange, specifier: "%.1f") kg")
+                    Text("\(sign)\(totalWeightChange, specifier: "%.1f") \(weightUnit)")
                         .font(.caption)
                         .fontWeight(.medium)
                         .foregroundColor(totalWeightChange < 0 ? .red : .green)
@@ -639,6 +646,17 @@ struct GoalSettingView: View {
             viewModel.errorMessage = "Failed to load user data"
             viewModel.showingError = true
         }
+    }
+    
+    private func loadUnitSystem() {
+        if let savedUnit = UserDefaults.standard.string(forKey: "UnitSystem"),
+           let unitSystem = UnitSystem(rawValue: savedUnit) {
+            currentUnitSystem = unitSystem
+        }
+    }
+    
+    private var weightUnit: String {
+        return currentUnitSystem == .metric ? "kg" : "lbs"
     }
     
     private func checkForChanges() {

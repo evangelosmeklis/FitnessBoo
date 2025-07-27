@@ -151,7 +151,8 @@ struct SettingsView: View {
                             subtitle: "Get updates on your daily calorie goal",
                             icon: "flame.fill",
                             color: .orange,
-                            isEnabled: $calorieNotificationsEnabled
+                            isEnabled: $calorieNotificationsEnabled,
+                            onToggle: updateNotificationSchedules
                         )
                         
                         Divider()
@@ -161,7 +162,8 @@ struct SettingsView: View {
                             subtitle: "Reminders to stay hydrated",
                             icon: "drop.fill",
                             color: .blue,
-                            isEnabled: $waterNotificationsEnabled
+                            isEnabled: $waterNotificationsEnabled,
+                            onToggle: updateNotificationSchedules
                         )
                         
                         Divider()
@@ -171,7 +173,8 @@ struct SettingsView: View {
                             subtitle: "Track your daily protein intake",
                             icon: "leaf.fill",
                             color: .green,
-                            isEnabled: $proteinNotificationsEnabled
+                            isEnabled: $proteinNotificationsEnabled,
+                            onToggle: updateNotificationSchedules
                         )
                     }
                     
@@ -193,6 +196,7 @@ struct SettingsView: View {
                             .frame(width: 120)
                             .onChange(of: notificationFrequency) { newValue in
                                 UserDefaults.standard.set(newValue, forKey: "NotificationFrequency")
+                                updateNotificationSchedules()
                             }
                         }
                         
@@ -359,6 +363,9 @@ struct SettingsView: View {
         if let time3Data = UserDefaults.standard.object(forKey: "NotificationTime3") as? Date {
             notificationTime3 = time3Data
         }
+        
+        // Schedule notifications based on loaded settings
+        updateNotificationSchedules()
     }
     
     private func updateUnitSystem() async {
@@ -429,6 +436,42 @@ struct SettingsView: View {
     
     private func saveNotificationTime(_ index: Int, time: Date) {
         UserDefaults.standard.set(time, forKey: "NotificationTime\(index)")
+        updateNotificationSchedules()
+    }
+    
+    private func updateNotificationSchedules() {
+        let times = getNotificationTimes()
+        
+        NotificationService.shared.scheduleCalorieProgressNotifications(
+            times: times,
+            enabled: calorieNotificationsEnabled
+        )
+        
+        NotificationService.shared.scheduleWaterProgressNotifications(
+            times: times,
+            enabled: waterNotificationsEnabled
+        )
+        
+        NotificationService.shared.scheduleProteinProgressNotifications(
+            times: times,
+            enabled: proteinNotificationsEnabled
+        )
+    }
+    
+    private func getNotificationTimes() -> [Date] {
+        var times: [Date] = []
+        
+        if notificationFrequency >= 1 {
+            times.append(notificationTime1)
+        }
+        if notificationFrequency >= 2 {
+            times.append(notificationTime2)
+        }
+        if notificationFrequency >= 3 {
+            times.append(notificationTime3)
+        }
+        
+        return times
     }
 }
 
@@ -440,6 +483,7 @@ struct NotificationToggleRow: View {
     let icon: String
     let color: Color
     @Binding var isEnabled: Bool
+    let onToggle: (() -> Void)?
     
     var body: some View {
         HStack {
@@ -467,6 +511,8 @@ struct NotificationToggleRow: View {
                     if newValue {
                         requestNotificationPermission()
                     }
+                    
+                    onToggle?()
                 }
         }
     }
