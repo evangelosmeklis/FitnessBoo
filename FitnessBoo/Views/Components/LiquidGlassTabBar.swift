@@ -177,7 +177,7 @@ struct LiquidGlassTabContainer: View {
                 .safeAreaInset(edge: .bottom) {
                     Rectangle()
                         .fill(Color.clear)
-                        .frame(height: 300)
+                        .frame(height: 90)
                 }
                 
                 NutritionDashboardView(
@@ -189,7 +189,7 @@ struct LiquidGlassTabContainer: View {
                 .safeAreaInset(edge: .bottom) {
                     Rectangle()
                         .fill(Color.clear)
-                        .frame(height: 300)
+                        .frame(height: 90)
                 }
                 
                 GoalSettingView(
@@ -201,7 +201,7 @@ struct LiquidGlassTabContainer: View {
                 .safeAreaInset(edge: .bottom) {
                     Rectangle()
                         .fill(Color.clear)
-                        .frame(height: 300)
+                        .frame(height: 90)
                 }
                 
                 SettingsView(
@@ -213,7 +213,7 @@ struct LiquidGlassTabContainer: View {
                 .safeAreaInset(edge: .bottom) {
                     Rectangle()
                         .fill(Color.clear)
-                        .frame(height: 300)
+                        .frame(height: 90)
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
