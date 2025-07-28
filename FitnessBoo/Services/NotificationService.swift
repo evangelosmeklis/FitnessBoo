@@ -210,8 +210,8 @@ class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
             }
             
             // Calculate daily goal adjustment like in GoalViewModel
-            // Based on weekly weight change: (weeklyChange * 7700) / 7
-            let weeklyChange = goal.weeklyWeightChangeGoal
+            // Based on calculated weekly weight change from target and current weight
+            let weeklyChange = await calculateWeeklyChange(for: goal)
             let dailyGoalAdjustment = (weeklyChange * 7700) / 7
             
             // Calculate current balance like in NutritionDashboardView
@@ -255,5 +255,29 @@ class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         } else {
             return "Great job! You've reached your daily water goal of \(Int(target))ml. Keep staying hydrated!"
         }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func calculateWeeklyChange(for goal: FitnessGoal) async -> Double {
+        guard let targetWeight = goal.targetWeight,
+              goal.type != .maintainWeight else {
+            return 0
+        }
+        
+        // Get current weight from user data
+        let dataService = DataService.shared
+        guard let user = try? await dataService.fetchUser(),
+              let targetDate = goal.targetDate else {
+            return goal.weeklyWeightChangeGoal // fallback to stored value
+        }
+        
+        let currentWeight = user.weight
+        let weightDifference = targetWeight - currentWeight
+        let weeksToTarget = targetDate.timeIntervalSince(Date()) / (7 * 24 * 60 * 60)
+        
+        guard weeksToTarget > 0 else { return 0 }
+        
+        return weightDifference / weeksToTarget
     }
 }
