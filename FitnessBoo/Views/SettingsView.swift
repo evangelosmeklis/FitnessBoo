@@ -49,6 +49,7 @@ struct SettingsView: View {
                     dataManagementSection
                 }
                 .padding()
+                .padding(.bottom, 100)
             }
             .background(backgroundGradient)
             .navigationTitle("Settings")

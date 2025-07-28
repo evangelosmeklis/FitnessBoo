@@ -19,6 +19,7 @@ struct GoalSettingView: View {
     @FocusState private var isTargetWeightFocused: Bool
     @FocusState private var isCurrentWeightFocused: Bool
     @FocusState private var isWaterTargetFocused: Bool
+    @FocusState private var isProteinTargetFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     // Debounced weight update
@@ -49,6 +50,8 @@ struct GoalSettingView: View {
                     
                     dailyWaterTargetSection
                     
+                    dailyProteinTargetSection
+                    
                     dailyCalorieAdjustmentSection
                     
                     if !viewModel.errorMessage.isNilOrEmpty {
@@ -56,6 +59,7 @@ struct GoalSettingView: View {
                     }
                 }
                 .padding()
+                .padding(.bottom, 100)
             }
             .background(backgroundGradient)
             .navigationTitle("Set Your Goal")
@@ -74,6 +78,7 @@ struct GoalSettingView: View {
                 isTargetWeightFocused = false
                 isCurrentWeightFocused = false
                 isWaterTargetFocused = false
+                isProteinTargetFocused = false
             }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -96,6 +101,9 @@ struct GoalSettingView: View {
                 handleGoalParameterChange()
             }
             .onChange(of: viewModel.dailyWaterTarget) { _ in
+                handleGoalParameterChange()
+            }
+            .onChange(of: viewModel.dailyProteinTarget) { _ in
                 handleGoalParameterChange()
             }
             .onChange(of: viewModel.currentWeight) { newWeight in
@@ -210,6 +218,9 @@ struct GoalSettingView: View {
         }
         if isWaterTargetFocused {
             isWaterTargetFocused = false
+        }
+        if isProteinTargetFocused {
+            isProteinTargetFocused = false
         }
     }
     
@@ -424,6 +435,54 @@ struct GoalSettingView: View {
                     Text("ml")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+    
+    private var dailyProteinTargetSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Protein Goal")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                HStack {
+                    Image(systemName: "leaf.fill")
+                        .font(.title2)
+                        .foregroundStyle(.green)
+                        .frame(width: 24, height: 24)
+                    
+                    Text("Daily Protein Target")
+                        .font(.subheadline)
+                    
+                    Spacer()
+                    
+                    TextField("Enter amount", text: $viewModel.dailyProteinTarget)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isProteinTargetFocused)
+                        .onChange(of: viewModel.dailyProteinTarget) { newValue in
+                            validateProteinTarget(newValue)
+                        }
+                    
+                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                // Show validation message if needed
+                if let validationMessage = getProteinValidationMessage() {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        Text(validationMessage)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.top, 8)
                 }
             }
         }
@@ -728,6 +787,50 @@ struct GoalSettingView: View {
         return viewModel.getTargetWeightWarning(currentWeight: user.weight)
     }
     
+    private func validateProteinTarget(_ value: String) {
+        guard !value.isEmpty, let proteinValue = Double(value) else { return }
+        
+        // Convert to grams if using imperial
+        let proteinInGrams = currentUnitSystem == .metric ? proteinValue : proteinValue * 28.35
+        
+        // Save to goal model
+        if let user = user {
+            Task {
+                await viewModel.updateProteinTarget(proteinInGrams)
+            }
+        }
+    }
+    
+    private func getProteinValidationMessage() -> String? {
+        guard !viewModel.dailyProteinTarget.isEmpty, let proteinValue = Double(viewModel.dailyProteinTarget) else { return nil }
+        
+        // Convert to grams if using imperial
+        let proteinInGrams = currentUnitSystem == .metric ? proteinValue : proteinValue * 28.35
+        
+        guard let user = user else { return nil }
+        
+        // Protein recommendations:
+        // Sedentary: 0.8-1.2g/kg body weight
+        // Active: 1.2-2.0g/kg body weight  
+        // Very active/athletes: 1.6-2.2g/kg body weight
+        // Maximum safe intake: ~3.0g/kg body weight
+        
+        let bodyWeight = user.weight
+        let minProtein = bodyWeight * 0.8
+        let maxSafeProtein = bodyWeight * 3.0
+        let recommendedMax = bodyWeight * 2.2
+        
+        if proteinInGrams < minProtein {
+            return "Protein goal is below recommended minimum (\(Int(minProtein))g)"
+        } else if proteinInGrams > maxSafeProtein {
+            return "Protein goal exceeds safe limits. Maximum recommended: \(Int(maxSafeProtein))g"
+        } else if proteinInGrams > recommendedMax {
+            return "High protein goal. Ensure adequate hydration and kidney health"
+        }
+        
+        return nil
+    }
+    
 }
 
 // MARK: - Extensions
@@ -751,6 +854,7 @@ class MockHealthKitService: HealthKitServiceProtocol {
     func fetchRestingEnergy(for date: Date) async throws -> Double { return 0 }
     func fetchTotalEnergyExpended(for date: Date) async throws -> Double { return 0 }
     func fetchWeight() async throws -> Double? { return nil }
+    func saveWeight(_ weight: Double, date: Date) async throws { }
     func observeWeightChanges() -> AnyPublisher<Double, Never> { return Just(0).eraseToAnyPublisher() }
     func observeWorkouts() -> AnyPublisher<[WorkoutData], Never> { return Just([]).eraseToAnyPublisher() }
     func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never> { return Just((resting: 0, active: 0)).eraseToAnyPublisher() }

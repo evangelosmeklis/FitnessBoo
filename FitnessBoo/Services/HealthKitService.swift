@@ -74,6 +74,7 @@ protocol HealthKitServiceProtocol {
     func fetchRestingEnergy(for date: Date) async throws -> Double
     func fetchTotalEnergyExpended(for date: Date) async throws -> Double
     func fetchWeight() async throws -> Double?
+    func saveWeight(_ weight: Double, date: Date) async throws
     func observeWeightChanges() -> AnyPublisher<Double, Never>
     func observeWorkouts() -> AnyPublisher<[WorkoutData], Never>
     func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never>
@@ -193,7 +194,8 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             HKQuantityType(.dietaryProtein),
             HKQuantityType(.dietaryCarbohydrates),
             HKQuantityType(.dietaryFatTotal),
-            HKQuantityType(.dietaryWater)
+            HKQuantityType(.dietaryWater),
+            HKQuantityType(.bodyMass)
         ]
         return types
     }
@@ -412,6 +414,42 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             }
             
             healthStore.execute(query)
+        }
+    }
+    
+    func saveWeight(_ weight: Double, date: Date) async throws {
+        guard isHealthKitAvailable else {
+            throw HealthKitError.healthKitNotAvailable
+        }
+        
+        guard let bodyMassType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        
+        // Create weight quantity in kilograms
+        let weightQuantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: weight)
+        
+        // Create weight sample
+        let weightSample = HKQuantitySample(
+            type: bodyMassType,
+            quantity: weightQuantity,
+            start: date,
+            end: date
+        )
+        
+        return try await withCheckedThrowingContinuation { continuation in
+            healthStore.save(weightSample) { success, error in
+                if let error = error {
+                    continuation.resume(throwing: HealthKitError.saveFailed(error.localizedDescription))
+                    return
+                }
+                
+                if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: HealthKitError.saveFailed("Failed to save weight to HealthKit"))
+                }
+            }
         }
     }
     
@@ -734,6 +772,7 @@ enum HealthKitError: LocalizedError {
     case dataTypeNotAvailable
     case dataFetchFailed(String)
     case permissionDenied
+    case saveFailed(String)
     case syncFailed(String)
     case conflictResolutionFailed(String)
     case backgroundSyncUnavailable
@@ -752,6 +791,8 @@ enum HealthKitError: LocalizedError {
             return "Failed to fetch health data: \(message)"
         case .permissionDenied:
             return "Health data access permission was denied"
+        case .saveFailed(let message):
+            return "Failed to save health data: \(message)"
         case .syncFailed(let message):
             return "Data synchronization failed: \(message)"
         case .conflictResolutionFailed(let message):
@@ -773,6 +814,8 @@ enum HealthKitError: LocalizedError {
             return "Please try again. If the problem persists, check your internet connection."
         case .permissionDenied:
             return "You can enable health data access in Settings > Privacy & Security > Health > FitnessBoo."
+        case .saveFailed:
+            return "Please check that you have granted write permission for health data in Settings."
         case .syncFailed:
             return "Try refreshing manually or check your network connection."
         case .conflictResolutionFailed:

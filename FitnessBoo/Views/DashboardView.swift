@@ -46,6 +46,7 @@ struct DashboardView: View {
                     calorieBalanceSection
                 }
                 .padding()
+                .padding(.bottom, 100)
             }
             .background(backgroundGradient)
             .navigationTitle("Dashboard")
@@ -447,6 +448,7 @@ private class DashboardMockHealthKitService: HealthKitServiceProtocol {
     func fetchRestingEnergy(for date: Date) async throws -> Double { return 1600 }
     func fetchTotalEnergyExpended(for date: Date) async throws -> Double { return 2000 }
     func fetchWeight() async throws -> Double? { return 70.0 }
+    func saveWeight(_ weight: Double, date: Date) async throws { }
     func observeWeightChanges() -> AnyPublisher<Double, Never> {
         return Just(70.0).eraseToAnyPublisher()
     }

@@ -16,6 +16,7 @@ class GoalViewModel: ObservableObject {
     @Published var targetDate: Date = Calendar.current.date(byAdding: .month, value: 3, to: Date()) ?? Date()
     @Published var weeklyWeightChangeGoal: Double = -0.5
     @Published var dailyWaterTarget: String = "2000"
+    @Published var dailyProteinTarget: String = ""
     @Published var currentGoal: FitnessGoal?
     @Published var activeGoals: [FitnessGoal] = []
     @Published var isLoading = false
@@ -250,6 +251,11 @@ class GoalViewModel: ObservableObject {
                 targetDate = goal.targetDate ?? targetDate
                 weeklyWeightChangeGoal = goal.weeklyWeightChangeGoal
                 dailyWaterTarget = String(goal.dailyWaterTarget)
+                
+                // Initialize protein target with unit conversion
+                let currentUnitSystem = UnitSystem(rawValue: UserDefaults.standard.string(forKey: "UnitSystem") ?? "metric") ?? .metric
+                let displayProtein = currentUnitSystem == .metric ? goal.dailyProteinTarget : goal.dailyProteinTarget / 28.35
+                dailyProteinTarget = String(format: "%.0f", displayProtein)
             }
             
         } catch {
@@ -324,6 +330,39 @@ class GoalViewModel: ObservableObject {
             print("❌ Failed to update weight: \(error)")
             errorMessage = "Failed to update weight: \(error.localizedDescription)"
             showingError = true
+        }
+    }
+    
+    func updateProteinTarget(_ proteinInGrams: Double) async {
+        print("🥩 Updating protein target to: \(proteinInGrams)g")
+        
+        // Update the display value based on current unit system
+        let dataService = DataService.shared
+        if let user = try? await dataService.fetchUser() {
+            let currentUnitSystem = UnitSystem(rawValue: UserDefaults.standard.string(forKey: "UnitSystem") ?? "metric") ?? .metric
+            let displayValue = currentUnitSystem == .metric ? proteinInGrams : proteinInGrams / 28.35
+            dailyProteinTarget = String(format: "%.0f", displayValue)
+        }
+        
+        // Update current goal if it exists
+        if var goal = currentGoal {
+            goal.dailyProteinTarget = proteinInGrams
+            
+            do {
+                let user = try await dataService.fetchUser()
+                if let user = user {
+                    try await dataService.saveGoal(goal, for: user)
+                    currentGoal = goal
+                    print("✅ Protein target updated successfully")
+                    
+                    // Notify other components
+                    NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+                }
+            } catch {
+                print("❌ Failed to update protein target: \(error)")
+                errorMessage = "Failed to update protein target: \(error.localizedDescription)"
+                showingError = true
+            }
         }
     }
     

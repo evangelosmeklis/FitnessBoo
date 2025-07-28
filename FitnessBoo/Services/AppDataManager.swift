@@ -71,6 +71,15 @@ class AppDataManager: ObservableObject {
             try await dataService.saveUser(user)
             currentUser = user
             
+            // Also save weight to HealthKit
+            do {
+                try await healthKitService.saveWeight(newWeight, date: Date())
+                print("💪 Weight successfully saved to HealthKit: \(newWeight)kg")
+            } catch {
+                print("⚠️ Failed to save weight to HealthKit: \(error.localizedDescription)")
+                // Don't fail the entire operation if HealthKit save fails
+            }
+            
             // Recalculate goal if exists
             if var goal = currentGoal {
                 let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())

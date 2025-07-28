@@ -20,6 +20,7 @@ struct FoodEntryView: View {
     @State private var showingValidationError = false
     @State private var validationErrorMessage = ""
     @State private var isLoading = false
+    @State private var currentUnitSystem: UnitSystem = .metric
     
     // For editing existing entries
     private let existingEntry: FoodEntry?
@@ -103,7 +104,7 @@ struct FoodEntryView: View {
                                         .background(Color(.systemGray6))
                                         .cornerRadius(8)
                                     
-                                    Text("g")
+                                    Text(currentUnitSystem == .metric ? "g" : "oz")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
@@ -223,6 +224,11 @@ struct FoodEntryView: View {
                 Text(validationErrorMessage)
             }
             .disabled(isLoading)
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UnitSystemChanged"))) { notification in
+                if let unitSystem = notification.object as? UnitSystem {
+                    currentUnitSystem = unitSystem
+                }
+            }
         }
     }
     

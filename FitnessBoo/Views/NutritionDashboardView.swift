@@ -16,6 +16,7 @@ struct NutritionDashboardView: View {
     @State private var showingEditFood = false
     @State private var currentBalance: CalorieBalance?
     @State private var dailyGoalAdjustment: Double = 0.0
+    @State private var currentUnitSystem: UnitSystem = .metric
     
     init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol, healthKitService: HealthKitServiceProtocol) {
         self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(
@@ -124,6 +125,11 @@ struct NutritionDashboardView: View {
                     dailyGoalAdjustment = goalViewModel.calculatedDailyCalorieAdjustment
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UnitSystemChanged"))) { notification in
+                if let unitSystem = notification.object as? UnitSystem {
+                    currentUnitSystem = unitSystem
+                }
+            }
         }
     }
     
@@ -198,7 +204,7 @@ struct NutritionDashboardView: View {
                         title: "Protein",
                         current: Int(nutritionViewModel.totalProtein),
                         target: Int(nutritionViewModel.dailyNutrition?.proteinTarget ?? 100),
-                        unit: "g",
+                        unit: currentUnitSystem == .metric ? "g" : "oz",
                         color: .green,
                         icon: "leaf.fill"
                     )

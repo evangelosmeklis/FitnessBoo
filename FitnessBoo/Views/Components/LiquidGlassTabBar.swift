@@ -174,11 +174,6 @@ struct LiquidGlassTabContainer: View {
                     calculationService: calculationService
                 )
                 .tag(0)
-                .safeAreaInset(edge: .bottom) {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(height: 90)
-                }
                 
                 NutritionDashboardView(
                     dataService: dataService,
@@ -186,11 +181,6 @@ struct LiquidGlassTabContainer: View {
                     healthKitService: healthKitService
                 )
                 .tag(1)
-                .safeAreaInset(edge: .bottom) {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(height: 90)
-                }
                 
                 GoalSettingView(
                     calculationService: calculationService,
@@ -198,11 +188,6 @@ struct LiquidGlassTabContainer: View {
                     healthKitService: healthKitService
                 )
                 .tag(2)
-                .safeAreaInset(edge: .bottom) {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(height: 90)
-                }
                 
                 SettingsView(
                     calculationService: calculationService,
@@ -210,11 +195,6 @@ struct LiquidGlassTabContainer: View {
                     healthKitService: healthKitService
                 )
                 .tag(3)
-                .safeAreaInset(edge: .bottom) {
-                    Rectangle()
-                        .fill(Color.clear)
-                        .frame(height: 90)
-                }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .ignoresSafeArea(.all, edges: .bottom)
