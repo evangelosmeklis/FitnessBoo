@@ -1,6 +1,6 @@
 # Privacy Policy for FitnessBoo
 
-**Last Updated: January 2025**
+**Last Updated: July 2025**
 
 ## Our Commitment to Your Privacy
 
