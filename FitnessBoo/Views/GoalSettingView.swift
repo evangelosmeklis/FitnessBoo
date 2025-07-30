@@ -43,8 +43,9 @@ struct GoalSettingView: View {
                     
                     currentWeightSection
                     
+                    targetWeightSection
+                    
                     if viewModel.calculatedGoalType != .maintainWeight {
-                        targetWeightSection
                         targetDateSection
                     }
                     
@@ -351,6 +352,13 @@ struct GoalSettingView: View {
                 .font(.headline)
                 .fontWeight(.semibold)
             
+            if viewModel.calculatedGoalType == .maintainWeight && viewModel.targetWeight.isEmpty {
+                Text("Enter a target weight to enable Lose Weight or Gain Weight goals")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 4)
+            }
+            
             GlassCard {
                 HStack {
                     Image(systemName: "target")
@@ -363,7 +371,7 @@ struct GoalSettingView: View {
                     
                     Spacer()
                     
-                    TextField("Enter weight", text: $viewModel.targetWeight)
+                    TextField(viewModel.calculatedGoalType == .maintainWeight ? "Optional" : "Enter weight", text: $viewModel.targetWeight)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
