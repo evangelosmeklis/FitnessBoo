@@ -331,7 +331,14 @@ struct GoalSettingView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                         .focused($isCurrentWeightFocused)
-                        .environment(\.locale, Locale(identifier: "en_US"))
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                        .onChange(of: viewModel.currentWeight) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.currentWeight = correctedValue
+                            }
+                        }
                         .onSubmit {
                             Task {
                                 await viewModel.updateCurrentWeight(viewModel.currentWeight)
@@ -376,8 +383,13 @@ struct GoalSettingView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                         .focused($isTargetWeightFocused)
-                        .environment(\.locale, Locale(identifier: "en_US"))
-                        .onChange(of: viewModel.targetWeight) { _ in
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                        .onChange(of: viewModel.targetWeight) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.targetWeight = correctedValue
+                            }
                             validateTargetWeight()
                         }
                     
@@ -435,10 +447,18 @@ struct GoalSettingView: View {
                     Spacer()
                     
                     TextField("Enter amount", text: $viewModel.dailyWaterTarget)
-                        .keyboardType(.numberPad)
+                        .keyboardType(.decimalPad)
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                         .focused($isWaterTargetFocused)
+                        .onChange(of: viewModel.dailyWaterTarget) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.dailyWaterTarget = correctedValue
+                            }
+                        }
                     
                     Text("ml")
                         .font(.caption)
@@ -467,12 +487,18 @@ struct GoalSettingView: View {
                     Spacer()
                     
                     TextField("Enter amount", text: $viewModel.dailyProteinTarget)
-                        .keyboardType(.numberPad)
+                        .keyboardType(.decimalPad)
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
                         .multilineTextAlignment(.trailing)
                         .frame(width: 80)
                         .focused($isProteinTargetFocused)
                         .onChange(of: viewModel.dailyProteinTarget) { newValue in
-                            validateProteinTarget(newValue)
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.dailyProteinTarget = correctedValue
+                            }
+                            validateProteinTarget(correctedValue)
                         }
                     
                     Text(currentUnitSystem == .metric ? "g" : "oz")
@@ -745,7 +771,7 @@ struct GoalSettingView: View {
         }
         
         // Compare current values with existing goal
-        let targetWeightChanged = (currentGoal.targetWeight != nil ? String(currentGoal.targetWeight!) : "") != viewModel.targetWeight
+        let targetWeightChanged = (currentGoal.targetWeight != nil ? String(format: "%.1f", currentGoal.targetWeight!) : "") != viewModel.targetWeight
         let goalTypeChanged = currentGoal.type != viewModel.selectedGoalType
         let weeklyChangeChanged = abs(currentGoal.weeklyWeightChangeGoal - viewModel.weeklyWeightChangeGoal) > 0.01
         let targetDateChanged = currentGoal.targetDate != viewModel.targetDate

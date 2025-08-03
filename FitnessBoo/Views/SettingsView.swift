@@ -389,7 +389,7 @@ struct SettingsView: View {
                 self.user = user
                 
                 // Update goal with new weight
-                await goalViewModel.updateCurrentWeight(String(user.weight))
+                await goalViewModel.updateCurrentWeight(String(format: "%.1f", user.weight))
                 
                 // Notify other tabs
                 NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)

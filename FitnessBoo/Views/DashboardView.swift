@@ -16,6 +16,7 @@ struct DashboardView: View {
     @StateObject private var calorieBalanceService: CalorieBalanceService
     @State private var currentBalance: CalorieBalance?
     @State private var currentUnitSystem: UnitSystem = .metric
+    @State private var showingAppInfo = false
     
     init(healthKitService: HealthKitServiceProtocol, dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
         self._energyViewModel = StateObject(wrappedValue: EnergyViewModel(
@@ -51,6 +52,18 @@ struct DashboardView: View {
             .background(backgroundGradient)
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAppInfo = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "info.circle.fill")
+                            Text("App Info")
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.blue)
+                    }
+                }
+            }
             .refreshable {
                 await refreshData()
             }
@@ -62,6 +75,9 @@ struct DashboardView: View {
                 if let unitSystem = notification.object as? UnitSystem {
                     currentUnitSystem = unitSystem
                 }
+            }
+            .sheet(isPresented: $showingAppInfo) {
+                AppInfoDetailView()
             }
         }
     }
@@ -242,6 +258,7 @@ struct DashboardView: View {
         }
     }
     
+    
     // MARK: - Helper Methods
     
     private func loadData() async {
@@ -380,6 +397,7 @@ struct CalorieBalanceCard: View {
 
 
 
+
 #Preview {
     DashboardView(
         healthKitService: DashboardMockHealthKitService(),
@@ -461,5 +479,222 @@ private class DashboardMockHealthKitService: HealthKitServiceProtocol {
     func manualRefresh() async throws { }
     func startBackgroundSync() { }
     func stopBackgroundSync() { }
+}
+
+struct AppInfoDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    headerSection
+                    philosophySection
+                    balanceExplanationSection
+                    benefitsSection
+                }
+                .padding()
+                .padding(.bottom, 50)
+            }
+            .background(backgroundGradient)
+            .navigationTitle("App Philosophy")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(.systemBackground),
+                Color(.systemBackground).opacity(0.8),
+                Color.blue.opacity(0.05)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+    
+    private var headerSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
+                        .font(.title2)
+                    
+                    Text("FitnessBoo Philosophy")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+                
+                Text("Most fitness apps tell you to eat a specific number of calories per day. But FitnessBoo takes a different approach - we focus on your **calorie balance**.")
+                    .font(.body)
+                    .foregroundStyle(.primary)
+            }
+        }
+    }
+    
+    private var philosophySection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("How Calorie Balance Works")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            VStack(alignment: .leading, spacing: 12) {
+                BalanceExplanationCard(
+                    title: "Calorie Surplus",
+                    description: "When you consume more calories than you burn, you're in a surplus. This leads to weight gain.",
+                    icon: "plus.circle.fill",
+                    color: .green
+                )
+                
+                BalanceExplanationCard(
+                    title: "Calorie Deficit",
+                    description: "When you burn more calories than you consume, you're in a deficit. This leads to weight loss.",
+                    icon: "minus.circle.fill",
+                    color: .red
+                )
+                
+                BalanceExplanationCard(
+                    title: "Calorie Balance",
+                    description: "When calories in equals calories out, you maintain your current weight.",
+                    icon: "equal.circle.fill",
+                    color: .blue
+                )
+            }
+        }
+    }
+    
+    private var balanceExplanationSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: "equal.square.fill")
+                        .foregroundStyle(.purple)
+                        .font(.title2)
+                    
+                    Text("The Simple Formula")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                }
+                
+                VStack(spacing: 8) {
+                    Text("Calories Consumed - Calories Burned = Balance")
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .padding()
+                        .background(Color.purple.opacity(0.1))
+                        .cornerRadius(12)
+                    
+                    Text("This simple equation tells you everything you need to know about your energy balance and how it affects your weight.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+        }
+    }
+    
+    private var benefitsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Why This Approach?")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            VStack(spacing: 12) {
+                BenefitCard(
+                    icon: "leaf.fill",
+                    title: "More Flexible",
+                    description: "No strict daily calorie limits - focus on overall balance"
+                )
+                
+                BenefitCard(
+                    icon: "brain.head.profile",
+                    title: "Educational", 
+                    description: "Learn how energy balance affects your body"
+                )
+                
+                BenefitCard(
+                    icon: "heart.fill",
+                    title: "Sustainable",
+                    description: "Focus on long-term patterns, not daily perfection"
+                )
+                
+                BenefitCard(
+                    icon: "eye.fill",
+                    title: "Intuitive",
+                    description: "See exactly how your eating and exercise affect your goals"
+                )
+            }
+        }
+    }
+}
+
+struct BalanceExplanationCard: View {
+    let title: String
+    let description: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        GlassCard {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundStyle(color)
+                    .font(.title3)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(color)
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+            }
+        }
+    }
+}
+
+struct BenefitCard: View {
+    let icon: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        GlassCard {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: icon)
+                    .foregroundStyle(.blue)
+                    .font(.title3)
+                    .frame(width: 24)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                Spacer()
+            }
+        }
+    }
 }
 

@@ -156,14 +156,21 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
     func saveSample(_ sample: HKSample) async throws {
         let authStatus = healthStore.authorizationStatus(for: sample.sampleType)
         
+        print("🔍 HealthKit Authorization Status for \(sample.sampleType): \(authStatus.rawValue)")
+        
         switch authStatus {
         case .notDetermined:
+            print("❌ HealthKit authorization not determined for \(sample.sampleType)")
             throw HealthKitError.authorizationNotDetermined
         case .sharingDenied:
+            print("❌ HealthKit sharing denied for \(sample.sampleType)")
             throw HealthKitError.permissionDenied
         case .sharingAuthorized:
+            print("✅ HealthKit sharing authorized for \(sample.sampleType), attempting save...")
             try await healthStore.save(sample)
+            print("✅ Sample saved successfully to HealthKit")
         @unknown default:
+            print("❓ Unknown HealthKit authorization status for \(sample.sampleType)")
             throw HealthKitError.authorizationNotDetermined
         }
     }
@@ -437,20 +444,8 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             end: date
         )
         
-        return try await withCheckedThrowingContinuation { continuation in
-            healthStore.save(weightSample) { success, error in
-                if let error = error {
-                    continuation.resume(throwing: HealthKitError.saveFailed(error.localizedDescription))
-                    return
-                }
-                
-                if success {
-                    continuation.resume()
-                } else {
-                    continuation.resume(throwing: HealthKitError.saveFailed("Failed to save weight to HealthKit"))
-                }
-            }
-        }
+        // Use the saveSample method which includes authorization checks
+        try await saveSample(weightSample)
     }
     
     // MARK: - Reactive Observing

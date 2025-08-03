@@ -155,6 +155,24 @@ class GoalViewModel: ObservableObject {
                 cachedUser = updatedUser
             }
             
+            // Save weight to Apple Health if it changed
+            if let newWeight = Double(currentWeight), newWeight != user.weight {
+                do {
+                    print("🔄 Attempting to save weight \(newWeight)kg to Apple Health during goal creation...")
+                    try await healthKitService.saveWeight(newWeight, date: Date())
+                    print("🍎 Weight saved to Apple Health during goal creation successfully: \(newWeight)kg")
+                } catch {
+                    print("⚠️ Failed to save weight to Apple Health during goal creation: \(error)")
+                    if let healthKitError = error as? HealthKitError {
+                        print("⚠️ HealthKit Error Details: \(healthKitError.localizedDescription)")
+                        if let recovery = healthKitError.recoverySuggestion {
+                            print("💡 Recovery suggestion: \(recovery)")
+                        }
+                    }
+                    // Don't fail the entire operation if HealthKit save fails
+                }
+            }
+            
             // Calculate daily targets using HealthKit data
             goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
@@ -212,6 +230,24 @@ class GoalViewModel: ObservableObject {
                 cachedUser = updatedUser
             }
             
+            // Save weight to Apple Health if it changed
+            if let newWeight = Double(currentWeight), newWeight != user.weight {
+                do {
+                    print("🔄 Attempting to save weight \(newWeight)kg to Apple Health during goal update...")
+                    try await healthKitService.saveWeight(newWeight, date: Date())
+                    print("🍎 Weight saved to Apple Health during goal update successfully: \(newWeight)kg")
+                } catch {
+                    print("⚠️ Failed to save weight to Apple Health during goal update: \(error)")
+                    if let healthKitError = error as? HealthKitError {
+                        print("⚠️ HealthKit Error Details: \(healthKitError.localizedDescription)")
+                        if let recovery = healthKitError.recoverySuggestion {
+                            print("💡 Recovery suggestion: \(recovery)")
+                        }
+                    }
+                    // Don't fail the entire operation if HealthKit save fails
+                }
+            }
+            
             // Recalculate daily targets using HealthKit data
             goal.calculateDailyTargets(totalEnergyExpended: totalEnergy, currentWeight: currentWeightValue)
             
@@ -240,14 +276,14 @@ class GoalViewModel: ObservableObject {
         
         // Cache the user for calculations
         cachedUser = user
-        currentWeight = String(user.weight)
+        currentWeight = String(format: "%.1f", user.weight)
         
         do {
             currentGoal = try await dataService.fetchActiveGoal(for: user)
             
             if let goal = currentGoal {
                 selectedGoalType = goal.type
-                targetWeight = goal.targetWeight != nil ? String(goal.targetWeight!) : ""
+                targetWeight = goal.targetWeight != nil ? String(format: "%.1f", goal.targetWeight!) : ""
                 targetDate = goal.targetDate ?? targetDate
                 weeklyWeightChangeGoal = goal.weeklyWeightChangeGoal
                 dailyWaterTarget = String(goal.dailyWaterTarget)
@@ -309,6 +345,22 @@ class GoalViewModel: ObservableObject {
             cachedUser = updatedUser
             
             print("✅ Weight updated successfully to \(newWeight)")
+            
+            // Save weight to Apple Health
+            do {
+                print("🔄 Attempting to save weight \(newWeight)kg to Apple Health...")
+                try await healthKitService.saveWeight(newWeight, date: Date())
+                print("🍎 Weight saved to Apple Health successfully: \(newWeight)kg")
+            } catch {
+                print("⚠️ Failed to save weight to Apple Health: \(error)")
+                if let healthKitError = error as? HealthKitError {
+                    print("⚠️ HealthKit Error Details: \(healthKitError.localizedDescription)")
+                    if let recovery = healthKitError.recoverySuggestion {
+                        print("💡 Recovery suggestion: \(recovery)")
+                    }
+                }
+                // Don't fail the entire operation if HealthKit save fails
+            }
             
             // Recalculate current goal with new weight
             if var goal = currentGoal {

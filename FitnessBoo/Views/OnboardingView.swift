@@ -215,8 +215,15 @@ struct PhysicalInfoStepView: View {
                     
                     TextField("Enter your weight", text: $viewModel.weight)
                         .keyboardType(.decimalPad)
-                        .environment(\.locale, Locale(identifier: "en_US"))
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
                         .textFieldStyle(.roundedBorder)
+                        .onChange(of: viewModel.weight) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.weight = correctedValue
+                            }
+                        }
                     
                     if let error = viewModel.weightError {
                         Text(error)

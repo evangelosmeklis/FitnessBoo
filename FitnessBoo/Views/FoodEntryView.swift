@@ -96,13 +96,20 @@ struct FoodEntryView: View {
                                     
                                     TextField("Optional", text: $protein)
                                         .keyboardType(.decimalPad)
-                                        .environment(\.locale, Locale(identifier: "en_US"))
+                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
                                         .multilineTextAlignment(.trailing)
                                         .frame(width: 80)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(Color(.systemGray6))
                                         .cornerRadius(8)
+                                        .onChange(of: protein) { newValue in
+                                            // Replace comma with period for decimal input
+                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                            if correctedValue != newValue {
+                                                protein = correctedValue
+                                            }
+                                        }
                                     
                                     Text(currentUnitSystem == .metric ? "g" : "oz")
                                         .font(.caption)
