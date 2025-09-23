@@ -12,15 +12,19 @@ import HealthKit
 struct FoodEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var nutritionViewModel: NutritionViewModel
-    
+    @StateObject private var mealCacheService = MealCacheService()
+
     @State private var calories: String = ""
     @State private var protein: String = ""
+    @State private var mealName: String = ""
     @State private var selectedMealType: MealType = .snack
     @State private var notes: String = ""
     @State private var showingValidationError = false
     @State private var validationErrorMessage = ""
     @State private var isLoading = false
     @State private var currentUnitSystem: UnitSystem = .metric
+    @State private var searchText = ""
+    @State private var showingMealSelector = false
     
     // For editing existing entries
     private let existingEntry: FoodEntry?
@@ -36,6 +40,7 @@ struct FoodEntryView: View {
             _calories = State(initialValue: String(format: "%.0f", entry.calories))
             _protein = State(initialValue: entry.protein != nil ? String(format: "%.1f", entry.protein!) : "")
             _selectedMealType = State(initialValue: entry.mealType ?? MealType.suggestedMealType())
+            _mealName = State(initialValue: "")  // Existing entries won't have meal names yet
             _notes = State(initialValue: entry.notes ?? "")
         } else {
             _selectedMealType = State(initialValue: MealType.suggestedMealType())
@@ -46,6 +51,11 @@ struct FoodEntryView: View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 24) {
+                    // Quick Meal Selection Section
+                    if !isEditing {
+                        quickMealSelectionSection
+                    }
+
                     // Food Details Section
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Food Details")
@@ -74,6 +84,9 @@ struct FoodEntryView: View {
                                         .padding(.vertical, 8)
                                         .background(Color(.systemGray6))
                                         .cornerRadius(8)
+                                        .onChange(of: calories) { _ in
+                                            showingMealSelector = false
+                                        }
                                     
                                     Text("kcal")
                                         .font(.caption)
@@ -109,11 +122,34 @@ struct FoodEntryView: View {
                                             if correctedValue != newValue {
                                                 protein = correctedValue
                                             }
+                                            showingMealSelector = false
                                         }
                                     
                                     Text(currentUnitSystem == .metric ? "g" : "oz")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                }
+
+                                Divider()
+
+                                // Meal name input
+                                HStack {
+                                    Image(systemName: "tag.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.blue)
+                                        .frame(width: 24, height: 24)
+
+                                    Text("Meal Name")
+                                        .font(.subheadline)
+
+                                    Spacer()
+
+                                    TextField("e.g., Coffee, Chicken Salad", text: $mealName)
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(maxWidth: 150)
+                                        .onChange(of: mealName) { _ in
+                                            showingMealSelector = false
+                                        }
                                 }
                             }
                         }
@@ -172,6 +208,9 @@ struct FoodEntryView: View {
                             TextField("Add notes about this food...", text: $notes, axis: .vertical)
                                 .lineLimit(3...6)
                                 .padding(.vertical, 8)
+                                .onChange(of: notes) { _ in
+                                    showingMealSelector = false
+                                }
                         }
                     }
                     
@@ -215,9 +254,9 @@ struct FoodEntryView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     GlassButton(
-                        isEditing ? "Update" : "Add", 
-                        icon: isEditing ? "checkmark.circle.fill" : "plus.circle.fill", 
-                        isLoading: isLoading, 
+                        isEditing ? "Update" : "Add",
+                        icon: isEditing ? "checkmark.circle.fill" : "plus.circle.fill",
+                        isLoading: isLoading,
                         style: .blue
                     ) {
                         saveEntry()
@@ -271,7 +310,13 @@ struct FoodEntryView: View {
                     )
                     await nutritionViewModel.addFoodEntry(entry)
                 }
-                
+
+                // Cache the meal if it has a name (for both new and updated entries)
+                let trimmedMealName = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedMealName.isEmpty {
+                    mealCacheService.addMeal(name: trimmedMealName, calories: caloriesValue, protein: proteinValue)
+                }
+
                 await MainActor.run {
                     isLoading = false
                     // Show a brief success message before dismissing
@@ -288,7 +333,110 @@ struct FoodEntryView: View {
             }
         }
     }
-    
+
+    // MARK: - Quick Meal Selection Section
+
+    private var quickMealSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick Add")
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            GlassCard {
+                VStack(spacing: 12) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(.secondary)
+
+                        TextField("Search previous meals...", text: $searchText)
+                            .onChange(of: searchText) { _ in
+                                showingMealSelector = !searchText.isEmpty
+                            }
+
+                        if !searchText.isEmpty {
+                            Button("Clear") {
+                                searchText = ""
+                                showingMealSelector = false
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                        }
+                    }
+                    .padding(.vertical, 8)
+
+                    if showingMealSelector && !searchText.isEmpty {
+                        Divider()
+
+                        let filteredMeals = mealCacheService.searchMeals(query: searchText)
+                        if filteredMeals.isEmpty {
+                            Text("No matching meals found")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .padding(.vertical, 8)
+                        } else {
+                            LazyVStack(spacing: 8) {
+                                ForEach(filteredMeals.prefix(5), id: \.id) { meal in
+                                    mealSelectionRow(meal)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func mealSelectionRow(_ meal: CachedMeal) -> some View {
+        Button {
+            selectMeal(meal)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(meal.name)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.primary)
+
+                    HStack {
+                        Text("\(Int(meal.calories)) kcal")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+
+                        if let protein = meal.protein {
+                            Text("\(String(format: "%.1f", protein))g protein")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(.blue)
+                    .font(.title2)
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+
+    private func selectMeal(_ meal: CachedMeal) {
+        let updatedMeal = mealCacheService.useMeal(meal)
+
+        calories = String(format: "%.0f", updatedMeal.calories)
+        if let proteinValue = updatedMeal.protein {
+            protein = String(format: "%.1f", proteinValue)
+        } else {
+            protein = ""
+        }
+        mealName = updatedMeal.name
+        // Keep notes empty so user can add additional details if needed
+
+        searchText = ""
+        showingMealSelector = false
+    }
+
     private func deleteEntry() {
         guard let existingEntry = existingEntry else { return }
         
@@ -365,6 +513,7 @@ struct FoodEntryView_Previews: PreviewProvider {
 }
 
 // MARK: - Mock Services for Preview
+
 
 class MockDataService: DataServiceProtocol {
     func saveUser(_ user: User) async throws { }

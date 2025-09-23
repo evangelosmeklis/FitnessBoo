@@ -13,6 +13,7 @@ struct GoalSettingView: View {
     @StateObject private var viewModel: GoalViewModel
     @State private var user: User?
     @State private var currentUnitSystem: UnitSystem = .metric
+    @State private var selectedUnitSystem: UnitSystem = .metric
     @State private var showingDatePicker = false
     @State private var hasChanges = false
     @State private var showSuccessMessage = false
@@ -39,8 +40,10 @@ struct GoalSettingView: View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 24) {
+                    unitSystemSection
+
                     goalTypeSection
-                    
+
                     currentWeightSection
                     
                     targetWeightSection
@@ -68,6 +71,7 @@ struct GoalSettingView: View {
             .task {
                 await loadUserAndGoal()
                 loadUnitSystem()
+                selectedUnitSystem = currentUnitSystem
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UnitSystemChanged"))) { notification in
                 if let unitSystem = notification.object as? UnitSystem {
@@ -266,7 +270,49 @@ struct GoalSettingView: View {
     }
     
     // MARK: - View Sections
-    
+
+    private var unitSystemSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Unit System")
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            VStack(spacing: 12) {
+                ForEach(UnitSystem.allCases, id: \.self) { unitSystem in
+                    GlassCard {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(unitSystem.displayName)
+                                    .font(.headline)
+
+                                Text(unitSystem == .metric ? "Kilograms, centimeters, milliliters" : "Pounds, feet/inches, fluid ounces")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if selectedUnitSystem == unitSystem {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                                    .font(.title2)
+                            }
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if selectedUnitSystem != unitSystem {
+                            selectedUnitSystem = unitSystem
+                            Task {
+                                await updateUnitSystem()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var goalTypeSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Goal Type (Auto-detected)")
@@ -745,6 +791,48 @@ struct GoalSettingView: View {
         if let savedUnit = UserDefaults.standard.string(forKey: "UnitSystem"),
            let unitSystem = UnitSystem(rawValue: savedUnit) {
             currentUnitSystem = unitSystem
+        }
+    }
+
+    private func updateUnitSystem() async {
+        // Save preference
+        UserDefaults.standard.set(selectedUnitSystem.rawValue, forKey: "UnitSystem")
+
+        // Convert user weight if needed
+        if var user = user {
+            if selectedUnitSystem == .imperial && currentUnitSystem == .metric {
+                // Convert kg to lbs
+                user.weight = user.weight * 2.20462
+            } else if selectedUnitSystem == .metric && currentUnitSystem == .imperial {
+                // Convert lbs to kg
+                user.weight = user.weight / 2.20462
+            }
+
+            do {
+                try await DataService.shared.saveUser(user)
+                self.user = user
+
+                // Update goal with new weight
+                await viewModel.updateCurrentWeight(String(format: "%.1f", user.weight))
+
+                // Update current unit system
+                currentUnitSystem = selectedUnitSystem
+
+                // Notify other tabs
+                NotificationCenter.default.post(name: NSNotification.Name("WeightDataUpdated"), object: nil)
+                NotificationCenter.default.post(name: NSNotification.Name("UnitSystemChanged"), object: selectedUnitSystem)
+
+                showSuccessMessage = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    showSuccessMessage = false
+                }
+            } catch {
+                print("Error updating user weight: \(error)")
+            }
+        } else {
+            // Just update the current unit system if no user
+            currentUnitSystem = selectedUnitSystem
+            NotificationCenter.default.post(name: NSNotification.Name("UnitSystemChanged"), object: selectedUnitSystem)
         }
     }
     
