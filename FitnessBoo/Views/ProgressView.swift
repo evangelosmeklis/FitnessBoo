@@ -311,7 +311,7 @@ private class ProgressMockHealthKitService: HealthKitServiceProtocol {
     var syncStatus: AnyPublisher<SyncStatus, Never> {
         return Combine.Just(SyncStatus.success(Date())).eraseToAnyPublisher()
     }
-    
+
     func requestAuthorization() async throws { }
     func saveDietaryEnergy(calories: Double, date: Date) async throws { }
     func saveWater(milliliters: Double, date: Date) async throws { }
@@ -321,6 +321,9 @@ private class ProgressMockHealthKitService: HealthKitServiceProtocol {
     func fetchTotalEnergyExpended(for date: Date) async throws -> Double { return 2000 }
     func fetchWeight() async throws -> Double? { return 70.0 }
     func saveWeight(_ weight: Double, date: Date) async throws { }
+    func fetchDietaryEnergy(from startDate: Date, to endDate: Date) async throws -> Double { return 2000 }
+    func fetchDietaryProtein(from startDate: Date, to endDate: Date) async throws -> Double { return 120 }
+    func fetchDietaryWater(from startDate: Date, to endDate: Date) async throws -> Double { return 2500 }
     func observeWeightChanges() -> AnyPublisher<Double, Never> {
         return Combine.Just(70.0).eraseToAnyPublisher()
     }

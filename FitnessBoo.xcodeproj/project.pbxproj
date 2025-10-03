@@ -29,9 +29,22 @@
 		5886729F2E30F642006F9C95 /* FitnessBooUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FitnessBooUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		58C812402E8FDDBF00326B39 /* Exceptions for "FitnessBoo" folder in "FitnessBoo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 588672872E30F641006F9C95 /* FitnessBoo */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5886728A2E30F641006F9C95 /* FitnessBoo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				58C812402E8FDDBF00326B39 /* Exceptions for "FitnessBoo" folder in "FitnessBoo" target */,
+			);
 			path = FitnessBoo;
 			sourceTree = "<group>";
 		};
@@ -401,6 +414,7 @@
 				DEVELOPMENT_TEAM = 6AWG6XKD86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FitnessBoo/Info.plist;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitnessBoo needs access to your health data to track your active and resting energy expenditure, providing accurate caloric balance calculations and personalized fitness insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitnessBoo needs permission to write nutrition data to your Health app to keep your dietary information synchronized across all your health apps.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -432,6 +446,7 @@
 				DEVELOPMENT_TEAM = 6AWG6XKD86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FitnessBoo/Info.plist;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "FitnessBoo needs access to your health data to track your active and resting energy expenditure, providing accurate caloric balance calculations and personalized fitness insights.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "FitnessBoo needs permission to write nutrition data to your Health app to keep your dietary information synchronized across all your health apps.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -75,6 +75,9 @@ protocol HealthKitServiceProtocol {
     func fetchTotalEnergyExpended(for date: Date) async throws -> Double
     func fetchWeight() async throws -> Double?
     func saveWeight(_ weight: Double, date: Date) async throws
+    func fetchDietaryEnergy(from startDate: Date, to endDate: Date) async throws -> Double
+    func fetchDietaryProtein(from startDate: Date, to endDate: Date) async throws -> Double
+    func fetchDietaryWater(from startDate: Date, to endDate: Date) async throws -> Double
     func observeWeightChanges() -> AnyPublisher<Double, Never>
     func observeWorkouts() -> AnyPublisher<[WorkoutData], Never>
     func observeEnergyChanges() -> AnyPublisher<(resting: Double, active: Double), Never>
@@ -428,14 +431,14 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
         guard isHealthKitAvailable else {
             throw HealthKitError.healthKitNotAvailable
         }
-        
+
         guard let bodyMassType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
             throw HealthKitError.dataTypeNotAvailable
         }
-        
+
         // Create weight quantity in kilograms
         let weightQuantity = HKQuantity(unit: .gramUnit(with: .kilo), doubleValue: weight)
-        
+
         // Create weight sample
         let weightSample = HKQuantitySample(
             type: bodyMassType,
@@ -443,11 +446,67 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
             start: date,
             end: date
         )
-        
+
         // Use the saveSample method which includes authorization checks
         try await saveSample(weightSample)
     }
-    
+
+    // MARK: - Historical Dietary Data Fetching
+
+    func fetchDietaryEnergy(from startDate: Date, to endDate: Date) async throws -> Double {
+        guard let energyType = HKQuantityType.quantityType(forIdentifier: .dietaryEnergyConsumed) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        return try await fetchDietaryQuantity(type: energyType, unit: .kilocalorie(), from: startDate, to: endDate)
+    }
+
+    func fetchDietaryProtein(from startDate: Date, to endDate: Date) async throws -> Double {
+        guard let proteinType = HKQuantityType.quantityType(forIdentifier: .dietaryProtein) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        return try await fetchDietaryQuantity(type: proteinType, unit: .gram(), from: startDate, to: endDate)
+    }
+
+    func fetchDietaryWater(from startDate: Date, to endDate: Date) async throws -> Double {
+        guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+        return try await fetchDietaryQuantity(type: waterType, unit: .literUnit(with: .milli), from: startDate, to: endDate)
+    }
+
+    private func fetchDietaryQuantity(type: HKQuantityType, unit: HKUnit, from startDate: Date, to endDate: Date) async throws -> Double {
+        guard isHealthKitAvailable else {
+            return 0.0 // Return 0 instead of throwing for unavailable HealthKit
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: type,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                // Silently return 0 for errors (like no data available)
+                // This is expected for days with no logged data
+                if error != nil {
+                    continuation.resume(returning: 0.0)
+                    return
+                }
+
+                guard let sum = statistics?.sumQuantity() else {
+                    continuation.resume(returning: 0.0)
+                    return
+                }
+
+                let value = sum.doubleValue(for: unit)
+                continuation.resume(returning: value)
+            }
+
+            healthStore.execute(query)
+        }
+    }
+
     // MARK: - Reactive Observing
     func observeWeightChanges() -> AnyPublisher<Double, Never> {
         return weightSubject.eraseToAnyPublisher()

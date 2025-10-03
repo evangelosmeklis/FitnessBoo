@@ -310,9 +310,10 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
     }
     
     deinit {
-        Task { @MainActor in
-            stopRealTimeTracking()
-        }
+        // Clean up synchronously to avoid retain cycles
+        trackingTimer?.invalidate()
+        trackingTimer = nil
+        cancellables.removeAll()
     }
 }
 

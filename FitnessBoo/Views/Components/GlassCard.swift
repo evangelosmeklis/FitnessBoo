@@ -11,13 +11,14 @@ struct GlassCard<Content: View>: View {
     let content: Content
     let cornerRadius: CGFloat
     let opacity: Double
-    
+    @Environment(\.colorScheme) private var colorScheme
+
     init(cornerRadius: CGFloat = 16, opacity: Double = 0.1, @ViewBuilder content: () -> Content) {
         self.cornerRadius = cornerRadius
         self.opacity = opacity
         self.content = content()
     }
-    
+
     var body: some View {
         content
             .padding()
@@ -29,8 +30,8 @@ struct GlassCard<Content: View>: View {
                             .stroke(
                                 LinearGradient(
                                     colors: [
-                                        Color.white.opacity(0.6),
-                                        Color.white.opacity(0.1)
+                                        adaptiveStrokeColor.opacity(0.6),
+                                        adaptiveStrokeColor.opacity(0.1)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -39,7 +40,15 @@ struct GlassCard<Content: View>: View {
                             )
                     )
             )
-            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+            .shadow(color: adaptiveShadowColor.opacity(0.1), radius: 10, x: 0, y: 5)
+    }
+
+    private var adaptiveStrokeColor: Color {
+        colorScheme == .dark ? Color.white : Color.white
+    }
+
+    private var adaptiveShadowColor: Color {
+        colorScheme == .dark ? Color.white : Color.black
     }
 }
 
@@ -132,12 +141,13 @@ struct GlassButton: View {
     let action: () -> Void
     let isLoading: Bool
     let style: GlassButtonStyle
-    
+    @Environment(\.colorScheme) private var colorScheme
+
     enum GlassButtonStyle {
         case `default`
         case blue
     }
-    
+
     init(_ title: String, icon: String? = nil, isLoading: Bool = false, style: GlassButtonStyle = .default, action: @escaping () -> Void) {
         self.title = title
         self.icon = icon
@@ -145,7 +155,7 @@ struct GlassButton: View {
         self.isLoading = isLoading
         self.style = style
     }
-    
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -157,7 +167,7 @@ struct GlassButton: View {
                     Image(systemName: icon)
                         .font(.system(size: 16, weight: .medium))
                 }
-                
+
                 Text(title)
                     .font(.system(size: 16, weight: .medium))
             }
@@ -170,7 +180,7 @@ struct GlassButton: View {
         .scaleEffect(isLoading ? 0.95 : 1.0)
         .animation(.easeInOut(duration: 0.1), value: isLoading)
     }
-    
+
     @ViewBuilder
     private var backgroundView: some View {
         switch style {
@@ -182,8 +192,8 @@ struct GlassButton: View {
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.4),
-                                    Color.white.opacity(0.1)
+                                    adaptiveStrokeColor.opacity(0.4),
+                                    adaptiveStrokeColor.opacity(0.1)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -212,7 +222,7 @@ struct GlassButton: View {
                         .stroke(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(0.6),
+                                    adaptiveStrokeColor.opacity(0.6),
                                     Color.blue.opacity(0.3)
                                 ],
                                 startPoint: .topLeading,
@@ -223,6 +233,10 @@ struct GlassButton: View {
                 )
                 .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
         }
+    }
+
+    private var adaptiveStrokeColor: Color {
+        colorScheme == .dark ? Color.white : Color.white
     }
 }
 

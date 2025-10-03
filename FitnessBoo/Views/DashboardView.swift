@@ -14,19 +14,30 @@ struct DashboardView: View {
     @StateObject private var dataManager = AppDataManager.shared
     @StateObject private var energyViewModel: EnergyViewModel
     @StateObject private var calorieBalanceService: CalorieBalanceService
+    @StateObject private var nutritionViewModel: NutritionViewModel
     @State private var currentBalance: CalorieBalance?
     @State private var currentUnitSystem: UnitSystem = .metric
     @State private var showingAppInfo = false
+    @State private var showingAddFood = false
+    @State private var showingWaterOptions = false
+    @State private var showingCustomWaterInput = false
+    @State private var customWaterAmount = ""
     
     init(healthKitService: HealthKitServiceProtocol, dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol) {
         self._energyViewModel = StateObject(wrappedValue: EnergyViewModel(
             healthKitService: healthKitService
         ))
-        
+
         self._calorieBalanceService = StateObject(wrappedValue: CalorieBalanceService(
             healthKitService: healthKitService,
             calculationService: calculationService,
             dataService: dataService
+        ))
+
+        self._nutritionViewModel = StateObject(wrappedValue: NutritionViewModel(
+            dataService: dataService,
+            calculationService: calculationService,
+            healthKitService: healthKitService
         ))
     }
     
@@ -34,14 +45,14 @@ struct DashboardView: View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 20) {
-                    // Welcome Section
-                    welcomeSection
+                    // Calorie Balance Section (at the top for prominence)
+                    calorieBalanceSection
+
+                    // Quick Actions
+                    quickActionsSection
 
                     // Quick Stats Grid
                     quickStatsGrid
-
-                    // Calorie Balance Section (moved up for prominence)
-                    calorieBalanceSection
 
                     // Energy Balance Section
                     energyBalanceSection
@@ -79,11 +90,41 @@ struct DashboardView: View {
             .sheet(isPresented: $showingAppInfo) {
                 AppInfoDetailView()
             }
+            .sheet(isPresented: $showingAddFood) {
+                FoodEntryView(nutritionViewModel: nutritionViewModel)
+            }
+            .sheet(isPresented: $showingWaterOptions) {
+                WaterOptionsSheet(
+                    onWaterAdded: { amount in
+                        Task { await nutritionViewModel.addWater(milliliters: amount) }
+                        showingWaterOptions = false
+                    },
+                    onCustomWater: {
+                        showingCustomWaterInput = true
+                    }
+                )
+                .presentationDetents([.medium])
+            }
+            .alert("Add Water", isPresented: $showingCustomWaterInput) {
+                TextField("Amount (ml)", text: $customWaterAmount)
+                    .keyboardType(.numberPad)
+                Button("Add") {
+                    if let amount = Double(customWaterAmount), amount > 0 {
+                        Task { await nutritionViewModel.addWater(milliliters: amount) }
+                    }
+                    customWaterAmount = ""
+                }
+                Button("Cancel", role: .cancel) {
+                    customWaterAmount = ""
+                }
+            } message: {
+                Text("Enter the amount of water in milliliters")
+            }
         }
     }
     
     // MARK: - Background
-    
+
     private var backgroundGradient: some View {
         LinearGradient(
             colors: [
@@ -96,51 +137,59 @@ struct DashboardView: View {
         )
         .ignoresSafeArea()
     }
-    
-    private var welcomeSection: some View {
-        GlassCard {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.blue.opacity(0.6), Color.purple.opacity(0.6)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 60, height: 60)
 
-                    Image(systemName: "figure.run")
-                        .font(.system(size: 26, weight: .medium))
-                        .foregroundStyle(.white)
+    // MARK: - Quick Actions
+
+    private var quickActionsSection: some View {
+        HStack(spacing: 12) {
+            // Add Food Button
+            Button(action: { showingAddFood = true }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20))
+                    Text("Add Food")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                 }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        colors: [Color.orange, Color.red],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: Color.orange.opacity(0.3), radius: 8, x: 0, y: 4)
+            }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    if let user = dataManager.currentUser {
-                        Text("Welcome back!")
-                            .font(.title3)
-                            .fontWeight(.bold)
-
-                        Text("Let's crush your fitness goals today!")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Welcome to FitnessBoo!")
-                            .font(.title3)
-                            .fontWeight(.bold)
-
-                        Text("Start your fitness journey today!")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+            // Add Water Button
+            Button(action: { showingWaterOptions = true }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 20))
+                    Text("Add Water")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                 }
-
-                Spacer()
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue, Color.cyan],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
             }
         }
     }
-    
+
     private var quickStatsGrid: some View {
         LazyVGrid(columns: [
             GridItem(.flexible()),
@@ -534,7 +583,7 @@ private class DashboardMockHealthKitService: HealthKitServiceProtocol {
     var syncStatus: AnyPublisher<SyncStatus, Never> {
         return Just(SyncStatus.success(Date())).eraseToAnyPublisher()
     }
-    
+
     func requestAuthorization() async throws { }
     func saveDietaryEnergy(calories: Double, date: Date) async throws { }
     func saveWater(milliliters: Double, date: Date) async throws { }
@@ -544,6 +593,9 @@ private class DashboardMockHealthKitService: HealthKitServiceProtocol {
     func fetchTotalEnergyExpended(for date: Date) async throws -> Double { return 2000 }
     func fetchWeight() async throws -> Double? { return 70.0 }
     func saveWeight(_ weight: Double, date: Date) async throws { }
+    func fetchDietaryEnergy(from startDate: Date, to endDate: Date) async throws -> Double { return 2000 }
+    func fetchDietaryProtein(from startDate: Date, to endDate: Date) async throws -> Double { return 120 }
+    func fetchDietaryWater(from startDate: Date, to endDate: Date) async throws -> Double { return 2500 }
     func observeWeightChanges() -> AnyPublisher<Double, Never> {
         return Just(70.0).eraseToAnyPublisher()
     }
