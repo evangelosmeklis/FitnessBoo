@@ -33,25 +33,25 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                LazyVStack(spacing: 24) {
+                LazyVStack(spacing: 20) {
                     // Welcome Section
                     welcomeSection
-                    
+
                     // Quick Stats Grid
                     quickStatsGrid
-                    
+
+                    // Calorie Balance Section (moved up for prominence)
+                    calorieBalanceSection
+
                     // Energy Balance Section
                     energyBalanceSection
-                    
-                    // Calorie Balance Section
-                    calorieBalanceSection
                 }
                 .padding()
                 .padding(.bottom, 100)
             }
             .background(backgroundGradient)
             .navigationTitle("Dashboard")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingAppInfo = true }) {
@@ -99,32 +99,44 @@ struct DashboardView: View {
     
     private var welcomeSection: some View {
         GlassCard {
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.blue.opacity(0.6), Color.purple.opacity(0.6)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 60, height: 60)
+
+                    Image(systemName: "figure.run")
+                        .font(.system(size: 26, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
                     if let user = dataManager.currentUser {
                         Text("Welcome back!")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
+                            .font(.title3)
+                            .fontWeight(.bold)
+
                         Text("Let's crush your fitness goals today!")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     } else {
                         Text("Welcome to FitnessBoo!")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                        
+                            .font(.title3)
+                            .fontWeight(.bold)
+
                         Text("Start your fitness journey today!")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
-                Image(systemName: "figure.run.circle.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.blue)
             }
         }
     }
@@ -180,51 +192,57 @@ struct DashboardView: View {
     
 
     private var energyBalanceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Energy Balance")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "bolt.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Energy Breakdown")
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
+
             if energyViewModel.isLoading {
                 GlassCard {
-                    HStack {
+                    HStack(spacing: 12) {
                         SwiftUI.ProgressView()
-                            .scaleEffect(0.8)
+                            .scaleEffect(0.9)
                         Text("Loading energy data...")
                             .foregroundStyle(.secondary)
+                            .font(.subheadline)
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
             } else {
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible())
-                ], spacing: 16) {
-                    EnergyCard(
-                        title: "Resting Energy",
+                ], spacing: 12) {
+                    EnhancedEnergyCard(
+                        title: "Resting",
                         value: "\(Int(energyViewModel.restingEnergy))",
                         unit: "kcal",
                         color: .blue,
                         icon: "bed.double.fill"
                     )
-                    
-                    EnergyCard(
-                        title: "Active Energy",
+
+                    EnhancedEnergyCard(
+                        title: "Active",
                         value: "\(Int(energyViewModel.activeEnergy))",
                         unit: "kcal",
                         color: .green,
                         icon: "figure.run"
                     )
-                    
-                    EnergyCard(
+
+                    EnhancedEnergyCard(
                         title: "Total Burned",
                         value: "\(Int(energyViewModel.totalEnergyExpended))",
                         unit: "kcal",
                         color: .orange,
                         icon: "flame.fill"
                     )
-                    
-                    EnergyCard(
+
+                    EnhancedEnergyCard(
                         title: "Workouts",
                         value: "\(energyViewModel.workoutCount)",
                         unit: "today",
@@ -237,22 +255,28 @@ struct DashboardView: View {
     }
     
     private var calorieBalanceSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Caloric Balance")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
+                    .foregroundStyle(.orange)
+                Text("Caloric Balance")
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
+
             if let balance = currentBalance {
                 CalorieBalanceCard(balance: balance)
             } else {
                 GlassCard {
-                    HStack {
+                    HStack(spacing: 12) {
                         SwiftUI.ProgressView()
-                            .scaleEffect(0.8)
+                            .scaleEffect(0.9)
                         Text("Calculating balance...")
                             .foregroundStyle(.secondary)
+                            .font(.subheadline)
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
             }
         }
@@ -294,39 +318,46 @@ struct DashboardView: View {
 
 // MARK: - Supporting Views
 
-struct EnergyCard: View {
+struct EnhancedEnergyCard: View {
     let title: String
     let value: String
     let unit: String
     let color: Color
     let icon: String
-    
+
     var body: some View {
-        GlassCard {
+        GlassCard(cornerRadius: 16) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Image(systemName: icon)
-                        .foregroundStyle(color)
-                        .font(.title2)
-                        .frame(width: 24, height: 24)
-                    
+                    ZStack {
+                        Circle()
+                            .fill(color.opacity(0.15))
+                            .frame(width: 36, height: 36)
+
+                        Image(systemName: icon)
+                            .foregroundStyle(color)
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+
                     Spacer()
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.caption)
+                        .fontWeight(.medium)
                         .foregroundStyle(.secondary)
-                    
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
                         Text(value)
                             .font(.title2)
-                            .fontWeight(.semibold)
+                            .fontWeight(.bold)
                             .foregroundStyle(color)
-                        
+
                         Text(unit)
                             .font(.caption)
-                            .foregroundStyle(.tertiary)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
@@ -336,59 +367,105 @@ struct EnergyCard: View {
 
 struct CalorieBalanceCard: View {
     let balance: CalorieBalance
-    
+
     var body: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text(balance.balanceDescription)
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(balance.isPositiveBalance ? .orange : .green)
-                    
-                    Spacer()
-                    
-                    Text(balance.formattedBalance)
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundStyle(balance.isPositiveBalance ? .orange : .green)
-                }
-                
-                HStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Consumed")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(Int(balance.caloriesConsumed))")
-                            .font(.title3)
+        GlassCard(cornerRadius: 20) {
+            VStack(alignment: .leading, spacing: 20) {
+                // Main Balance Display
+                VStack(spacing: 8) {
+                    HStack {
+                        Text(balance.balanceDescription)
+                            .font(.subheadline)
                             .fontWeight(.semibold)
-                        Text("kcal")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
                     }
-                    
+
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(balance.formattedBalance)
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: balance.isPositiveBalance ?
+                                        [Color.orange, Color.red] :
+                                        [Color.green, Color.blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+
+                        Text("kcal")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 4)
+                    }
+                }
+
+                Divider()
+
+                // Breakdown
+                HStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.caption)
+                            Text("Consumed")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack(alignment: .firstTextBaseline, spacing: 2) {
+                            Text("\(Int(balance.caloriesConsumed))")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                            Text("kcal")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+
                     Image(systemName: "minus")
                         .foregroundStyle(.secondary)
                         .font(.caption)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Burned")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text("\(Int(balance.totalEnergyBurned))")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                        Text("kcal")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                        .padding(.top, 12)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "flame.circle.fill")
+                                .foregroundStyle(.orange)
+                                .font(.caption)
+                            Text("Burned")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        HStack(alignment: .firstTextBaseline, spacing: 2) {
+                            Text("\(Int(balance.totalEnergyBurned))")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                            Text("kcal")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
-                    
+
                     Spacer()
                 }
-                
-                Text("Data from \(balance.energySourceDescription)")
-                    .font(.caption2)
-                    .foregroundStyle(.quaternary)
+
+                // Data Source
+                HStack(spacing: 6) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.quaternary)
+                    Text("Data from \(balance.energySourceDescription)")
+                        .font(.caption2)
+                        .foregroundStyle(.quaternary)
+                }
             }
         }
     }

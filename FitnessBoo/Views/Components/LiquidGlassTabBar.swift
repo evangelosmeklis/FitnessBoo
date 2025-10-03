@@ -160,7 +160,6 @@ struct LiquidGlassTabContainer: View {
     private let tabs = [
         TabItem(title: "Dashboard", icon: "house", selectedIcon: "house.fill"),
         TabItem(title: "Nutrition", icon: "chart.bar", selectedIcon: "chart.bar.fill"),
-        TabItem(title: "History", icon: "clock", selectedIcon: "clock.fill"),
         TabItem(title: "Goals", icon: "target")
     ]
     
@@ -174,7 +173,7 @@ struct LiquidGlassTabContainer: View {
                     calculationService: calculationService
                 )
                 .tag(0)
-                
+
                 NutritionDashboardView(
                     dataService: dataService,
                     calculationService: calculationService,
@@ -182,15 +181,12 @@ struct LiquidGlassTabContainer: View {
                 )
                 .tag(1)
 
-                HistoryView(dataService: dataService)
-                .tag(2)
-
                 GoalSettingView(
                     calculationService: calculationService,
                     dataService: dataService,
                     healthKitService: healthKitService
                 )
-                .tag(3)
+                .tag(2)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .ignoresSafeArea(.all, edges: .bottom)

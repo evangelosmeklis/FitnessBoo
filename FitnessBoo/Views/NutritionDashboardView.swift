@@ -41,26 +41,26 @@ struct NutritionDashboardView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                LazyVStack(spacing: 24) {
+                LazyVStack(spacing: 20) {
                     // Daily Progress Section
                     dailyProgressSection
-                    
+
                     // Quick Stats Grid
                     quickStatsGrid
-                    
+
                     // Water Tracking Section
                     waterTrackingSection
-                    
+
                     // Food Entries by Meal Type
                     foodEntriesSection
-                    
+
                     Spacer(minLength: 100) // Space for floating action button
                 }
                 .padding()
             }
             .background(backgroundGradient)
             .navigationTitle("Nutrition")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 await nutritionViewModel.refreshData()
             }
@@ -151,56 +151,70 @@ struct NutritionDashboardView: View {
     // MARK: - Daily Progress Section
     
     private var dailyProgressSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Today's Progress")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            GlassCard {
-                VStack(spacing: 16) {
-                    // Caloric Balance
-                    HStack(spacing: 12) {
-                        Image(systemName: "flame.fill")
-                            .font(.title2)
-                            .foregroundStyle(.orange)
-                            .frame(width: 24, height: 24)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Caloric Balance")
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.pie.fill")
+                    .foregroundStyle(.green)
+                Text("Today's Progress")
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
+
+            GlassCard(cornerRadius: 20) {
+                VStack(spacing: 20) {
+                    // Calories Consumed - Large Display
+                    VStack(spacing: 8) {
+                        Text("Calories Consumed")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(Int(nutritionViewModel.totalCalories))")
+                                .font(.system(size: 44, weight: .bold, design: .rounded))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [Color.orange, Color.red],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+
+                            Text("kcal")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
-                            
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, 8)
+                        }
+
+                        // Balance Status
+                        HStack(spacing: 6) {
+                            Image(systemName: (currentBalance?.isPositiveBalance ?? false) ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                                .foregroundStyle((currentBalance?.isPositiveBalance ?? false) ? .green : .red)
+                                .font(.caption)
+
                             Text({
                                 if let balance = currentBalance {
                                     let sign = balance.balance >= 0 ? "+" : ""
                                     let type = balance.balance >= 0 ? "surplus" : "deficit"
                                     return "\(sign)\(Int(balance.balance)) kcal \(type)"
                                 }
-                                return "Loading..."
+                                return "Calculating..."
                             }())
-                                .font(.caption)
-                                .foregroundStyle((currentBalance?.isPositiveBalance ?? false) ? .green : .red)
-                                .fontWeight(.medium)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle((currentBalance?.isPositiveBalance ?? false) ? .green : .red)
                         }
-                        
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("\(Int(nutritionViewModel.totalCalories)) cal")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-                            
-                            Text("consumed today")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background((currentBalance?.isPositiveBalance ?? false) ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
+                        .cornerRadius(8)
                     }
-                    
+
                     Divider()
-                    
-                    // Protein Progress
-                    NutritionProgressRow(
+
+                    // Protein Progress Row
+                    EnhancedNutritionProgressRow(
                         title: "Protein",
                         current: Int(nutritionViewModel.totalProtein),
                         target: Int(nutritionViewModel.dailyNutrition?.proteinTarget ?? 100),
@@ -284,39 +298,70 @@ struct NutritionDashboardView: View {
     @State private var customWaterAmount = ""
     
     private var waterTrackingSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Water Intake")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            GlassCard {
-                VStack(spacing: 16) {
-                    HStack {
-                        Image(systemName: "drop.fill")
-                            .font(.title2)
-                            .foregroundStyle(.blue)
-                        
-                        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "drop.circle.fill")
+                    .foregroundStyle(.blue)
+                Text("Water Intake")
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
+
+            GlassCard(cornerRadius: 20) {
+                VStack(spacing: 20) {
+                    HStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .stroke(Color.blue.opacity(0.2), lineWidth: 8)
+                                .frame(width: 70, height: 70)
+
+                            Circle()
+                                .trim(from: 0, to: min(nutritionViewModel.waterProgress, 1.0))
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.cyan],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                                )
+                                .frame(width: 70, height: 70)
+                                .rotationEffect(.degrees(-90))
+                                .animation(.easeInOut(duration: 0.5), value: nutritionViewModel.waterProgress)
+
+                            VStack(spacing: 2) {
+                                Text("\(Int(nutritionViewModel.waterProgress * 100))%")
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.blue)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("Today's Water")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
-                            
-                            Text("\(Int(nutritionViewModel.totalWater)) / \(Int(nutritionViewModel.dailyWaterTarget)) ml")
-                                .font(.title2)
                                 .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text("\(Int(nutritionViewModel.totalWater))")
+                                    .font(.title)
+                                    .fontWeight(.bold)
+                                Text("/ \(Int(nutritionViewModel.dailyWaterTarget)) ml")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text("\(Int(nutritionViewModel.dailyWaterTarget - nutritionViewModel.totalWater)) ml remaining")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
-                        
+
                         Spacer()
-                        
-                        CircularProgressView(
-                            progress: nutritionViewModel.waterProgress,
-                            color: .blue
-                        )
-                        .frame(width: 40, height: 40)
                     }
-                    
+
                     Divider()
-                    
+
                     GlassButton("Log Water", icon: "drop.fill", style: .blue) {
                         showingWaterOptions = true
                     }
@@ -355,21 +400,30 @@ struct NutritionDashboardView: View {
     // MARK: - Food Entries Section
     
     private var foodEntriesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Today's Meals")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+                HStack(spacing: 8) {
+                    Image(systemName: "fork.knife.circle.fill")
+                        .foregroundStyle(.orange)
+                    Text("Today's Meals")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                }
                 Spacer()
                 if !nutritionViewModel.foodEntries.isEmpty {
                     Text("\(nutritionViewModel.foodEntries.count) entries")
                         .font(.caption)
+                        .fontWeight(.medium)
                         .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(8)
                 }
             }
-            
+
             if nutritionViewModel.foodEntries.isEmpty {
-                GlassCard {
+                GlassCard(cornerRadius: 20) {
                     emptyStateContent
                 }
             } else {
@@ -377,8 +431,8 @@ struct NutritionDashboardView: View {
                     ForEach(MealType.allCases, id: \.self) { mealType in
                         let entries = nutritionViewModel.entriesByMealType[mealType] ?? []
                         if !entries.isEmpty {
-                            GlassCard {
-                                MealSection(
+                            GlassCard(cornerRadius: 16) {
+                                EnhancedMealSection(
                                     mealType: mealType,
                                     entries: entries,
                                     onEntryTapped: { entry in
@@ -474,40 +528,57 @@ struct ProgressCard: View {
     }
 }
 
-// MARK: - Meal Section
+// MARK: - Enhanced Meal Section
 
-struct MealSection: View {
+struct EnhancedMealSection: View {
     let mealType: MealType
     let entries: [FoodEntry]
     let onEntryTapped: (FoodEntry) -> Void
     let onEntryDeleted: (FoodEntry) -> Void
-    
+
     private var totalCalories: Double {
         entries.reduce(0) { $0 + $1.calories }
     }
-    
+
     var body: some View {
-        VStack(spacing: 8) {
-            // Meal header
+        VStack(spacing: 12) {
+            // Meal header with gradient background
             HStack {
-                Label(mealType.displayName, systemImage: mealType.icon)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(mealColor.opacity(0.15))
+                            .frame(width: 32, height: 32)
+
+                        Image(systemName: mealType.icon)
+                            .foregroundStyle(mealColor)
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+
+                    Text(mealType.displayName)
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                }
+
                 Spacer()
+
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(Int(totalCalories)) cal")
-                        .font(.caption)
-                        .fontWeight(.medium)
+                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                        Text("\(Int(totalCalories))")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(mealColor)
+                        Text("cal")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(.systemGray6))
-            .cornerRadius(8)
-            
+            .padding(.bottom, 4)
+
             // Food entries
             ForEach(entries) { entry in
-                FoodEntryRow(entry: entry) {
+                EnhancedFoodEntryRow(entry: entry) {
                     onEntryTapped(entry)
                 }
                 .swipeActions(edge: .trailing) {
@@ -518,49 +589,90 @@ struct MealSection: View {
             }
         }
     }
+
+    private var mealColor: Color {
+        switch mealType {
+        case .breakfast: return .orange
+        case .lunch: return .green
+        case .dinner: return .blue
+        case .snack: return .purple
+        }
+    }
 }
 
-// MARK: - Food Entry Row
+// MARK: - Enhanced Food Entry Row
 
-struct FoodEntryRow: View {
+struct EnhancedFoodEntryRow: View {
     let entry: FoodEntry
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
-            HStack {
+            HStack(spacing: 12) {
+                // Calorie badge
+                VStack(spacing: 2) {
+                    Text("\(Int(entry.calories))")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.orange)
+                    Text("cal")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 60)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(10)
+
+                // Entry details
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("\(Int(entry.calories)) cal")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    }
-                    
                     if let notes = entry.notes, !notes.isEmpty {
                         Text(notes)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
                             .lineLimit(2)
+                    } else {
+                        Text("Food Entry")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
                     }
-                    
-                    Text(entry.formattedTime)
-                        .font(.caption2)
+
+                    HStack(spacing: 8) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                            Text(entry.formattedTime)
+                                .font(.caption)
+                        }
                         .foregroundColor(.secondary)
+
+                        if let protein = entry.protein, protein > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "leaf.fill")
+                                    .font(.caption2)
+                                Text("\(Int(protein))g")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.green)
+                        }
+                    }
                 }
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.caption)
+                    .fontWeight(.semibold)
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(.systemBackground))
-            .cornerRadius(8)
+            .padding(12)
+            .background(Color(.systemBackground).opacity(0.5))
+            .cornerRadius(12)
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(.systemGray4), lineWidth: 0.5)
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(.systemGray5), lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -783,48 +895,73 @@ struct CaloricBalanceCard: View {
 
 // MARK: - Supporting Views
 
-struct NutritionProgressRow: View {
+struct EnhancedNutritionProgressRow: View {
     let title: String
     let current: Int
     let target: Int
     let unit: String
     let color: Color
     let icon: String
-    
+
     private var progress: Double {
         guard target > 0 else { return 0 }
         return min(Double(current) / Double(target), 1.0)
     }
-    
+
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-                .frame(width: 24, height: 24)
-            
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 40, height: 40)
+
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.subheadline)
-                    .fontWeight(.medium)
-                
-                Text("\(current) / \(target) \(unit)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .fontWeight(.semibold)
+
+                HStack(spacing: 4) {
+                    Text("\(current)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(color)
+                    Text("/ \(target) \(unit)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color.opacity(0.15))
+                            .frame(height: 6)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    colors: [color, color.opacity(0.7)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * progress, height: 6)
+                            .animation(.easeInOut(duration: 0.5), value: progress)
+                    }
+                }
+                .frame(height: 6)
             }
-            
+
             Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("\(Int(progress * 100))%")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(color)
-                
-                SwiftUI.ProgressView(value: progress)
-                    .progressViewStyle(LinearProgressViewStyle(tint: color))
-                    .frame(width: 60)
-            }
+
+            Text("\(Int(progress * 100))%")
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundStyle(color)
         }
     }
 }
