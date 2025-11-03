@@ -44,7 +44,7 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                LazyVStack(spacing: 20) {
+                LazyVStack(spacing: 16) {
                     // Calorie Balance Section (at the top for prominence)
                     calorieBalanceSection
 
@@ -61,7 +61,7 @@ struct DashboardView: View {
                 .padding(.bottom, 100)
             }
             .background(backgroundGradient)
-            .navigationTitle("Dashboard")
+            .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -154,104 +154,46 @@ struct DashboardView: View {
     // MARK: - Quick Actions
 
     private var quickActionsSection: some View {
-        HStack(spacing: 16) {
-            // Add Food Button - Futuristic Cyan/Blue
+        HStack(spacing: 12) {
+            // Add Food Button - Bright Cyan
             Button(action: { showingAddFood = true }) {
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.cyan, Color.blue],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                            .shadow(color: Color.cyan.opacity(0.6), radius: 12, x: 0, y: 4)
-                        
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
+                HStack(spacing: 10) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20, weight: .bold))
                     
-                    Text("ADD FOOD")
-                        .font(.caption)
+                    Text("Add Food")
+                        .font(.subheadline)
                         .fontWeight(.bold)
-                        .tracking(1)
-                        .foregroundStyle(.cyan)
                 }
+                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                .padding(.vertical, 14)
                 .background(
-                    ZStack {
-                        // Dark base
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.cyan.opacity(0.05))
-                        
-                        // Border glow
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Color.cyan.opacity(0.6), Color.blue.opacity(0.3)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 2
-                            )
-                    }
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.cyan)
+                        .shadow(color: Color.cyan.opacity(0.5), radius: 12, x: 0, y: 4)
                 )
-                .shadow(color: Color.cyan.opacity(0.3), radius: 15, x: 0, y: 8)
             }
             .buttonStyle(ScaleButtonStyle())
 
-            // Add Water Button - Futuristic Green/Teal
+            // Add Water Button - Bright Green
             Button(action: { showingWaterOptions = true }) {
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color.green, Color.cyan],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 56, height: 56)
-                            .shadow(color: Color.green.opacity(0.6), radius: 12, x: 0, y: 4)
-                        
-                        Image(systemName: "drop.fill")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
+                HStack(spacing: 10) {
+                    Image(systemName: "drop.fill")
+                        .font(.system(size: 20, weight: .bold))
                     
-                    Text("ADD WATER")
-                        .font(.caption)
+                    Text("Add Water")
+                        .font(.subheadline)
                         .fontWeight(.bold)
-                        .tracking(1)
-                        .foregroundStyle(.green)
                 }
+                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 20)
+                .padding(.vertical, 14)
                 .background(
-                    ZStack {
-                        // Dark base
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.green.opacity(0.05))
-                        
-                        // Border glow
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [Color.green.opacity(0.6), Color.cyan.opacity(0.3)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 2
-                            )
-                    }
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.green)
+                        .shadow(color: Color.green.opacity(0.5), radius: 12, x: 0, y: 4)
                 )
-                .shadow(color: Color.green.opacity(0.3), radius: 15, x: 0, y: 8)
             }
             .buttonStyle(ScaleButtonStyle())
         }
@@ -261,17 +203,11 @@ struct DashboardView: View {
         LazyVGrid(columns: [
             GridItem(.flexible()),
             GridItem(.flexible())
-        ], spacing: 16) {
+        ], spacing: 14) {
             FuturisticMetricCard(
                 title: "CALORIES",
                 value: "\(Int(dataManager.caloriesConsumed))",
-                subtitle: {
-                    if let balance = currentBalance {
-                        let sign = balance.balance >= 0 ? "+" : ""
-                        return "\(sign)\(Int(balance.balance)) kcal"
-                    }
-                    return "Loading..."
-                }(),
+                subtitle: "",
                 icon: "bolt.fill",
                 color: .cyan,
                 progress: dataManager.calorieProgress
@@ -280,7 +216,7 @@ struct DashboardView: View {
             FuturisticMetricCard(
                 title: "PROTEIN",
                 value: "\(Int(dataManager.proteinConsumed))g",
-                subtitle: "\(Int(dataManager.proteinRemaining))g left",
+                subtitle: "",
                 icon: "leaf.fill",
                 color: .green,
                 progress: dataManager.proteinProgress
@@ -289,7 +225,7 @@ struct DashboardView: View {
             FuturisticMetricCard(
                 title: "WATER",
                 value: "\(Int(dataManager.waterConsumed))ml",
-                subtitle: "\(Int(dataManager.waterTarget - dataManager.waterConsumed))ml left",
+                subtitle: "",
                 icon: "drop.fill",
                 color: Color(red: 0.0, green: 0.8, blue: 0.8), // Teal
                 progress: dataManager.waterProgress
@@ -298,7 +234,7 @@ struct DashboardView: View {
             FuturisticMetricCard(
                 title: "WEIGHT",
                 value: "\(String(format: "%.1f", dataManager.currentUser?.weight ?? 0))\(weightUnit)",
-                subtitle: dataManager.currentGoal?.type.displayName ?? "No goal",
+                subtitle: "",
                 icon: "chart.line.uptrend.xyaxis",
                 color: Color(red: 0.5, green: 0.7, blue: 1.0) // Light blue
             )
@@ -341,7 +277,7 @@ struct DashboardView: View {
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible())
-                ], spacing: 16) {
+                ], spacing: 14) {
                     FuturisticEnergyCard(
                         title: "RESTING",
                         value: "\(Int(energyViewModel.restingEnergy))",
@@ -957,62 +893,64 @@ struct FuturisticMetricCard: View {
     var body: some View {
         ZStack {
             // Outer glow
-            RoundedRectangle(cornerRadius: 24)
-                .fill(color.opacity(0.1))
-                .blur(radius: 20)
+            RoundedRectangle(cornerRadius: 18)
+                .fill(color.opacity(0.08))
+                .blur(radius: 8)
             
             // Card base
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 18)
                 .fill(Color.black.opacity(0.6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24)
+                    RoundedRectangle(cornerRadius: 18)
                         .stroke(
                             LinearGradient(
                                 colors: [color.opacity(0.8), color.opacity(0.2)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 2
+                            lineWidth: 1.5
                         )
                 )
             
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 // Icon and title
                 HStack {
                     ZStack {
                         Circle()
                             .fill(color.opacity(0.2))
-                            .frame(width: 44, height: 44)
+                            .frame(width: 36, height: 36)
                         
                         if colorScheme == .dark {
                             Circle()
                                 .fill(color.opacity(0.3))
-                                .frame(width: 44, height: 44)
-                                .blur(radius: 8)
+                                .frame(width: 36, height: 36)
+                                .blur(radius: 6)
                         }
                         
                         Image(systemName: icon)
-                            .font(.system(size: 20, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(color)
                     }
                     
                     Spacer()
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.caption)
+                        .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.secondary)
-                        .tracking(1)
+                        .tracking(0.8)
                     
                     Text(value)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundStyle(color)
                     
-                    Text(subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                    if !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 
                 // Progress bar if available
@@ -1021,20 +959,20 @@ struct FuturisticMetricCard: View {
                         ZStack(alignment: .leading) {
                             Capsule()
                                 .fill(color.opacity(0.15))
-                                .frame(height: 4)
+                                .frame(height: 3)
                             
                             Capsule()
                                 .fill(color)
-                                .frame(width: geometry.size.width * min(progress, 1.0), height: 4)
-                                .shadow(color: color.opacity(0.6), radius: 4, x: 0, y: 0)
+                                .frame(width: geometry.size.width * min(progress, 1.0), height: 3)
+                                .shadow(color: color.opacity(0.6), radius: 3, x: 0, y: 0)
                         }
                     }
-                    .frame(height: 4)
+                    .frame(height: 3)
                 }
             }
-            .padding(16)
+            .padding(14)
         }
-        .frame(height: 160)
+        .frame(height: 120)
     }
 }
 
@@ -1049,15 +987,15 @@ struct FuturisticEnergyCard: View {
     var body: some View {
         ZStack {
             // Outer glow
-            RoundedRectangle(cornerRadius: 20)
-                .fill(color.opacity(0.1))
-                .blur(radius: 15)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(color.opacity(0.08))
+                .blur(radius: 6)
             
             // Card base
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color.black.opacity(0.6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 16)
                         .stroke(
                             LinearGradient(
                                 colors: [color.opacity(0.6), color.opacity(0.2)],
@@ -1068,50 +1006,50 @@ struct FuturisticEnergyCard: View {
                         )
                 )
             
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     ZStack {
                         Circle()
                             .fill(color.opacity(0.2))
-                            .frame(width: 40, height: 40)
+                            .frame(width: 32, height: 32)
                         
                         if colorScheme == .dark {
                             Circle()
                                 .fill(color.opacity(0.3))
-                                .frame(width: 40, height: 40)
-                                .blur(radius: 8)
+                                .frame(width: 32, height: 32)
+                                .blur(radius: 6)
                         }
                         
                         Image(systemName: icon)
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(color)
                     }
                     
                     Spacer()
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.caption)
+                        .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.secondary)
-                        .tracking(1)
+                        .tracking(0.8)
                     
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
                         Text(value)
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundStyle(color)
                         
                         Text(unit)
-                            .font(.caption)
+                            .font(.caption2)
                             .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-            .padding(14)
+            .padding(12)
         }
-        .frame(height: 120)
+        .frame(height: 100)
     }
 }
 
@@ -1126,15 +1064,15 @@ struct FuturisticCalorieBalanceCard: View {
         
         ZStack {
             // Outer glow
-            RoundedRectangle(cornerRadius: 24)
-                .fill(primaryColor.opacity(0.15))
-                .blur(radius: 25)
+            RoundedRectangle(cornerRadius: 20)
+                .fill(primaryColor.opacity(0.1))
+                .blur(radius: 10)
             
             // Card base
-            RoundedRectangle(cornerRadius: 24)
+            RoundedRectangle(cornerRadius: 20)
                 .fill(Color.black.opacity(0.7))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24)
+                    RoundedRectangle(cornerRadius: 20)
                         .stroke(
                             LinearGradient(
                                 colors: [primaryColor.opacity(0.8), primaryColor.opacity(0.3)],
@@ -1145,40 +1083,40 @@ struct FuturisticCalorieBalanceCard: View {
                         )
                 )
             
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
                 // Header
                 HStack {
                     Text(balance.balanceDescription.uppercased())
-                        .font(.caption)
+                        .font(.caption2)
                         .fontWeight(.bold)
                         .foregroundStyle(.secondary)
-                        .tracking(1.2)
+                        .tracking(1)
                     
                     Spacer()
                 }
                 
                 // Large balance number
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(balance.formattedBalance)
-                        .font(.system(size: 52, weight: .bold, design: .rounded))
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundStyle(primaryColor)
-                        .shadow(color: primaryColor.opacity(0.6), radius: 12, x: 0, y: 0)
+                        .shadow(color: primaryColor.opacity(0.6), radius: 10, x: 0, y: 0)
                     
                     Text("kcal")
-                        .font(.title3)
+                        .font(.headline)
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
-                        .padding(.bottom, 8)
+                        .padding(.bottom, 6)
                 }
                 
                 // Breakdown row
-                HStack(spacing: 24) {
+                HStack(spacing: 20) {
                     // Consumed
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 4) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 3) {
                             Image(systemName: "arrow.down.circle.fill")
                                 .foregroundStyle(.green)
-                                .font(.caption)
+                                .font(.caption2)
                             Text("IN")
                                 .font(.caption2)
                                 .fontWeight(.bold)
@@ -1188,7 +1126,7 @@ struct FuturisticCalorieBalanceCard: View {
                         
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text("\(Int(balance.caloriesConsumed))")
-                                .font(.title3)
+                                .font(.headline)
                                 .fontWeight(.bold)
                             Text("kcal")
                                 .font(.caption2)
@@ -1199,14 +1137,14 @@ struct FuturisticCalorieBalanceCard: View {
                     // Divider
                     Rectangle()
                         .fill(Color.white.opacity(0.1))
-                        .frame(width: 1, height: 40)
+                        .frame(width: 1, height: 35)
                     
                     // Burned
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 4) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 3) {
                             Image(systemName: "flame.circle.fill")
                                 .foregroundStyle(Color(red: 1.0, green: 0.3, blue: 0.4))
-                                .font(.caption)
+                                .font(.caption2)
                             Text("OUT")
                                 .font(.caption2)
                                 .fontWeight(.bold)
@@ -1216,7 +1154,7 @@ struct FuturisticCalorieBalanceCard: View {
                         
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text("\(Int(balance.totalEnergyBurned))")
-                                .font(.title3)
+                                .font(.headline)
                                 .fontWeight(.bold)
                             Text("kcal")
                                 .font(.caption2)
@@ -1228,7 +1166,7 @@ struct FuturisticCalorieBalanceCard: View {
                 }
                 
                 // Data source
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "info.circle.fill")
                         .font(.caption2)
                         .foregroundStyle(.quaternary)
@@ -1237,7 +1175,7 @@ struct FuturisticCalorieBalanceCard: View {
                         .foregroundStyle(.quaternary)
                 }
             }
-            .padding(20)
+            .padding(16)
         }
     }
 }

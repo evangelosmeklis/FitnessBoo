@@ -18,13 +18,13 @@ struct FoodEntryView: View {
     @State private var protein: String = ""
     @State private var mealName: String = ""
     @State private var selectedMealType: MealType = .snack
-    @State private var notes: String = ""
     @State private var showingValidationError = false
     @State private var validationErrorMessage = ""
     @State private var isLoading = false
     @State private var currentUnitSystem: UnitSystem = .metric
     @State private var searchText = ""
     @State private var showingMealSelector = false
+    @State private var saveMeal = false
     
     // For editing existing entries
     private let existingEntry: FoodEntry?
@@ -40,8 +40,7 @@ struct FoodEntryView: View {
             _calories = State(initialValue: String(format: "%.0f", entry.calories))
             _protein = State(initialValue: entry.protein != nil ? String(format: "%.1f", entry.protein!) : "")
             _selectedMealType = State(initialValue: entry.mealType ?? MealType.suggestedMealType())
-            _mealName = State(initialValue: "")  // Existing entries won't have meal names yet
-            _notes = State(initialValue: entry.notes ?? "")
+            _mealName = State(initialValue: entry.notes ?? "")  // Use notes as meal name
         } else {
             _selectedMealType = State(initialValue: MealType.suggestedMealType())
         }
@@ -84,9 +83,6 @@ struct FoodEntryView: View {
                                         .padding(.vertical, 8)
                                         .background(Color(.systemGray6))
                                         .cornerRadius(8)
-                                        .onChange(of: calories) { _ in
-                                            showingMealSelector = false
-                                        }
                                     
                                     Text("kcal")
                                         .font(.caption)
@@ -122,7 +118,6 @@ struct FoodEntryView: View {
                                             if correctedValue != newValue {
                                                 protein = correctedValue
                                             }
-                                            showingMealSelector = false
                                         }
                                     
                                     Text(currentUnitSystem == .metric ? "g" : "oz")
@@ -147,9 +142,6 @@ struct FoodEntryView: View {
                                     TextField("e.g., Coffee, Chicken Salad", text: $mealName)
                                         .multilineTextAlignment(.trailing)
                                         .frame(maxWidth: 150)
-                                        .onChange(of: mealName) { _ in
-                                            showingMealSelector = false
-                                        }
                                 }
                             }
                         }
@@ -198,19 +190,30 @@ struct FoodEntryView: View {
                         }
                     }
                     
-                    // Notes Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Notes (Optional)")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        GlassCard {
-                            TextField("Add notes about this food...", text: $notes, axis: .vertical)
-                                .lineLimit(3...6)
-                                .padding(.vertical, 8)
-                                .onChange(of: notes) { _ in
-                                    showingMealSelector = false
+                    // Save Meal Toggle Section
+                    if !isEditing && !mealName.isEmpty {
+                        VStack(alignment: .leading, spacing: 16) {
+                            GlassCard {
+                                Toggle(isOn: $saveMeal) {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "bookmark.fill")
+                                            .font(.title3)
+                                            .foregroundStyle(.blue)
+                                            .frame(width: 24, height: 24)
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Save for later")
+                                                .font(.subheadline)
+                                                .fontWeight(.medium)
+                                            
+                                            Text("Quick add '\(mealName)' in the future")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                 }
+                                .padding(.vertical, 4)
+                            }
                         }
                     }
                     
@@ -294,6 +297,7 @@ struct FoodEntryView: View {
             do {
                 let caloriesValue = Double(calories) ?? 0
                 let proteinValue = protein.isEmpty ? nil : Double(protein)
+                let trimmedMealName = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 let entry: FoodEntry
                 if let existingEntry = existingEntry {
@@ -304,7 +308,7 @@ struct FoodEntryView: View {
                         protein: proteinValue,
                         timestamp: existingEntry.timestamp,
                         mealType: selectedMealType,
-                        notes: notes.isEmpty ? nil : notes
+                        notes: trimmedMealName.isEmpty ? nil : trimmedMealName
                     )
                     await nutritionViewModel.updateFoodEntry(entry)
                 } else {
@@ -313,14 +317,13 @@ struct FoodEntryView: View {
                         calories: caloriesValue,
                         protein: proteinValue,
                         mealType: selectedMealType,
-                        notes: notes.isEmpty ? nil : notes
+                        notes: trimmedMealName.isEmpty ? nil : trimmedMealName
                     )
                     await nutritionViewModel.addFoodEntry(entry)
                 }
 
-                // Cache the meal if it has a name (for both new and updated entries)
-                let trimmedMealName = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmedMealName.isEmpty {
+                // Cache the meal only if user wants to save it and it has a name
+                if saveMeal && !trimmedMealName.isEmpty {
                     mealCacheService.addMeal(name: trimmedMealName, calories: caloriesValue, protein: proteinValue)
                 }
 
@@ -345,7 +348,7 @@ struct FoodEntryView: View {
 
     private var quickMealSelectionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Quick Add")
+            Text("Saved Meals")
                 .font(.headline)
                 .fontWeight(.semibold)
 
@@ -355,15 +358,11 @@ struct FoodEntryView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
 
-                        TextField("Search previous meals...", text: $searchText)
-                            .onChange(of: searchText) { _ in
-                                showingMealSelector = !searchText.isEmpty
-                            }
+                        TextField("Search saved meals...", text: $searchText)
 
                         if !searchText.isEmpty {
                             Button("Clear") {
                                 searchText = ""
-                                showingMealSelector = false
                             }
                             .font(.caption)
                             .foregroundStyle(.blue)
@@ -371,22 +370,31 @@ struct FoodEntryView: View {
                     }
                     .padding(.vertical, 8)
 
-                    if showingMealSelector && !searchText.isEmpty {
+                    let filteredMeals = searchText.isEmpty ? 
+                        Array(mealCacheService.cachedMeals.prefix(5)) : 
+                        mealCacheService.searchMeals(query: searchText)
+                    
+                    if !filteredMeals.isEmpty {
                         Divider()
-
-                        let filteredMeals = mealCacheService.searchMeals(query: searchText)
-                        if filteredMeals.isEmpty {
-                            Text("No matching meals found")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.vertical, 8)
-                        } else {
-                            LazyVStack(spacing: 8) {
-                                ForEach(filteredMeals.prefix(5), id: \.id) { meal in
-                                    mealSelectionRow(meal)
-                                }
+                        
+                        LazyVStack(spacing: 8) {
+                            ForEach(filteredMeals.prefix(5), id: \.id) { meal in
+                                mealSelectionRow(meal)
                             }
                         }
+                    } else if !searchText.isEmpty {
+                        Divider()
+                        Text("No matching meals found")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 8)
+                    } else {
+                        Divider()
+                        Text("No saved meals yet. Add a meal name and enable 'Save for later' to quick add meals in the future.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .padding(.vertical, 8)
+                            .multilineTextAlignment(.center)
                     }
                 }
             }
@@ -438,10 +446,9 @@ struct FoodEntryView: View {
             protein = ""
         }
         mealName = updatedMeal.name
-        // Keep notes empty so user can add additional details if needed
+        saveMeal = true  // Automatically enable save for meals from cache
 
         searchText = ""
-        showingMealSelector = false
     }
 
     private func deleteEntry() {
@@ -475,9 +482,9 @@ struct FoodEntryView: View {
             }
         }
         
-        // Validate notes length
-        if notes.count > 500 {
-            validationErrorMessage = "Notes cannot exceed 500 characters"
+        // Validate meal name length
+        if mealName.count > 100 {
+            validationErrorMessage = "Meal name cannot exceed 100 characters"
             showingValidationError = true
             return false
         }

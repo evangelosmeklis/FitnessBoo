@@ -175,7 +175,7 @@ struct LiquidGlassTabContainer: View {
     private let calculationService: CalculationServiceProtocol = CalculationService()
     
     private let tabs = [
-        TabItem(title: "Dashboard", icon: "house", selectedIcon: "house.fill"),
+        TabItem(title: "Home", icon: "house", selectedIcon: "house.fill"),
         TabItem(title: "Day", icon: "calendar", selectedIcon: "calendar"),
         TabItem(title: "Goals", icon: "target"),
         TabItem(title: "Settings", icon: "gearshape", selectedIcon: "gearshape.fill")

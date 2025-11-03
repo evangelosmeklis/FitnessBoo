@@ -9,36 +9,9 @@ import SwiftUI
 import Combine
 import HealthKit
 
-enum AppearanceMode: String, CaseIterable {
-    case light = "Light"
-    case dark = "Dark"
-    case auto = "Auto"
-
-    var displayName: String {
-        return self.rawValue
-    }
-
-    var icon: String {
-        switch self {
-        case .light: return "sun.max.fill"
-        case .dark: return "moon.fill"
-        case .auto: return "circle.lefthalf.filled"
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light: return .light
-        case .dark: return .dark
-        case .auto: return nil
-        }
-    }
-}
-
 struct SettingsView: View {
     @StateObject private var goalViewModel: GoalViewModel
     @State private var selectedUnitSystem: UnitSystem = .metric
-    @State private var selectedAppearance: AppearanceMode = .auto
     @State private var showSuccessMessage = false
     @State private var user: User?
 
@@ -68,9 +41,6 @@ struct SettingsView: View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 24) {
-                    // Appearance Section
-                    appearanceSection
-
                     // Notifications Section
                     notificationsSection
 
@@ -130,60 +100,6 @@ struct SettingsView: View {
 
     // MARK: - Appearance Section
 
-    private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "paintbrush.fill")
-                    .foregroundStyle(.cyan)
-                Text("Appearance")
-                    .font(.title3)
-                    .fontWeight(.bold)
-            }
-
-            VStack(spacing: 12) {
-                ForEach(AppearanceMode.allCases, id: \.self) { mode in
-                    GlassCard(cornerRadius: 16) {
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(getAppearanceColor(for: mode).opacity(0.15))
-                                    .frame(width: 40, height: 40)
-
-                                Image(systemName: mode.icon)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(getAppearanceColor(for: mode))
-                            }
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(mode.displayName)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-
-                                Text(getAppearanceDescription(for: mode))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            if selectedAppearance == mode {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.blue)
-                                    .font(.title3)
-                            }
-                        }
-                    }
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if selectedAppearance != mode {
-                            selectedAppearance = mode
-                            updateAppearance()
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // MARK: - Notifications Section
 
@@ -417,21 +333,6 @@ struct SettingsView: View {
     
     // MARK: - Helper Methods
 
-    private func getAppearanceColor(for mode: AppearanceMode) -> Color {
-        switch mode {
-        case .light: return Color(red: 0.0, green: 0.9, blue: 0.7) // Turquoise
-        case .dark: return .cyan
-        case .auto: return Color(red: 0.4, green: 0.7, blue: 1.0) // Sky blue
-        }
-    }
-
-    private func getAppearanceDescription(for mode: AppearanceMode) -> String {
-        switch mode {
-        case .light: return "Always use light theme"
-        case .dark: return "Always use dark theme"
-        case .auto: return "Match system settings"
-        }
-    }
 
     private func loadSettings() async {
         // Load user data
@@ -450,25 +351,10 @@ struct SettingsView: View {
             selectedUnitSystem = unitSystem
         }
 
-        // Load saved appearance preference
-        if let savedAppearance = UserDefaults.standard.string(forKey: "AppearanceMode"),
-           let appearance = AppearanceMode(rawValue: savedAppearance) {
-            selectedAppearance = appearance
-        }
-
         // Load notification preferences
         loadNotificationPreferences()
     }
 
-    private func updateAppearance() {
-        UserDefaults.standard.set(selectedAppearance.rawValue, forKey: "AppearanceMode")
-        NotificationCenter.default.post(name: NSNotification.Name("AppearanceModeChanged"), object: selectedAppearance)
-
-        showSuccessMessage = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            showSuccessMessage = false
-        }
-    }
     
     private func updateUnitSystem() async {
         // Save preference
