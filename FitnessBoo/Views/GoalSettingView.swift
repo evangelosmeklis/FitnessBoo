@@ -128,16 +128,25 @@ struct GoalSettingView: View {
     // MARK: - Background
     
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [
-                Color(.systemBackground),
-                Color(.systemBackground).opacity(0.8),
-                Color.purple.opacity(0.05)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        ZStack {
+            // Pure black base
+            Color.black
+                .ignoresSafeArea()
+            
+            // Futuristic gradient overlays
+            LinearGradient(
+                colors: [
+                    Color.cyan.opacity(0.05),
+                    Color.clear,
+                    Color.blue.opacity(0.04),
+                    Color.clear,
+                    Color.green.opacity(0.03)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        }
     }
     
     // MARK: - View Components

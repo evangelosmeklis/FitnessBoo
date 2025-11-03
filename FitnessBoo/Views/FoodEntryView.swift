@@ -231,16 +231,23 @@ struct FoodEntryView: View {
                 .padding()
             }
             .background(
-                LinearGradient(
-                    colors: [
-                        Color(.systemBackground),
-                        Color(.systemBackground).opacity(0.8),
-                        Color.orange.opacity(0.05)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                ZStack {
+                    // Pure black base
+                    Color.black
+                        .ignoresSafeArea()
+                    
+                    // Subtle gradient overlays for depth
+                    LinearGradient(
+                        colors: [
+                            Color.orange.opacity(0.03),
+                            Color.clear,
+                            Color.red.opacity(0.02)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                }
             )
             .navigationTitle(isEditing ? "Edit Food Entry" : "Add Food Entry")
             .navigationBarTitleDisplayMode(.inline)

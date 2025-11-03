@@ -37,7 +37,8 @@ class GoalViewModel: ObservableObject {
         
         let weightDifference = targetWeightValue - currentWeightValue
         
-        if abs(weightDifference) <= 1.0 { // Within 1kg = maintain
+        // Only consider differences of 0.5kg or less as "maintain weight"
+        if abs(weightDifference) <= 0.5 { // Within 0.5kg = maintain
             return .maintainWeight
         } else if weightDifference < 0 { // Target is less than current = lose
             return .loseWeight

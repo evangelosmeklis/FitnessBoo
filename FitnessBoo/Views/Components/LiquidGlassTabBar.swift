@@ -37,31 +37,36 @@ struct LiquidGlassTabBar: View {
     
     private var liquidGlassBackground: some View {
         ZStack {
-            // Base glass layer
+            // Dark base with slight transparency
+            RoundedRectangle(cornerRadius: 24)
+                .fill(Color.black.opacity(0.6))
+            
+            // Frosted glass effect
             RoundedRectangle(cornerRadius: 24)
                 .fill(.ultraThinMaterial)
+                .opacity(0.5)
             
-            // Liquid glass overlay with dynamic gradient
+            // Subtle gradient overlay
             RoundedRectangle(cornerRadius: 24)
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.3),
-                            Color.white.opacity(0.1),
-                            Color.black.opacity(0.05)
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.02),
+                            Color.clear
                         ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
                 )
             
-            // Border highlight
+            // Elegant border
             RoundedRectangle(cornerRadius: 24)
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.6),
-                            Color.white.opacity(0.2),
+                            Color.white.opacity(0.3),
+                            Color.white.opacity(0.1),
                             Color.clear
                         ],
                         startPoint: .topLeading,
@@ -77,24 +82,36 @@ struct TabBarButton: View {
     let tab: TabItem
     let isSelected: Bool
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: action) {
             VStack(spacing: 4) {
-                Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(isSelected ? .blue : .secondary)
-                    .scaleEffect(isSelected ? 1.1 : 1.0)
+                ZStack {
+                    // Neon glow effect for selected tab in dark mode
+                    if isSelected && colorScheme == .dark {
+                        Circle()
+                            .fill(Color.cyan)
+                            .frame(width: 24, height: 24)
+                            .blur(radius: 12)
+                            .opacity(0.6)
+                    }
+                    
+                    Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(isSelected ? (colorScheme == .dark ? Color.cyan : .blue) : .secondary)
+                        .scaleEffect(isSelected ? 1.15 : 1.0)
+                }
                 
                 Text(tab.title)
                     .font(.caption2)
-                    .fontWeight(isSelected ? .semibold : .medium)
-                    .foregroundStyle(isSelected ? .blue : .secondary)
+                    .fontWeight(isSelected ? .bold : .medium)
+                    .foregroundStyle(isSelected ? (colorScheme == .dark ? Color.cyan : .blue) : .secondary)
             }
-            .frame(height: 50)
+            .frame(height: 56)
         }
         .buttonStyle(TabButtonStyle())
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isSelected)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isSelected)
     }
 }
 
@@ -159,7 +176,7 @@ struct LiquidGlassTabContainer: View {
     
     private let tabs = [
         TabItem(title: "Dashboard", icon: "house", selectedIcon: "house.fill"),
-        TabItem(title: "Statistics", icon: "chart.bar.xaxis", selectedIcon: "chart.bar.xaxis"),
+        TabItem(title: "Day", icon: "calendar", selectedIcon: "calendar"),
         TabItem(title: "Goals", icon: "target"),
         TabItem(title: "Settings", icon: "gearshape", selectedIcon: "gearshape.fill")
     ]
@@ -175,7 +192,7 @@ struct LiquidGlassTabContainer: View {
                 )
                 .tag(0)
 
-                StatisticsView(
+                DayView(
                     dataService: dataService,
                     calculationService: calculationService,
                     healthKitService: healthKitService

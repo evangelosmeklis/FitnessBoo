@@ -137,6 +137,67 @@ class NotificationService: NSObject, NotificationServiceProtocol, UNUserNotifica
         clearNotifications(withPrefix: "water_progress")
         clearNotifications(withPrefix: "protein_progress")
     }
+
+    func cancelAllNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+    }
+
+    func cancelNotifications(for type: NotificationType) {
+        let prefix: String
+        switch type {
+        case .calorie:
+            prefix = "calorie_progress"
+        case .water:
+            prefix = "water_progress"
+        case .protein:
+            prefix = "protein_progress"
+        }
+        clearNotifications(withPrefix: prefix)
+    }
+
+    func scheduleNotification(for type: NotificationType, at time: Date) {
+        let content = UNMutableNotificationContent()
+        content.sound = .default
+        content.categoryIdentifier = "FITNESS_PROGRESS"
+
+        let prefix: String
+        switch type {
+        case .calorie:
+            content.title = "🔥 Calorie Progress"
+            content.body = "Time to check your calorie balance!"
+            prefix = "calorie_progress"
+        case .water:
+            content.title = "💧 Water Reminder"
+            content.body = "Don't forget to stay hydrated!"
+            prefix = "water_progress"
+        case .protein:
+            content.title = "🥩 Protein Check"
+            content.body = "Track your protein intake today!"
+            prefix = "protein_progress"
+        }
+
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: time)
+
+        guard let hour = components.hour, let minute = components.minute else {
+            return
+        }
+
+        var dailyComponents = DateComponents()
+        dailyComponents.hour = hour
+        dailyComponents.minute = minute
+        dailyComponents.second = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dailyComponents, repeats: true)
+        let identifier = "\(prefix)_\(hour)_\(minute)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Error scheduling notification: \(error)")
+            }
+        }
+    }
     
     private func clearNotifications(withPrefix prefix: String) {
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
