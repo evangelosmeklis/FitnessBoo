@@ -18,6 +18,7 @@ struct FoodEntryView: View {
     @State private var protein: String = ""
     @State private var carbs: String = ""
     @State private var fats: String = ""
+    @State private var saturatedFats: String = ""
     @State private var mealName: String = ""
     @State private var selectedMealType: MealType = .snack
     @State private var showingValidationError = false
@@ -43,6 +44,7 @@ struct FoodEntryView: View {
             _protein = State(initialValue: entry.protein != nil ? String(format: "%.1f", entry.protein!) : "")
             _carbs = State(initialValue: entry.carbs != nil ? String(format: "%.1f", entry.carbs!) : "")
             _fats = State(initialValue: entry.fats != nil ? String(format: "%.1f", entry.fats!) : "")
+            _saturatedFats = State(initialValue: entry.saturatedFats != nil ? String(format: "%.1f", entry.saturatedFats!) : "")
             _selectedMealType = State(initialValue: entry.mealType ?? MealType.suggestedMealType())
             _mealName = State(initialValue: entry.notes ?? "")  // Use notes as meal name
         } else {
@@ -193,6 +195,42 @@ struct FoodEntryView: View {
                                             let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
                                             if correctedValue != newValue {
                                                 fats = correctedValue
+                                            }
+                                        }
+
+                                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Divider()
+
+                                // Saturated Fats input (optional, subcategory of fats)
+                                HStack {
+                                    Image(systemName: "drop.triangle.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.red)
+                                        .frame(width: 24, height: 24)
+
+                                    Text("Sat. Fats")
+                                        .font(.subheadline)
+
+                                    Spacer()
+
+                                    TextField("Optional", text: $saturatedFats)
+                                        .keyboardType(.decimalPad)
+                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 80)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                        .onChange(of: saturatedFats) { newValue in
+                                            // Replace comma with period for decimal input
+                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                            if correctedValue != newValue {
+                                                saturatedFats = correctedValue
                                             }
                                         }
 
@@ -375,6 +413,7 @@ struct FoodEntryView: View {
                 let proteinValue = protein.isEmpty ? nil : Double(protein)
                 let carbsValue = carbs.isEmpty ? nil : Double(carbs)
                 let fatsValue = fats.isEmpty ? nil : Double(fats)
+                let saturatedFatsValue = saturatedFats.isEmpty ? nil : Double(saturatedFats)
                 let trimmedMealName = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 let entry: FoodEntry
@@ -386,6 +425,7 @@ struct FoodEntryView: View {
                         protein: proteinValue,
                         carbs: carbsValue,
                         fats: fatsValue,
+                        saturatedFats: saturatedFatsValue,
                         timestamp: existingEntry.timestamp,
                         mealType: selectedMealType,
                         notes: trimmedMealName.isEmpty ? nil : trimmedMealName
@@ -398,6 +438,7 @@ struct FoodEntryView: View {
                         protein: proteinValue,
                         carbs: carbsValue,
                         fats: fatsValue,
+                        saturatedFats: saturatedFatsValue,
                         mealType: selectedMealType,
                         notes: trimmedMealName.isEmpty ? nil : trimmedMealName
                     )
@@ -583,6 +624,27 @@ struct FoodEntryView: View {
                 showingValidationError = true
                 return false
             }
+            
+            // Validate saturated fats if provided
+            if !saturatedFats.isEmpty {
+                guard let saturatedFatsValue = Double(saturatedFats), saturatedFatsValue >= 0, saturatedFatsValue <= 500 else {
+                    validationErrorMessage = "Saturated fats must be between 0 and 500 grams"
+                    showingValidationError = true
+                    return false
+                }
+                
+                // Saturated fats cannot exceed total fats
+                if saturatedFatsValue > fatsValue {
+                    validationErrorMessage = "Saturated fats cannot exceed total fats"
+                    showingValidationError = true
+                    return false
+                }
+            }
+        } else if !saturatedFats.isEmpty {
+            // If saturated fats is provided but fats is not
+            validationErrorMessage = "Please enter total fats before adding saturated fats"
+            showingValidationError = true
+            return false
         }
 
         // Validate meal name length
@@ -620,6 +682,9 @@ struct FoodEntryView_Previews: PreviewProvider {
                 existingEntry: FoodEntry(
                     calories: 350,
                     protein: 25,
+                    carbs: 15,
+                    fats: 20,
+                    saturatedFats: 5,
                     mealType: .lunch,
                     notes: "Chicken salad"
                 )

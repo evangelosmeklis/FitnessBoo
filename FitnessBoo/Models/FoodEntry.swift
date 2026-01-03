@@ -13,27 +13,30 @@ struct FoodEntry: Codable, Identifiable {
     var protein: Double?
     var carbs: Double?
     var fats: Double?
+    var saturatedFats: Double?
     var timestamp: Date
     var mealType: MealType?
     var notes: String?
 
-    init(calories: Double, protein: Double? = nil, carbs: Double? = nil, fats: Double? = nil, timestamp: Date = Date(), mealType: MealType? = nil, notes: String? = nil) {
+    init(calories: Double, protein: Double? = nil, carbs: Double? = nil, fats: Double? = nil, saturatedFats: Double? = nil, timestamp: Date = Date(), mealType: MealType? = nil, notes: String? = nil) {
         self.id = UUID()
         self.calories = calories
         self.protein = protein
         self.carbs = carbs
         self.fats = fats
+        self.saturatedFats = saturatedFats
         self.timestamp = timestamp
         self.mealType = mealType
         self.notes = notes
     }
 
-    init(id: UUID, calories: Double, protein: Double?, carbs: Double?, fats: Double?, timestamp: Date, mealType: MealType?, notes: String?) {
+    init(id: UUID, calories: Double, protein: Double?, carbs: Double?, fats: Double?, saturatedFats: Double?, timestamp: Date, mealType: MealType?, notes: String?) {
         self.id = id
         self.calories = calories
         self.protein = protein
         self.carbs = carbs
         self.fats = fats
+        self.saturatedFats = saturatedFats
         self.timestamp = timestamp
         self.mealType = mealType
         self.notes = notes
@@ -60,6 +63,16 @@ struct FoodEntry: Codable, Identifiable {
         if let fats = fats {
             guard fats >= 0 && fats <= 500 else {
                 throw FoodEntryValidationError.invalidFats
+            }
+        }
+
+        if let saturatedFats = saturatedFats {
+            guard saturatedFats >= 0 && saturatedFats <= 500 else {
+                throw FoodEntryValidationError.invalidSaturatedFats
+            }
+            // Saturated fats cannot exceed total fats
+            if let totalFats = fats, saturatedFats > totalFats {
+                throw FoodEntryValidationError.saturatedFatsExceedsTotalFats
             }
         }
 
@@ -132,6 +145,8 @@ enum FoodEntryValidationError: LocalizedError {
     case invalidProtein
     case invalidCarbs
     case invalidFats
+    case invalidSaturatedFats
+    case saturatedFatsExceedsTotalFats
     case notesTooLong
 
     var errorDescription: String? {
@@ -144,6 +159,10 @@ enum FoodEntryValidationError: LocalizedError {
             return "Carbs must be between 0 and 1,000 grams"
         case .invalidFats:
             return "Fats must be between 0 and 500 grams"
+        case .invalidSaturatedFats:
+            return "Saturated fats must be between 0 and 500 grams"
+        case .saturatedFatsExceedsTotalFats:
+            return "Saturated fats cannot exceed total fats"
         case .notesTooLong:
             return "Notes cannot exceed 500 characters"
         }

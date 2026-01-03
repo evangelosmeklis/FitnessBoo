@@ -14,44 +14,50 @@ struct DailyNutrition: Codable, Identifiable {
     var totalProtein: Double
     var totalCarbs: Double
     var totalFats: Double
+    var totalSaturatedFats: Double
     var entries: [FoodEntry]
     var calorieTarget: Double
     var proteinTarget: Double
     var carbsTarget: Double
     var fatsTarget: Double
+    var saturatedFatsTarget: Double
     var caloriesFromExercise: Double
     var netCalories: Double
     var waterConsumed: Double // in milliliters
 
-    init(date: Date, calorieTarget: Double, proteinTarget: Double, carbsTarget: Double = 0, fatsTarget: Double = 0) {
+    init(date: Date, calorieTarget: Double, proteinTarget: Double, carbsTarget: Double = 0, fatsTarget: Double = 0, saturatedFatsTarget: Double = 0) {
         self.id = UUID()
         self.date = Calendar.current.startOfDay(for: date)
         self.totalCalories = 0
         self.totalProtein = 0
         self.totalCarbs = 0
         self.totalFats = 0
+        self.totalSaturatedFats = 0
         self.entries = []
         self.calorieTarget = calorieTarget
         self.proteinTarget = proteinTarget
         self.carbsTarget = carbsTarget
         self.fatsTarget = fatsTarget
+        self.saturatedFatsTarget = saturatedFatsTarget
         self.caloriesFromExercise = 0
         self.netCalories = 0
         self.waterConsumed = 0
     }
 
-    init(id: UUID, date: Date, totalCalories: Double, totalProtein: Double, totalCarbs: Double = 0, totalFats: Double = 0, entries: [FoodEntry], calorieTarget: Double, proteinTarget: Double, carbsTarget: Double = 0, fatsTarget: Double = 0, caloriesFromExercise: Double, netCalories: Double, waterConsumed: Double) {
+    init(id: UUID, date: Date, totalCalories: Double, totalProtein: Double, totalCarbs: Double = 0, totalFats: Double = 0, totalSaturatedFats: Double = 0, entries: [FoodEntry], calorieTarget: Double, proteinTarget: Double, carbsTarget: Double = 0, fatsTarget: Double = 0, saturatedFatsTarget: Double = 0, caloriesFromExercise: Double, netCalories: Double, waterConsumed: Double) {
         self.id = id
         self.date = Calendar.current.startOfDay(for: date)
         self.totalCalories = totalCalories
         self.totalProtein = totalProtein
         self.totalCarbs = totalCarbs
         self.totalFats = totalFats
+        self.totalSaturatedFats = totalSaturatedFats
         self.entries = entries
         self.calorieTarget = calorieTarget
         self.proteinTarget = proteinTarget
         self.carbsTarget = carbsTarget
         self.fatsTarget = fatsTarget
+        self.saturatedFatsTarget = saturatedFatsTarget
         self.caloriesFromExercise = caloriesFromExercise
         self.netCalories = netCalories
         self.waterConsumed = waterConsumed
@@ -79,12 +85,13 @@ struct DailyNutrition: Codable, Identifiable {
         }
     }
     
-    /// Recalculate total calories, protein, carbs, and fats from all entries
+    /// Recalculate total calories, protein, carbs, fats, and saturated fats from all entries
     mutating func recalculateTotals() {
         totalCalories = entries.reduce(0) { $0 + $1.calories }
         totalProtein = entries.reduce(0) { $0 + ($1.protein ?? 0) }
         totalCarbs = entries.reduce(0) { $0 + ($1.carbs ?? 0) }
         totalFats = entries.reduce(0) { $0 + ($1.fats ?? 0) }
+        totalSaturatedFats = entries.reduce(0) { $0 + ($1.saturatedFats ?? 0) }
         calculateNetCalories()
     }
     
@@ -119,6 +126,11 @@ struct DailyNutrition: Codable, Identifiable {
         return fatsTarget - totalFats
     }
 
+    /// Get remaining saturated fats to reach target
+    var remainingSaturatedFats: Double {
+        return saturatedFatsTarget - totalSaturatedFats
+    }
+
     /// Get calorie progress as percentage (0.0 to 1.0+)
     var calorieProgress: Double {
         guard calorieTarget > 0 else { return 0 }
@@ -143,6 +155,12 @@ struct DailyNutrition: Codable, Identifiable {
         return totalFats / fatsTarget
     }
 
+    /// Get saturated fats progress as percentage (0.0 to 1.0+)
+    var saturatedFatsProgress: Double {
+        guard saturatedFatsTarget > 0 else { return 0 }
+        return totalSaturatedFats / saturatedFatsTarget
+    }
+
     /// Check if daily targets are met
     var isCalorieTargetMet: Bool {
         return totalCalories >= calorieTarget
@@ -159,7 +177,11 @@ struct DailyNutrition: Codable, Identifiable {
     var isFatsTargetMet: Bool {
         return totalFats >= fatsTarget
     }
-    
+
+    var isSaturatedFatsTargetMet: Bool {
+        return totalSaturatedFats >= saturatedFatsTarget
+    }
+
     /// Get entries grouped by meal type
     var entriesByMealType: [MealType: [FoodEntry]] {
         return Dictionary(grouping: entries) { entry in
@@ -198,7 +220,15 @@ struct DailyNutrition: Codable, Identifiable {
             entries.reduce(0) { $0 + ($1.fats ?? 0) }
         }
     }
-    
+
+    /// Get saturated fats by meal type
+    func saturatedFatsByMealType() -> [MealType: Double] {
+        let grouped = entriesByMealType
+        return grouped.mapValues { entries in
+            entries.reduce(0) { $0 + ($1.saturatedFats ?? 0) }
+        }
+    }
+
     /// Get summary statistics for the day
     var summary: DailyNutritionSummary {
         return DailyNutritionSummary(

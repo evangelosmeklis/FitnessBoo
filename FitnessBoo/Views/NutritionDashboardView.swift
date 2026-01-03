@@ -229,6 +229,18 @@ struct NutritionDashboardView: View {
                         color: .green,
                         icon: "leaf.fill"
                     )
+                    
+                    Divider()
+                    
+                    // Saturated Fats Progress Row  
+                    EnhancedNutritionProgressRow(
+                        title: "Saturated Fats",
+                        current: Int(nutritionViewModel.totalSaturatedFats),
+                        target: Int(nutritionViewModel.dailyNutrition?.saturatedFatsTarget ?? 20),
+                        unit: currentUnitSystem == .metric ? "g" : "oz",
+                        color: .red,
+                        icon: "drop.triangle.fill"
+                    )
                 }
             }
         }
@@ -288,12 +300,19 @@ struct NutritionDashboardView: View {
             )
             
             MetricCard(
-                title: "Protein Left",
-                value: "\(Int(nutritionViewModel.remainingProtein))g",
-                subtitle: "remaining today",
-                icon: "leaf.fill",
-                color: .green,
-                progress: nutritionViewModel.proteinProgress
+                title: "Sat. Fats",
+                value: "\(Int(nutritionViewModel.totalSaturatedFats))g",
+                subtitle: {
+                    let remaining = Int(nutritionViewModel.remainingSaturatedFats)
+                    if remaining > 0 {
+                        return "\(remaining)g remaining"
+                    } else {
+                        return "Limit reached"
+                    }
+                }(),
+                icon: "drop.triangle.fill",
+                color: nutritionViewModel.saturatedFatsProgress < 0.8 ? .orange : .red,
+                progress: nutritionViewModel.saturatedFatsProgress
             )
         }
     }
@@ -663,6 +682,26 @@ struct EnhancedFoodEntryRow: View {
                                     .font(.caption)
                             }
                             .foregroundColor(.green)
+                        }
+                        
+                        if let fats = entry.fats, fats > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "drop.fill")
+                                    .font(.caption2)
+                                Text("\(Int(fats))g fat")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.pink)
+                        }
+                        
+                        if let satFats = entry.saturatedFats, satFats > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "drop.triangle.fill")
+                                    .font(.caption2)
+                                Text("\(Int(satFats))g sat")
+                                    .font(.caption)
+                            }
+                            .foregroundColor(.red)
                         }
                     }
                 }

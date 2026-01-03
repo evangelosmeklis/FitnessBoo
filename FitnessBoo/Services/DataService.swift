@@ -225,6 +225,7 @@ class DataService: DataServiceProtocol {
                     foodEntryEntity.protein = entry.protein ?? 0
                     foodEntryEntity.setValue(entry.carbs ?? 0, forKey: "carbs")
                     foodEntryEntity.setValue(entry.fats ?? 0, forKey: "fats")
+                    foodEntryEntity.setValue(entry.saturatedFats ?? 0, forKey: "saturatedFats")
                     foodEntryEntity.timestamp = entry.timestamp
                     foodEntryEntity.mealType = entry.mealType?.rawValue
                     foodEntryEntity.notes = entry.notes
@@ -355,10 +356,12 @@ class DataService: DataServiceProtocol {
                     dailyNutritionEntity.totalProtein = nutritionToSave.totalProtein
                     dailyNutritionEntity.setValue(nutritionToSave.totalCarbs, forKey: "totalCarbs")
                     dailyNutritionEntity.setValue(nutritionToSave.totalFats, forKey: "totalFats")
+                    dailyNutritionEntity.setValue(nutritionToSave.totalSaturatedFats, forKey: "totalSaturatedFats")
                     dailyNutritionEntity.calorieTarget = nutritionToSave.calorieTarget
                     dailyNutritionEntity.proteinTarget = nutritionToSave.proteinTarget
                     dailyNutritionEntity.setValue(nutritionToSave.carbsTarget, forKey: "carbsTarget")
                     dailyNutritionEntity.setValue(nutritionToSave.fatsTarget, forKey: "fatsTarget")
+                    dailyNutritionEntity.setValue(nutritionToSave.saturatedFatsTarget, forKey: "saturatedFatsTarget")
                     dailyNutritionEntity.caloriesFromExercise = nutritionToSave.caloriesFromExercise
                     dailyNutritionEntity.netCalories = nutritionToSave.netCalories
                     dailyNutritionEntity.setValue(nutritionToSave.waterConsumed, forKey: "waterConsumed")
@@ -732,6 +735,7 @@ extension DataService {
 
         let carbs = entity.value(forKey: "carbs") as? Double
         let fats = entity.value(forKey: "fats") as? Double
+        let saturatedFats = entity.value(forKey: "saturatedFats") as? Double
 
         return FoodEntry(
             id: id,
@@ -739,6 +743,7 @@ extension DataService {
             protein: entity.protein == 0 ? nil : entity.protein,
             carbs: (carbs == 0 || carbs == nil) ? nil : carbs,
             fats: (fats == 0 || fats == nil) ? nil : fats,
+            saturatedFats: (saturatedFats == 0 || saturatedFats == nil) ? nil : saturatedFats,
             timestamp: timestamp,
             mealType: entity.mealType != nil ? MealType(rawValue: entity.mealType!) : nil,
             notes: entity.notes
@@ -782,6 +787,7 @@ extension DataService {
             dailyProteinTarget: entity.dailyProteinTarget,
             dailyCarbsTarget: entity.value(forKey: "dailyCarbsTarget") as? Double ?? 0.0,
             dailyFatsTarget: entity.value(forKey: "dailyFatsTarget") as? Double ?? 0.0,
+            dailySaturatedFatsTarget: entity.value(forKey: "dailySaturatedFatsTarget") as? Double ?? 0.0,
             dailyWaterTarget: entity.value(forKey: "dailyWaterTarget") as? Double ?? 2000.0,
             isActive: entity.isActive,
             createdAt: Date(), // Core Data entities don't store creation date for goals
@@ -797,15 +803,18 @@ extension DataService {
 
         let totalCarbs = entity.value(forKey: "totalCarbs") as? Double ?? 0.0
         let totalFats = entity.value(forKey: "totalFats") as? Double ?? 0.0
+        let totalSaturatedFats = entity.value(forKey: "totalSaturatedFats") as? Double ?? 0.0
         let carbsTarget = entity.value(forKey: "carbsTarget") as? Double ?? 0.0
         let fatsTarget = entity.value(forKey: "fatsTarget") as? Double ?? 0.0
+        let saturatedFatsTarget = entity.value(forKey: "saturatedFatsTarget") as? Double ?? 0.0
 
         var nutrition = DailyNutrition(
             date: date,
             calorieTarget: entity.calorieTarget,
             proteinTarget: entity.proteinTarget,
             carbsTarget: carbsTarget,
-            fatsTarget: fatsTarget
+            fatsTarget: fatsTarget,
+            saturatedFatsTarget: saturatedFatsTarget
         )
 
         // Override the generated ID with the stored one
@@ -816,11 +825,13 @@ extension DataService {
             totalProtein: entity.totalProtein,
             totalCarbs: totalCarbs,
             totalFats: totalFats,
+            totalSaturatedFats: totalSaturatedFats,
             entries: entries,
             calorieTarget: entity.calorieTarget,
             proteinTarget: entity.proteinTarget,
             carbsTarget: carbsTarget,
             fatsTarget: fatsTarget,
+            saturatedFatsTarget: saturatedFatsTarget,
             caloriesFromExercise: entity.caloriesFromExercise,
             netCalories: entity.netCalories,
             waterConsumed: entity.value(forKey: "waterConsumed") as? Double ?? 0.0
@@ -841,7 +852,7 @@ extension DataService {
 // MARK: - FitnessGoal Model Extensions
 
 extension FitnessGoal {
-    init(id: UUID, type: GoalType, targetWeight: Double?, targetDate: Date?, weeklyWeightChangeGoal: Double, dailyCalorieTarget: Double, dailyProteinTarget: Double, dailyCarbsTarget: Double, dailyFatsTarget: Double, dailyWaterTarget: Double, isActive: Bool, createdAt: Date, updatedAt: Date) {
+    init(id: UUID, type: GoalType, targetWeight: Double?, targetDate: Date?, weeklyWeightChangeGoal: Double, dailyCalorieTarget: Double, dailyProteinTarget: Double, dailyCarbsTarget: Double, dailyFatsTarget: Double, dailySaturatedFatsTarget: Double, dailyWaterTarget: Double, isActive: Bool, createdAt: Date, updatedAt: Date) {
         self.id = id
         self.type = type
         self.targetWeight = targetWeight
@@ -851,6 +862,7 @@ extension FitnessGoal {
         self.dailyProteinTarget = dailyProteinTarget
         self.dailyCarbsTarget = dailyCarbsTarget
         self.dailyFatsTarget = dailyFatsTarget
+        self.dailySaturatedFatsTarget = dailySaturatedFatsTarget
         self.dailyWaterTarget = dailyWaterTarget
         self.isActive = isActive
         self.createdAt = createdAt

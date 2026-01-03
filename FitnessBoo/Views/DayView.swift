@@ -302,9 +302,25 @@ struct DayView: View {
                                             .foregroundStyle(.secondary)
                                     }
 
-                                    Text("of \(Int(nutritionViewModel.dailyNutrition?.fatsTarget ?? 0))g")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.tertiary)
+                                    HStack(spacing: 3) {
+                                        Text("of \(Int(nutritionViewModel.dailyNutrition?.fatsTarget ?? 0))g")
+                                            .font(.system(size: 9))
+                                            .foregroundStyle(.tertiary)
+                                        
+                                        if nutritionViewModel.totalSaturatedFats > 0 {
+                                            Text("•")
+                                                .font(.system(size: 8))
+                                                .foregroundStyle(.tertiary)
+                                            
+                                            Image(systemName: "drop.triangle.fill")
+                                                .font(.system(size: 7))
+                                                .foregroundStyle(.red.opacity(0.8))
+                                            
+                                            Text("\(Int(nutritionViewModel.totalSaturatedFats))g sat")
+                                                .font(.system(size: 8))
+                                                .foregroundStyle(.red.opacity(0.9))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -703,20 +719,36 @@ struct EnhancedFoodRow: View {
                                     .tracking(0.5)
                             }
 
-                            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                if let fats = entry.fats, fats > 0 {
-                                    Text("\(Int(fats))")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.primary)
-                                    Text("g")
-                                        .font(.caption2)
-                                        .foregroundStyle(.tertiary)
-                                } else {
-                                    Text("—")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.tertiary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                    if let fats = entry.fats, fats > 0 {
+                                        Text("\(Int(fats))")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundStyle(.primary)
+                                        Text("g")
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                    } else {
+                                        Text("—")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+                                
+                                // Saturated fats sub-info
+                                if let satFats = entry.saturatedFats, satFats > 0 {
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "drop.triangle.fill")
+                                            .font(.system(size: 7))
+                                            .foregroundStyle(.red.opacity(0.7))
+                                        
+                                        Text("\(Int(satFats))g sat")
+                                            .font(.system(size: 8))
+                                            .fontWeight(.medium)
+                                            .foregroundStyle(.red.opacity(0.8))
+                                    }
                                 }
                             }
                         }

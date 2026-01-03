@@ -17,6 +17,7 @@ struct FitnessGoal: Codable, Identifiable {
     var dailyProteinTarget: Double
     var dailyCarbsTarget: Double
     var dailyFatsTarget: Double
+    var dailySaturatedFatsTarget: Double
     var dailyWaterTarget: Double
     var isActive: Bool
     var createdAt: Date
@@ -32,6 +33,7 @@ struct FitnessGoal: Codable, Identifiable {
         self.dailyProteinTarget = 0 // Will be calculated
         self.dailyCarbsTarget = 0 // Will be calculated
         self.dailyFatsTarget = 0 // Will be calculated
+        self.dailySaturatedFatsTarget = 0 // Will be calculated
         self.dailyWaterTarget = dailyWaterTarget
         self.isActive = true
         self.createdAt = Date()
@@ -92,6 +94,12 @@ struct FitnessGoal: Codable, Identifiable {
             dailyCarbsTarget = (remainingCalories * 0.50) / 4
             dailyFatsTarget = (remainingCalories * 0.50) / 9
         }
+
+        // Saturated fats should be limited to less than 10% of total calories
+        // Health guidelines recommend keeping saturated fats to 20-22g per day on a 2000 cal diet
+        // We calculate as 10% of total calories in grams
+        let saturatedFatsFromCalories = (dailyCalorieTarget * 0.10) / 9 // 9 cal/g for fats
+        dailySaturatedFatsTarget = min(saturatedFatsFromCalories, dailyFatsTarget * 0.33) // Max 1/3 of total fats
 
         updatedAt = Date()
     }
