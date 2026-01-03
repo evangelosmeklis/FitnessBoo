@@ -11,23 +11,29 @@ struct FoodEntry: Codable, Identifiable {
     let id: UUID
     var calories: Double
     var protein: Double?
+    var carbs: Double?
+    var fats: Double?
     var timestamp: Date
     var mealType: MealType?
     var notes: String?
-    
-    init(calories: Double, protein: Double? = nil, timestamp: Date = Date(), mealType: MealType? = nil, notes: String? = nil) {
+
+    init(calories: Double, protein: Double? = nil, carbs: Double? = nil, fats: Double? = nil, timestamp: Date = Date(), mealType: MealType? = nil, notes: String? = nil) {
         self.id = UUID()
         self.calories = calories
         self.protein = protein
+        self.carbs = carbs
+        self.fats = fats
         self.timestamp = timestamp
         self.mealType = mealType
         self.notes = notes
     }
-    
-    init(id: UUID, calories: Double, protein: Double?, timestamp: Date, mealType: MealType?, notes: String?) {
+
+    init(id: UUID, calories: Double, protein: Double?, carbs: Double?, fats: Double?, timestamp: Date, mealType: MealType?, notes: String?) {
         self.id = id
         self.calories = calories
         self.protein = protein
+        self.carbs = carbs
+        self.fats = fats
         self.timestamp = timestamp
         self.mealType = mealType
         self.notes = notes
@@ -38,13 +44,25 @@ struct FoodEntry: Codable, Identifiable {
         guard calories >= 0 && calories <= 10000 else {
             throw FoodEntryValidationError.invalidCalories
         }
-        
+
         if let protein = protein {
             guard protein >= 0 && protein <= 1000 else {
                 throw FoodEntryValidationError.invalidProtein
             }
         }
-        
+
+        if let carbs = carbs {
+            guard carbs >= 0 && carbs <= 1000 else {
+                throw FoodEntryValidationError.invalidCarbs
+            }
+        }
+
+        if let fats = fats {
+            guard fats >= 0 && fats <= 500 else {
+                throw FoodEntryValidationError.invalidFats
+            }
+        }
+
         if let notes = notes, notes.count > 500 {
             throw FoodEntryValidationError.notesTooLong
         }
@@ -112,14 +130,20 @@ enum MealType: String, CaseIterable, Codable {
 enum FoodEntryValidationError: LocalizedError {
     case invalidCalories
     case invalidProtein
+    case invalidCarbs
+    case invalidFats
     case notesTooLong
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidCalories:
             return "Calories must be between 0 and 10,000"
         case .invalidProtein:
             return "Protein must be between 0 and 1,000 grams"
+        case .invalidCarbs:
+            return "Carbs must be between 0 and 1,000 grams"
+        case .invalidFats:
+            return "Fats must be between 0 and 500 grams"
         case .notesTooLong:
             return "Notes cannot exceed 500 characters"
         }

@@ -127,8 +127,8 @@ struct DashboardView: View {
 
     private var backgroundGradient: some View {
         ZStack {
-            // Pure black base
-            Color.black
+            // Navy blue base
+            Color(red: 0.04, green: 0.08, blue: 0.15)
                 .ignoresSafeArea()
             
             // Futuristic gradient overlays
@@ -619,6 +619,9 @@ private class DashboardMockHealthKitService: HealthKitServiceProtocol {
 
     func requestAuthorization() async throws { }
     func saveDietaryEnergy(calories: Double, date: Date) async throws { }
+    func saveDietaryProtein(protein: Double, date: Date) async throws { }
+    func saveDietaryCarbs(carbs: Double, date: Date) async throws { }
+    func saveDietaryFats(fats: Double, date: Date) async throws { }
     func saveWater(milliliters: Double, date: Date) async throws { }
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData] { return [] }
     func fetchActiveEnergy(for date: Date) async throws -> Double { return 400 }
@@ -892,14 +895,9 @@ struct FuturisticMetricCard: View {
     
     var body: some View {
         ZStack {
-            // Outer glow
-            RoundedRectangle(cornerRadius: 18)
-                .fill(color.opacity(0.08))
-                .blur(radius: 8)
-            
             // Card base
             RoundedRectangle(cornerRadius: 18)
-                .fill(Color.black.opacity(0.6))
+                .fill(Color.white.opacity(0.08))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18)
                         .stroke(
@@ -911,6 +909,7 @@ struct FuturisticMetricCard: View {
                             lineWidth: 1.5
                         )
                 )
+                .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 8)
             
             VStack(alignment: .leading, spacing: 10) {
                 // Icon and title
@@ -986,14 +985,9 @@ struct FuturisticEnergyCard: View {
     
     var body: some View {
         ZStack {
-            // Outer glow
-            RoundedRectangle(cornerRadius: 16)
-                .fill(color.opacity(0.08))
-                .blur(radius: 6)
-            
             // Card base
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.black.opacity(0.6))
+                .fill(Color.white.opacity(0.08))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(
@@ -1005,6 +999,7 @@ struct FuturisticEnergyCard: View {
                             lineWidth: 1.5
                         )
                 )
+                .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 8)
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -1063,14 +1058,9 @@ struct FuturisticCalorieBalanceCard: View {
             .cyan // Cyan for deficit
         
         ZStack {
-            // Outer glow
-            RoundedRectangle(cornerRadius: 20)
-                .fill(primaryColor.opacity(0.1))
-                .blur(radius: 10)
-            
             // Card base
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.black.opacity(0.7))
+                .fill(Color.white.opacity(0.08))
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(
@@ -1082,6 +1072,7 @@ struct FuturisticCalorieBalanceCard: View {
                             lineWidth: 2
                         )
                 )
+                .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 8)
             
             VStack(alignment: .leading, spacing: 16) {
                 // Header

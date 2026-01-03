@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UIKit
 
 // MARK: - Calorie Balance Data
 struct CalorieBalance {
@@ -187,6 +188,24 @@ class CalorieBalanceService: CalorieBalanceServiceProtocol, ObservableObject {
             .store(in: &cancellables)
         
         NotificationCenter.default.publisher(for: NSNotification.Name("FoodEntryDeleted"))
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.updateCurrentBalance()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Observe day changes (midnight)
+        NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.updateCurrentBalance()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Also observe app becoming active (in case app was in background during midnight)
+        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in
                 Task { @MainActor in
                     await self?.updateCurrentBalance()

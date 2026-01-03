@@ -62,6 +62,12 @@ class DataService: DataServiceProtocol {
     
     lazy var persistentContainer: NSPersistentContainer = {
         let container = NSPersistentContainer(name: "FitnessBoo")
+
+        // Enable lightweight migration for Core Data schema changes
+        let description = container.persistentStoreDescriptions.first
+        description?.shouldMigrateStoreAutomatically = true
+        description?.shouldInferMappingModelAutomatically = true
+
         container.loadPersistentStores { _, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
@@ -193,6 +199,8 @@ class DataService: DataServiceProtocol {
                     // Update properties
                     foodEntryEntity.calories = entry.calories
                     foodEntryEntity.protein = entry.protein ?? 0
+                    foodEntryEntity.setValue(entry.carbs ?? 0, forKey: "carbs")
+                    foodEntryEntity.setValue(entry.fats ?? 0, forKey: "fats")
                     foodEntryEntity.timestamp = entry.timestamp
                     foodEntryEntity.mealType = entry.mealType?.rawValue
                     foodEntryEntity.notes = entry.notes
@@ -321,8 +329,12 @@ class DataService: DataServiceProtocol {
                     dailyNutritionEntity.date = startOfDay
                     dailyNutritionEntity.totalCalories = nutritionToSave.totalCalories
                     dailyNutritionEntity.totalProtein = nutritionToSave.totalProtein
+                    dailyNutritionEntity.setValue(nutritionToSave.totalCarbs, forKey: "totalCarbs")
+                    dailyNutritionEntity.setValue(nutritionToSave.totalFats, forKey: "totalFats")
                     dailyNutritionEntity.calorieTarget = nutritionToSave.calorieTarget
                     dailyNutritionEntity.proteinTarget = nutritionToSave.proteinTarget
+                    dailyNutritionEntity.setValue(nutritionToSave.carbsTarget, forKey: "carbsTarget")
+                    dailyNutritionEntity.setValue(nutritionToSave.fatsTarget, forKey: "fatsTarget")
                     dailyNutritionEntity.caloriesFromExercise = nutritionToSave.caloriesFromExercise
                     dailyNutritionEntity.netCalories = nutritionToSave.netCalories
                     dailyNutritionEntity.setValue(nutritionToSave.waterConsumed, forKey: "waterConsumed")
@@ -374,15 +386,21 @@ class DataService: DataServiceProtocol {
                         // If we have food entries but no daily nutrition record, create one
                         let totalCalories = foodEntries.reduce(0) { $0 + $1.calories }
                         let totalProtein = foodEntries.reduce(0) { $0 + ($1.protein ?? 0) }
-                        
+                        let totalCarbs = foodEntries.reduce(0) { $0 + ($1.carbs ?? 0) }
+                        let totalFats = foodEntries.reduce(0) { $0 + ($1.fats ?? 0) }
+
                         let nutrition = DailyNutrition(
                             id: UUID(),
                             date: startOfDay,
                             totalCalories: totalCalories,
                             totalProtein: totalProtein,
+                            totalCarbs: totalCarbs,
+                            totalFats: totalFats,
                             entries: foodEntries,
                             calorieTarget: 2000, // Default target, will be updated
                             proteinTarget: 100,   // Default target, will be updated
+                            carbsTarget: 200,     // Default target, will be updated
+                            fatsTarget: 65,       // Default target, will be updated
                             caloriesFromExercise: 0,
                             netCalories: totalCalories,
                             waterConsumed: 0 // Default value
@@ -438,6 +456,8 @@ class DataService: DataServiceProtocol {
                     dailyStatsEntity.date = startOfDay
                     dailyStatsEntity.totalCaloriesConsumed = stats.totalCaloriesConsumed
                     dailyStatsEntity.totalProtein = stats.totalProtein
+                    dailyStatsEntity.setValue(stats.totalCarbs, forKey: "totalCarbs")
+                    dailyStatsEntity.setValue(stats.totalFats, forKey: "totalFats")
                     dailyStatsEntity.caloriesFromExercise = stats.caloriesFromExercise
                     dailyStatsEntity.netCalories = stats.netCalories
                     dailyStatsEntity.weightRecorded = stats.weightRecorded ?? 0
@@ -686,11 +706,16 @@ extension DataService {
               let timestamp = entity.timestamp else {
             return nil
         }
-        
+
+        let carbs = entity.value(forKey: "carbs") as? Double
+        let fats = entity.value(forKey: "fats") as? Double
+
         return FoodEntry(
             id: id,
             calories: entity.calories,
             protein: entity.protein == 0 ? nil : entity.protein,
+            carbs: (carbs == 0 || carbs == nil) ? nil : carbs,
+            fats: (fats == 0 || fats == nil) ? nil : fats,
             timestamp: timestamp,
             mealType: entity.mealType != nil ? MealType(rawValue: entity.mealType!) : nil,
             notes: entity.notes
@@ -701,17 +726,19 @@ extension DataService {
         guard let date = entity.date else {
             return nil
         }
-        
+
         var stats = DailyStats(date: date)
         stats.totalCaloriesConsumed = entity.totalCaloriesConsumed
         stats.totalProtein = entity.totalProtein
+        stats.totalCarbs = entity.value(forKey: "totalCarbs") as? Double ?? 0
+        stats.totalFats = entity.value(forKey: "totalFats") as? Double ?? 0
         stats.caloriesFromExercise = entity.caloriesFromExercise
         // bmrCalories is not in Core Data entity, keep default value of 0
         stats.netCalories = entity.netCalories
         stats.weightRecorded = entity.weightRecorded == 0 ? nil : entity.weightRecorded
         stats.workouts = [] // Workouts would need separate handling
         // createdAt and updatedAt are not in Core Data entity, keep default values
-        
+
         return stats
     }
     
@@ -742,27 +769,38 @@ extension DataService {
               let date = entity.date else {
             return nil
         }
-        
+
+        let totalCarbs = entity.value(forKey: "totalCarbs") as? Double ?? 0.0
+        let totalFats = entity.value(forKey: "totalFats") as? Double ?? 0.0
+        let carbsTarget = entity.value(forKey: "carbsTarget") as? Double ?? 0.0
+        let fatsTarget = entity.value(forKey: "fatsTarget") as? Double ?? 0.0
+
         var nutrition = DailyNutrition(
             date: date,
             calorieTarget: entity.calorieTarget,
-            proteinTarget: entity.proteinTarget
+            proteinTarget: entity.proteinTarget,
+            carbsTarget: carbsTarget,
+            fatsTarget: fatsTarget
         )
-        
+
         // Override the generated ID with the stored one
         nutrition = DailyNutrition(
             id: id,
             date: date,
             totalCalories: entity.totalCalories,
             totalProtein: entity.totalProtein,
+            totalCarbs: totalCarbs,
+            totalFats: totalFats,
             entries: entries,
             calorieTarget: entity.calorieTarget,
             proteinTarget: entity.proteinTarget,
+            carbsTarget: carbsTarget,
+            fatsTarget: fatsTarget,
             caloriesFromExercise: entity.caloriesFromExercise,
             netCalories: entity.netCalories,
             waterConsumed: entity.value(forKey: "waterConsumed") as? Double ?? 0.0
         )
-        
+
         return nutrition
     }
 }

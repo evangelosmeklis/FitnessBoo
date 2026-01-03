@@ -136,16 +136,23 @@ struct NutritionDashboardView: View {
     // MARK: - Background
     
     private var backgroundGradient: some View {
-        LinearGradient(
-            colors: [
-                Color(.systemBackground),
-                Color(.systemBackground).opacity(0.8),
-                Color.green.opacity(0.05)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        ZStack {
+            // Navy blue base
+            Color(red: 0.04, green: 0.08, blue: 0.15)
+                .ignoresSafeArea()
+            
+            // Subtle gradient overlays
+            LinearGradient(
+                colors: [
+                    Color.green.opacity(0.05),
+                    Color.clear,
+                    Color.cyan.opacity(0.03)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        }
     }
     
     // MARK: - Daily Progress Section

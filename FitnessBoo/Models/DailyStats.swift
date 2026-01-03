@@ -12,6 +12,8 @@ struct DailyStats: Codable, Identifiable {
     let date: Date
     var totalCaloriesConsumed: Double
     var totalProtein: Double
+    var totalCarbs: Double
+    var totalFats: Double
     var caloriesFromExercise: Double
     var restingCalories: Double
     var netCalories: Double
@@ -19,12 +21,14 @@ struct DailyStats: Codable, Identifiable {
     var workouts: [WorkoutData]
     var createdAt: Date
     var updatedAt: Date
-    
+
     init(date: Date) {
         self.id = UUID()
         self.date = Calendar.current.startOfDay(for: date)
         self.totalCaloriesConsumed = 0
         self.totalProtein = 0
+        self.totalCarbs = 0
+        self.totalFats = 0
         self.caloriesFromExercise = 0
         self.restingCalories = 0
         self.netCalories = 0
@@ -62,6 +66,16 @@ struct DailyStats: Codable, Identifiable {
     
     mutating func updateProtein(_ protein: Double) {
         totalProtein = protein
+        updatedAt = Date()
+    }
+
+    mutating func updateCarbs(_ carbs: Double) {
+        totalCarbs = carbs
+        updatedAt = Date()
+    }
+
+    mutating func updateFats(_ fats: Double) {
+        totalFats = fats
         updatedAt = Date()
     }
     

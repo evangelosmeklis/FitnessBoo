@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import UIKit
 
 @MainActor
 class EnergyViewModel: ObservableObject {
@@ -94,6 +95,24 @@ class EnergyViewModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] energyData in
                 self?.updateEnergyData(resting: energyData.resting, active: energyData.active)
+            }
+            .store(in: &cancellables)
+        
+        // Observe day changes (midnight)
+        NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.refreshEnergyData()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Also observe app becoming active (in case app was in background during midnight)
+        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.refreshEnergyData()
+                }
             }
             .store(in: &cancellables)
     }

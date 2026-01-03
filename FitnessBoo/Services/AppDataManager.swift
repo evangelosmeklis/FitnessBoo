@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 class AppDataManager: ObservableObject {
@@ -178,6 +179,24 @@ class AppDataManager: ObservableObject {
             .sink { [weak self] _ in
                 Task { @MainActor in
                     await self?.loadTodayNutrition()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Observe day changes (midnight) to refresh all data
+        NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshData()
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Also observe app becoming active (in case app was in background during midnight)
+        NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshData()
                 }
             }
             .store(in: &cancellables)

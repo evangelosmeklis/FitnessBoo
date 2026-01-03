@@ -78,8 +78,8 @@ struct SettingsView: View {
 
     private var backgroundGradient: some View {
         ZStack {
-            // Pure black base
-            Color.black
+            // Navy blue base
+            Color(red: 0.04, green: 0.08, blue: 0.15)
                 .ignoresSafeArea()
             
             // Futuristic gradient overlays
@@ -222,21 +222,45 @@ struct SettingsView: View {
 
                 if isEnabled.wrappedValue {
                     Divider()
+                    
+                    // Display current times if any
+                    if !times.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(Array(times.prefix(3).enumerated()), id: \.offset) { _, time in
+                                HStack(spacing: 8) {
+                                    Image(systemName: "clock.fill")
+                                        .foregroundStyle(color)
+                                        .font(.caption2)
+                                    
+                                    Text(time.formatted(date: .omitted, time: .shortened))
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                            }
+                            
+                            if times.count > 3 {
+                                Text("+ \(times.count - 3) more")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.leading, 20)
+                            }
+                        }
+                        
+                        Divider()
+                    }
 
                     Button(action: onConfigureTimes) {
                         HStack {
-                            Image(systemName: "clock")
-                                .foregroundStyle(.secondary)
-                            if times.isEmpty {
-                                Text("Set reminder times")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text("\(times.count) reminder\(times.count == 1 ? "" : "s") set")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+                            Image(systemName: times.isEmpty ? "plus.circle" : "pencil.circle")
+                                .foregroundStyle(color)
+                            
+                            Text(times.isEmpty ? "Add reminder times" : "Manage reminders")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(color)
+                            
                             Spacer()
+                            
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
@@ -527,77 +551,137 @@ struct TimePickerSheet: View {
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 24) {
-                // Add new time
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Add Reminder Time")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
-
-                    DatePicker("Time", selection: $newTime, displayedComponents: .hourAndMinute)
-                        .datePickerStyle(.wheel)
-                        .labelsHidden()
-
-                    Button(action: addTime) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Add new time
+                    VStack(alignment: .leading, spacing: 16) {
                         HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Add Time")
-                                .fontWeight(.semibold)
+                            Image(systemName: "clock.badge.plus")
+                                .foregroundStyle(.cyan)
+                            Text("Add Reminder Time")
+                                .font(.headline)
                         }
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [Color.blue, Color.purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(12)
-                    }
-                }
-                .padding()
 
-                // List of saved times
-                if !times.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Scheduled Times")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
+                        GlassCard(cornerRadius: 16) {
+                            VStack(spacing: 16) {
+                                DatePicker("Time", selection: $newTime, displayedComponents: .hourAndMinute)
+                                    .datePickerStyle(.wheel)
+                                    .labelsHidden()
+
+                                Button(action: addTime) {
+                                    HStack {
+                                        Image(systemName: "plus.circle.fill")
+                                        Text("Add Reminder")
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundStyle(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(Color.cyan)
+                                    .cornerRadius(12)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+
+                    // List of saved times
+                    if !times.isEmpty {
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack {
+                                Image(systemName: "list.bullet.rectangle")
+                                    .foregroundStyle(.green)
+                                Text("Scheduled Reminders (\(times.count))")
+                                    .font(.headline)
+                            }
                             .padding(.horizontal)
 
-                        ScrollView {
-                            LazyVStack(spacing: 8) {
+                            LazyVStack(spacing: 12) {
                                 ForEach(Array(times.enumerated()), id: \.offset) { index, time in
-                                    HStack {
-                                        Image(systemName: "clock.fill")
-                                            .foregroundStyle(.blue)
+                                    GlassCard(cornerRadius: 16) {
+                                        HStack(spacing: 16) {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(Color.cyan.opacity(0.2))
+                                                    .frame(width: 44, height: 44)
+                                                
+                                                Image(systemName: "clock.fill")
+                                                    .foregroundStyle(.cyan)
+                                                    .font(.system(size: 18))
+                                            }
 
-                                        Text(time.formatted(date: .omitted, time: .shortened))
-                                            .font(.subheadline)
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(time.formatted(date: .omitted, time: .shortened))
+                                                    .font(.title3)
+                                                    .fontWeight(.bold)
+                                                
+                                                Text("Daily reminder")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
 
-                                        Spacer()
+                                            Spacer()
 
-                                        Button(action: {
-                                            removeTime(at: index)
-                                        }) {
-                                            Image(systemName: "trash.fill")
-                                                .foregroundStyle(.red)
+                                            Button(action: {
+                                                removeTime(at: index)
+                                            }) {
+                                                ZStack {
+                                                    Circle()
+                                                        .fill(Color.red.opacity(0.15))
+                                                        .frame(width: 36, height: 36)
+                                                    
+                                                    Image(systemName: "trash.fill")
+                                                        .foregroundStyle(.red)
+                                                        .font(.system(size: 14))
+                                                }
+                                            }
                                         }
                                     }
-                                    .padding()
-                                    .background(Color(.systemGray6))
-                                    .cornerRadius(12)
                                 }
                             }
                             .padding(.horizontal)
                         }
+                    } else {
+                        VStack(spacing: 12) {
+                            Image(systemName: "bell.slash")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.secondary)
+                            
+                            Text("No reminders set")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                            
+                            Text("Add your first reminder above")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
                     }
-                }
 
-                Spacer()
+                    Spacer(minLength: 40)
+                }
+                .padding(.vertical)
             }
+            .background(
+                ZStack {
+                    // Navy blue base
+                    Color(red: 0.04, green: 0.08, blue: 0.15)
+                        .ignoresSafeArea()
+                    
+                    // Subtle gradient overlays
+                    LinearGradient(
+                        colors: [
+                            Color.cyan.opacity(0.05),
+                            Color.clear,
+                            Color.blue.opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .ignoresSafeArea()
+                }
+            )
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -605,6 +689,7 @@ struct TimePickerSheet: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundStyle(.cyan)
                 }
             }
         }
@@ -623,6 +708,8 @@ struct TimePickerSheet: View {
 
         if !alreadyExists {
             times.append(newTime)
+            // Sort times chronologically
+            times.sort()
         }
     }
 

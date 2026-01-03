@@ -68,6 +68,9 @@ enum ConflictResolutionStrategy {
 protocol HealthKitServiceProtocol {
     func requestAuthorization() async throws
     func saveDietaryEnergy(calories: Double, date: Date) async throws
+    func saveDietaryProtein(protein: Double, date: Date) async throws
+    func saveDietaryCarbs(carbs: Double, date: Date) async throws
+    func saveDietaryFats(fats: Double, date: Date) async throws
     func saveWater(milliliters: Double, date: Date) async throws
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData]
     func fetchActiveEnergy(for date: Date) async throws -> Double
@@ -264,14 +267,47 @@ class HealthKitService: HealthKitServiceProtocol, ObservableObject {
         try await saveSample(energySample)
     }
     
+    func saveDietaryProtein(protein: Double, date: Date) async throws {
+        guard let proteinType = HKQuantityType.quantityType(forIdentifier: .dietaryProtein) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+
+        let proteinQuantity = HKQuantity(unit: .gram(), doubleValue: protein)
+        let proteinSample = HKQuantitySample(type: proteinType, quantity: proteinQuantity, start: date, end: date)
+
+        try await saveSample(proteinSample)
+    }
+
+    func saveDietaryCarbs(carbs: Double, date: Date) async throws {
+        guard let carbsType = HKQuantityType.quantityType(forIdentifier: .dietaryCarbohydrates) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+
+        let carbsQuantity = HKQuantity(unit: .gram(), doubleValue: carbs)
+        let carbsSample = HKQuantitySample(type: carbsType, quantity: carbsQuantity, start: date, end: date)
+
+        try await saveSample(carbsSample)
+    }
+
+    func saveDietaryFats(fats: Double, date: Date) async throws {
+        guard let fatsType = HKQuantityType.quantityType(forIdentifier: .dietaryFatTotal) else {
+            throw HealthKitError.dataTypeNotAvailable
+        }
+
+        let fatsQuantity = HKQuantity(unit: .gram(), doubleValue: fats)
+        let fatsSample = HKQuantitySample(type: fatsType, quantity: fatsQuantity, start: date, end: date)
+
+        try await saveSample(fatsSample)
+    }
+
     func saveWater(milliliters: Double, date: Date) async throws {
         guard let waterType = HKQuantityType.quantityType(forIdentifier: .dietaryWater) else {
             throw HealthKitError.dataTypeNotAvailable
         }
-        
+
         let waterQuantity = HKQuantity(unit: .literUnit(with: .milli), doubleValue: milliliters)
         let waterSample = HKQuantitySample(type: waterType, quantity: waterQuantity, start: date, end: date)
-        
+
         try await saveSample(waterSample)
     }
     

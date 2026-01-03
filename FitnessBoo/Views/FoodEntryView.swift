@@ -16,6 +16,8 @@ struct FoodEntryView: View {
 
     @State private var calories: String = ""
     @State private var protein: String = ""
+    @State private var carbs: String = ""
+    @State private var fats: String = ""
     @State private var mealName: String = ""
     @State private var selectedMealType: MealType = .snack
     @State private var showingValidationError = false
@@ -39,6 +41,8 @@ struct FoodEntryView: View {
         if let entry = existingEntry {
             _calories = State(initialValue: String(format: "%.0f", entry.calories))
             _protein = State(initialValue: entry.protein != nil ? String(format: "%.1f", entry.protein!) : "")
+            _carbs = State(initialValue: entry.carbs != nil ? String(format: "%.1f", entry.carbs!) : "")
+            _fats = State(initialValue: entry.fats != nil ? String(format: "%.1f", entry.fats!) : "")
             _selectedMealType = State(initialValue: entry.mealType ?? MealType.suggestedMealType())
             _mealName = State(initialValue: entry.notes ?? "")  // Use notes as meal name
         } else {
@@ -90,19 +94,19 @@ struct FoodEntryView: View {
                                 }
                                 
                                 Divider()
-                                
+
                                 // Protein input (optional)
                                 HStack {
                                     Image(systemName: "leaf.fill")
                                         .font(.title2)
                                         .foregroundStyle(.green)
                                         .frame(width: 24, height: 24)
-                                    
+
                                     Text("Protein")
                                         .font(.subheadline)
-                                    
+
                                     Spacer()
-                                    
+
                                     TextField("Optional", text: $protein)
                                         .keyboardType(.decimalPad)
                                         .environment(\.locale, Locale(identifier: "en_US_POSIX"))
@@ -119,7 +123,79 @@ struct FoodEntryView: View {
                                                 protein = correctedValue
                                             }
                                         }
-                                    
+
+                                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Divider()
+
+                                // Carbs input (optional)
+                                HStack {
+                                    Image(systemName: "carrot.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.yellow)
+                                        .frame(width: 24, height: 24)
+
+                                    Text("Carbs")
+                                        .font(.subheadline)
+
+                                    Spacer()
+
+                                    TextField("Optional", text: $carbs)
+                                        .keyboardType(.decimalPad)
+                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 80)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                        .onChange(of: carbs) { newValue in
+                                            // Replace comma with period for decimal input
+                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                            if correctedValue != newValue {
+                                                carbs = correctedValue
+                                            }
+                                        }
+
+                                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Divider()
+
+                                // Fats input (optional)
+                                HStack {
+                                    Image(systemName: "drop.fill")
+                                        .font(.title2)
+                                        .foregroundStyle(.pink)
+                                        .frame(width: 24, height: 24)
+
+                                    Text("Fats")
+                                        .font(.subheadline)
+
+                                    Spacer()
+
+                                    TextField("Optional", text: $fats)
+                                        .keyboardType(.decimalPad)
+                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                                        .multilineTextAlignment(.trailing)
+                                        .frame(width: 80)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                        .onChange(of: fats) { newValue in
+                                            // Replace comma with period for decimal input
+                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                            if correctedValue != newValue {
+                                                fats = correctedValue
+                                            }
+                                        }
+
                                     Text(currentUnitSystem == .metric ? "g" : "oz")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -235,8 +311,8 @@ struct FoodEntryView: View {
             }
             .background(
                 ZStack {
-                    // Pure black base
-                    Color.black
+                    // Navy blue base
+                    Color(red: 0.04, green: 0.08, blue: 0.15)
                         .ignoresSafeArea()
                     
                     // Subtle gradient overlays for depth
@@ -297,8 +373,10 @@ struct FoodEntryView: View {
             do {
                 let caloriesValue = Double(calories) ?? 0
                 let proteinValue = protein.isEmpty ? nil : Double(protein)
+                let carbsValue = carbs.isEmpty ? nil : Double(carbs)
+                let fatsValue = fats.isEmpty ? nil : Double(fats)
                 let trimmedMealName = mealName.trimmingCharacters(in: .whitespacesAndNewlines)
-                
+
                 let entry: FoodEntry
                 if let existingEntry = existingEntry {
                     // Update existing entry
@@ -306,6 +384,8 @@ struct FoodEntryView: View {
                         id: existingEntry.id,
                         calories: caloriesValue,
                         protein: proteinValue,
+                        carbs: carbsValue,
+                        fats: fatsValue,
                         timestamp: existingEntry.timestamp,
                         mealType: selectedMealType,
                         notes: trimmedMealName.isEmpty ? nil : trimmedMealName
@@ -316,6 +396,8 @@ struct FoodEntryView: View {
                     entry = FoodEntry(
                         calories: caloriesValue,
                         protein: proteinValue,
+                        carbs: carbsValue,
+                        fats: fatsValue,
                         mealType: selectedMealType,
                         notes: trimmedMealName.isEmpty ? nil : trimmedMealName
                     )
@@ -445,6 +527,9 @@ struct FoodEntryView: View {
         } else {
             protein = ""
         }
+        // Note: CachedMeal doesn't have carbs and fats yet, so leave them empty
+        carbs = ""
+        fats = ""
         mealName = updatedMeal.name
         saveMeal = true  // Automatically enable save for meals from cache
 
@@ -481,14 +566,32 @@ struct FoodEntryView: View {
                 return false
             }
         }
-        
+
+        // Validate carbs if provided
+        if !carbs.isEmpty {
+            guard let carbsValue = Double(carbs), carbsValue >= 0, carbsValue <= 1000 else {
+                validationErrorMessage = "Carbs must be between 0 and 1,000 grams"
+                showingValidationError = true
+                return false
+            }
+        }
+
+        // Validate fats if provided
+        if !fats.isEmpty {
+            guard let fatsValue = Double(fats), fatsValue >= 0, fatsValue <= 500 else {
+                validationErrorMessage = "Fats must be between 0 and 500 grams"
+                showingValidationError = true
+                return false
+            }
+        }
+
         // Validate meal name length
         if mealName.count > 100 {
             validationErrorMessage = "Meal name cannot exceed 100 characters"
             showingValidationError = true
             return false
         }
-        
+
         return true
     }
 }

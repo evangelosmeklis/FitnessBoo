@@ -129,8 +129,8 @@ struct GoalSettingView: View {
     
     private var backgroundGradient: some View {
         ZStack {
-            // Pure black base
-            Color.black
+            // Navy blue base
+            Color(red: 0.04, green: 0.08, blue: 0.15)
                 .ignoresSafeArea()
             
             // Futuristic gradient overlays
@@ -893,6 +893,9 @@ extension Optional where Wrapped == String {
 class MockHealthKitService: HealthKitServiceProtocol {
     func requestAuthorization() async throws { }
     func saveDietaryEnergy(calories: Double, date: Date) async throws { }
+    func saveDietaryProtein(protein: Double, date: Date) async throws { }
+    func saveDietaryCarbs(carbs: Double, date: Date) async throws { }
+    func saveDietaryFats(fats: Double, date: Date) async throws { }
     func saveWater(milliliters: Double, date: Date) async throws { }
     func fetchWorkouts(from startDate: Date, to endDate: Date) async throws -> [WorkoutData] { return [] }
     func fetchActiveEnergy(for date: Date) async throws -> Double { return 0 }

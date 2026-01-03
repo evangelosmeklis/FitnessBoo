@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import HealthKit
 
 @MainActor
 class NutritionViewModel: ObservableObject {
@@ -20,10 +21,16 @@ class NutritionViewModel: ObservableObject {
     // Real-time calculations
     @Published var totalCalories: Double = 0
     @Published var totalProtein: Double = 0
+    @Published var totalCarbs: Double = 0
+    @Published var totalFats: Double = 0
     @Published var remainingCalories: Double = 0
     @Published var remainingProtein: Double = 0
+    @Published var remainingCarbs: Double = 0
+    @Published var remainingFats: Double = 0
     @Published var calorieProgress: Double = 0
     @Published var proteinProgress: Double = 0
+    @Published var carbsProgress: Double = 0
+    @Published var fatsProgress: Double = 0
     @Published var totalWater: Double = 0
     @Published var waterProgress: Double = 0
     @Published var dailyWaterTarget: Double = 2000
@@ -104,8 +111,10 @@ class NutritionViewModel: ObservableObject {
                 var updatedNutrition = existingNutrition
                 updatedNutrition.calorieTarget = targets.calories
                 updatedNutrition.proteinTarget = targets.protein
+                updatedNutrition.carbsTarget = targets.carbs
+                updatedNutrition.fatsTarget = targets.fats
                 dailyNutrition = updatedNutrition
-                
+
                 // Save the updated targets
                 try await dataService.saveDailyNutrition(updatedNutrition)
             } else {
@@ -113,7 +122,9 @@ class NutritionViewModel: ObservableObject {
                 var newNutrition = DailyNutrition(
                     date: date,
                     calorieTarget: targets.calories,
-                    proteinTarget: targets.protein
+                    proteinTarget: targets.protein,
+                    carbsTarget: targets.carbs,
+                    fatsTarget: targets.fats
                 )
                 
                 // Load any existing food entries for this date
@@ -159,6 +170,16 @@ class NutritionViewModel: ObservableObject {
             
             // Save to HealthKit
             try await healthKitService.saveDietaryEnergy(calories: entry.calories, date: entry.timestamp)
+            // Save macros to HealthKit
+            if let protein = entry.protein {
+                try? await healthKitService.saveDietaryProtein(protein: protein, date: entry.timestamp)
+            }
+            if let carbs = entry.carbs {
+                try? await healthKitService.saveDietaryCarbs(carbs: carbs, date: entry.timestamp)
+            }
+            if let fats = entry.fats {
+                try? await healthKitService.saveDietaryFats(fats: fats, date: entry.timestamp)
+            }
             
             // Post notification for calorie balance update
             NotificationCenter.default.post(name: NSNotification.Name("FoodEntryAdded"), object: nil)
@@ -267,35 +288,47 @@ class NutritionViewModel: ObservableObject {
             resetCalculations()
             return
         }
-        
+
         totalCalories = nutrition.totalCalories
         totalProtein = nutrition.totalProtein
+        totalCarbs = nutrition.totalCarbs
+        totalFats = nutrition.totalFats
         remainingCalories = nutrition.remainingCalories
         remainingProtein = nutrition.remainingProtein
+        remainingCarbs = nutrition.remainingCarbs
+        remainingFats = nutrition.remainingFats
         calorieProgress = nutrition.calorieProgress
         proteinProgress = nutrition.proteinProgress
+        carbsProgress = nutrition.carbsProgress
+        fatsProgress = nutrition.fatsProgress
         totalWater = nutrition.waterConsumed
         waterProgress = dailyWaterTarget > 0 ? min(totalWater / dailyWaterTarget, 1.0) : 0
-        
+
         // Update goal-based deficit/surplus
         Task {
             await updateGoalBasedDeficitSurplus()
         }
     }
-    
+
     private func resetCalculations() {
         totalCalories = 0
         totalProtein = 0
+        totalCarbs = 0
+        totalFats = 0
         remainingCalories = 0
         remainingProtein = 0
+        remainingCarbs = 0
+        remainingFats = 0
         calorieProgress = 0
         proteinProgress = 0
+        carbsProgress = 0
+        fatsProgress = 0
         totalWater = 0
         waterProgress = 0
         goalBasedDeficitSurplus = 0
     }
     
-    private func calculateDailyTargets() async throws -> (calories: Double, protein: Double, water: Double) {
+    private func calculateDailyTargets() async throws -> (calories: Double, protein: Double, carbs: Double, fats: Double, water: Double) {
         // Get active goal
         guard let goal = try await dataService.fetchActiveGoal() else {
             print("No active goal found, using HealthKit data")
@@ -303,14 +336,21 @@ class NutritionViewModel: ObservableObject {
             let totalEnergy = try await healthKitService.fetchTotalEnergyExpended(for: Date())
             let currentWeight = try await healthKitService.fetchWeight() ?? 70.0 // Default fallback
             let proteinTarget = currentWeight * 1.2 // Basic maintenance protein
-            print("Using HealthKit energy: \(totalEnergy), protein: \(proteinTarget)")
-            return (calories: totalEnergy > 0 ? totalEnergy : 2000, protein: proteinTarget, water: 2000)
+            // Standard macro distribution: 40% carbs, 30% protein, 30% fat
+            let carbsTarget = (totalEnergy > 0 ? totalEnergy : 2000) * 0.4 / 4 // 4 cal/g for carbs
+            let fatsTarget = (totalEnergy > 0 ? totalEnergy : 2000) * 0.3 / 9 // 9 cal/g for fats
+            print("Using HealthKit energy: \(totalEnergy), protein: \(proteinTarget), carbs: \(carbsTarget), fats: \(fatsTarget)")
+            return (calories: totalEnergy > 0 ? totalEnergy : 2000, protein: proteinTarget, carbs: carbsTarget, fats: fatsTarget, water: 2000)
         }
-        
-        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget), water=\(goal.dailyWaterTarget)")
-        return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget, water: goal.dailyWaterTarget)
+
+        // Calculate carbs and fats from goal if not already set
+        let carbsTarget = calculationService.calculateCarbGoal(for: nil)
+        let fatsTarget = calculationService.calculateFatGoal(for: nil)
+
+        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget), carbs=\(carbsTarget), fats=\(fatsTarget), water=\(goal.dailyWaterTarget)")
+        return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget, carbs: carbsTarget, fats: fatsTarget, water: goal.dailyWaterTarget)
     }
-    
+
     private func updateGoalBasedDeficitSurplus() async {
         guard let nutrition = dailyNutrition else { 
             goalBasedDeficitSurplus = 0
@@ -376,7 +416,15 @@ extension NutritionViewModel {
     func proteinByMealType() -> [MealType: Double] {
         dailyNutrition?.proteinByMealType() ?? [:]
     }
-    
+
+    func carbsByMealType() -> [MealType: Double] {
+        dailyNutrition?.carbsByMealType() ?? [:]
+    }
+
+    func fatsByMealType() -> [MealType: Double] {
+        dailyNutrition?.fatsByMealType() ?? [:]
+    }
+
     var dailySummary: DailyNutritionSummary? {
         dailyNutrition?.summary
     }
