@@ -20,6 +20,8 @@ struct GoalSettingView: View {
     @FocusState private var isCurrentWeightFocused: Bool
     @FocusState private var isWaterTargetFocused: Bool
     @FocusState private var isProteinTargetFocused: Bool
+    @FocusState private var isCarbsTargetFocused: Bool
+    @FocusState private var isFatsTargetFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     // Debounced weight update
@@ -53,6 +55,10 @@ struct GoalSettingView: View {
 
                     dailyProteinTargetSection
 
+                    dailyCarbsTargetSection
+
+                    dailyFatsTargetSection
+
                     dailyCalorieAdjustmentSection
 
                     if !viewModel.errorMessage.isNilOrEmpty {
@@ -80,6 +86,8 @@ struct GoalSettingView: View {
                 isCurrentWeightFocused = false
                 isWaterTargetFocused = false
                 isProteinTargetFocused = false
+                isCarbsTargetFocused = false
+                isFatsTargetFocused = false
             }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -105,6 +113,12 @@ struct GoalSettingView: View {
                 handleGoalParameterChange()
             }
             .onChange(of: viewModel.dailyProteinTarget) { _ in
+                handleGoalParameterChange()
+            }
+            .onChange(of: viewModel.dailyCarbsTarget) { _ in
+                handleGoalParameterChange()
+            }
+            .onChange(of: viewModel.dailyFatsTarget) { _ in
                 handleGoalParameterChange()
             }
             .onChange(of: viewModel.currentWeight) { newWeight in
@@ -231,6 +245,12 @@ struct GoalSettingView: View {
         }
         if isProteinTargetFocused {
             isProteinTargetFocused = false
+        }
+        if isCarbsTargetFocused {
+            isCarbsTargetFocused = false
+        }
+        if isFatsTargetFocused {
+            isFatsTargetFocused = false
         }
     }
     
@@ -483,19 +503,19 @@ struct GoalSettingView: View {
             Text("Daily Protein Goal")
                 .font(.headline)
                 .fontWeight(.semibold)
-            
+
             GlassCard {
                 HStack {
                     Image(systemName: "leaf.fill")
                         .font(.title2)
                         .foregroundStyle(.green)
                         .frame(width: 24, height: 24)
-                    
+
                     Text("Daily Protein Target")
                         .font(.subheadline)
-                    
+
                     Spacer()
-                    
+
                     TextField("Enter amount", text: $viewModel.dailyProteinTarget)
                         .keyboardType(.decimalPad)
                         .environment(\.locale, Locale(identifier: "en_US_POSIX"))
@@ -510,14 +530,122 @@ struct GoalSettingView: View {
                             }
                             validateProteinTarget(correctedValue)
                         }
-                    
+
                     Text(currentUnitSystem == .metric ? "g" : "oz")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                
+
                 // Show validation message if needed
                 if let validationMessage = getProteinValidationMessage() {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        Text(validationMessage)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+
+    private var dailyCarbsTargetSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Carbs Goal")
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            GlassCard {
+                HStack {
+                    Image(systemName: "carrot.fill")
+                        .font(.title2)
+                        .foregroundStyle(.yellow)
+                        .frame(width: 24, height: 24)
+
+                    Text("Daily Carbs Target")
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    TextField("Enter amount", text: $viewModel.dailyCarbsTarget)
+                        .keyboardType(.decimalPad)
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isCarbsTargetFocused)
+                        .onChange(of: viewModel.dailyCarbsTarget) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.dailyCarbsTarget = correctedValue
+                            }
+                            validateCarbsTarget(correctedValue)
+                        }
+
+                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Show validation message if needed
+                if let validationMessage = getCarbsValidationMessage() {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        Text(validationMessage)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+
+    private var dailyFatsTargetSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Fats Goal")
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            GlassCard {
+                HStack {
+                    Image(systemName: "drop.fill")
+                        .font(.title2)
+                        .foregroundStyle(.pink)
+                        .frame(width: 24, height: 24)
+
+                    Text("Daily Fats Target")
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    TextField("Enter amount", text: $viewModel.dailyFatsTarget)
+                        .keyboardType(.decimalPad)
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isFatsTargetFocused)
+                        .onChange(of: viewModel.dailyFatsTarget) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.dailyFatsTarget = correctedValue
+                            }
+                            validateFatsTarget(correctedValue)
+                        }
+
+                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Show validation message if needed
+                if let validationMessage = getFatsValidationMessage() {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
@@ -848,23 +976,23 @@ struct GoalSettingView: View {
     
     private func getProteinValidationMessage() -> String? {
         guard !viewModel.dailyProteinTarget.isEmpty, let proteinValue = Double(viewModel.dailyProteinTarget) else { return nil }
-        
+
         // Convert to grams if using imperial
         let proteinInGrams = currentUnitSystem == .metric ? proteinValue : proteinValue * 28.35
-        
+
         guard let user = user else { return nil }
-        
+
         // Protein recommendations:
         // Sedentary: 0.8-1.2g/kg body weight
-        // Active: 1.2-2.0g/kg body weight  
+        // Active: 1.2-2.0g/kg body weight
         // Very active/athletes: 1.6-2.2g/kg body weight
         // Maximum safe intake: ~3.0g/kg body weight
-        
+
         let bodyWeight = user.weight
         let minProtein = bodyWeight * 0.8
         let maxSafeProtein = bodyWeight * 3.0
         let recommendedMax = bodyWeight * 2.2
-        
+
         if proteinInGrams < minProtein {
             return "Protein goal is below recommended minimum (\(Int(minProtein))g)"
         } else if proteinInGrams > maxSafeProtein {
@@ -872,7 +1000,89 @@ struct GoalSettingView: View {
         } else if proteinInGrams > recommendedMax {
             return "High protein goal. Ensure adequate hydration and kidney health"
         }
-        
+
+        return nil
+    }
+
+    private func validateCarbsTarget(_ value: String) {
+        guard !value.isEmpty, let carbsValue = Double(value) else { return }
+
+        // Convert to grams if using imperial
+        let carbsInGrams = currentUnitSystem == .metric ? carbsValue : carbsValue * 28.35
+
+        // Save to goal model
+        if let user = user {
+            Task {
+                await viewModel.updateCarbsTarget(carbsInGrams)
+            }
+        }
+    }
+
+    private func getCarbsValidationMessage() -> String? {
+        guard !viewModel.dailyCarbsTarget.isEmpty, let carbsValue = Double(viewModel.dailyCarbsTarget) else { return nil }
+
+        // Convert to grams if using imperial
+        let carbsInGrams = currentUnitSystem == .metric ? carbsValue : carbsValue * 28.35
+
+        // Carbs recommendations:
+        // Minimum: 130g/day (for brain function)
+        // Low-carb: 50-150g/day
+        // Moderate: 150-300g/day
+        // High-carb: 300-500g/day
+        // Maximum reasonable: ~600g/day
+
+        if carbsInGrams < 50 {
+            return "Very low carb goal. Ensure this aligns with your dietary plan"
+        } else if carbsInGrams > 600 {
+            return "Carbs goal seems very high. Consider consulting a nutritionist"
+        } else if carbsInGrams < 130 {
+            return "Low carb goal. Monitor energy levels and ensure adequate fiber intake"
+        }
+
+        return nil
+    }
+
+    private func validateFatsTarget(_ value: String) {
+        guard !value.isEmpty, let fatsValue = Double(value) else { return }
+
+        // Convert to grams if using imperial
+        let fatsInGrams = currentUnitSystem == .metric ? fatsValue : fatsValue * 28.35
+
+        // Save to goal model
+        if let user = user {
+            Task {
+                await viewModel.updateFatsTarget(fatsInGrams)
+            }
+        }
+    }
+
+    private func getFatsValidationMessage() -> String? {
+        guard !viewModel.dailyFatsTarget.isEmpty, let fatsValue = Double(viewModel.dailyFatsTarget) else { return nil }
+
+        // Convert to grams if using imperial
+        let fatsInGrams = currentUnitSystem == .metric ? fatsValue : fatsValue * 28.35
+
+        guard let user = user else { return nil }
+
+        // Fats recommendations:
+        // Minimum: 20-35% of calories (or ~0.5-1g/kg body weight)
+        // Low-fat: 20-30g/day
+        // Moderate: 50-80g/day
+        // High-fat/keto: 100-200g/day
+        // Maximum reasonable: ~250g/day
+
+        let bodyWeight = user.weight
+        let minFats = bodyWeight * 0.5
+        let recommendedMin = 30.0
+
+        if fatsInGrams < recommendedMin {
+            return "Low fat goal. Ensure adequate essential fatty acids intake"
+        } else if fatsInGrams < minFats {
+            return "Fat goal is below recommended minimum (\(Int(minFats))g for your weight)"
+        } else if fatsInGrams > 250 {
+            return "Fats goal seems very high. Ensure this aligns with your dietary plan"
+        }
+
         return nil
     }
     

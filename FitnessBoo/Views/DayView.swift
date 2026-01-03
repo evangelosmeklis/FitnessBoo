@@ -11,7 +11,6 @@ struct DayView: View {
     @StateObject private var nutritionViewModel: NutritionViewModel
     private let healthKitService: HealthKitServiceProtocol
     @State private var editingEntry: FoodEntry?
-    @State private var showingEditSheet = false
     @State private var currentUnitSystem: UnitSystem = .metric
 
     init(dataService: DataServiceProtocol, calculationService: CalculationServiceProtocol, healthKitService: HealthKitServiceProtocol) {
@@ -51,15 +50,8 @@ struct DayView: View {
                     currentUnitSystem = unitSystem
                 }
             }
-            .sheet(isPresented: $showingEditSheet) {
-                // Always provide the entry if the sheet is showing
-                // This fixes the blank popup bug
-                if showingEditSheet, let entry = editingEntry {
-                    FoodEntryView(nutritionViewModel: nutritionViewModel, existingEntry: entry)
-                        .onDisappear {
-                            editingEntry = nil
-                        }
-                }
+            .sheet(item: $editingEntry) { entry in
+                FoodEntryView(nutritionViewModel: nutritionViewModel, existingEntry: entry)
             }
         }
     }
@@ -377,7 +369,6 @@ struct DayView: View {
                             entry: entry,
                             onEdit: {
                                 editingEntry = entry
-                                showingEditSheet = true
                             },
                             onDelete: {
                                 Task {

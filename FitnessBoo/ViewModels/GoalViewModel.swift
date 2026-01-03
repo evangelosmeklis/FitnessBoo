@@ -17,6 +17,8 @@ class GoalViewModel: ObservableObject {
     @Published var weeklyWeightChangeGoal: Double = -0.5
     @Published var dailyWaterTarget: String = "2000"
     @Published var dailyProteinTarget: String = ""
+    @Published var dailyCarbsTarget: String = ""
+    @Published var dailyFatsTarget: String = ""
     @Published var currentGoal: FitnessGoal?
     @Published var activeGoals: [FitnessGoal] = []
     @Published var isLoading = false
@@ -289,10 +291,16 @@ class GoalViewModel: ObservableObject {
                 weeklyWeightChangeGoal = goal.weeklyWeightChangeGoal
                 dailyWaterTarget = String(goal.dailyWaterTarget)
                 
-                // Initialize protein target with unit conversion
+                // Initialize macro targets with unit conversion
                 let currentUnitSystem = UnitSystem(rawValue: UserDefaults.standard.string(forKey: "UnitSystem") ?? "metric") ?? .metric
                 let displayProtein = currentUnitSystem == .metric ? goal.dailyProteinTarget : goal.dailyProteinTarget / 28.35
                 dailyProteinTarget = String(format: "%.0f", displayProtein)
+
+                let displayCarbs = currentUnitSystem == .metric ? goal.dailyCarbsTarget : goal.dailyCarbsTarget / 28.35
+                dailyCarbsTarget = String(format: "%.0f", displayCarbs)
+
+                let displayFats = currentUnitSystem == .metric ? goal.dailyFatsTarget : goal.dailyFatsTarget / 28.35
+                dailyFatsTarget = String(format: "%.0f", displayFats)
             }
             
         } catch {
@@ -388,7 +396,7 @@ class GoalViewModel: ObservableObject {
     
     func updateProteinTarget(_ proteinInGrams: Double) async {
         print("🥩 Updating protein target to: \(proteinInGrams)g")
-        
+
         // Update the display value based on current unit system
         let dataService = DataService.shared
         if let user = try? await dataService.fetchUser() {
@@ -396,24 +404,90 @@ class GoalViewModel: ObservableObject {
             let displayValue = currentUnitSystem == .metric ? proteinInGrams : proteinInGrams / 28.35
             dailyProteinTarget = String(format: "%.0f", displayValue)
         }
-        
+
         // Update current goal if it exists
         if var goal = currentGoal {
             goal.dailyProteinTarget = proteinInGrams
-            
+
             do {
                 let user = try await dataService.fetchUser()
                 if let user = user {
                     try await dataService.saveGoal(goal, for: user)
                     currentGoal = goal
                     print("✅ Protein target updated successfully")
-                    
+
                     // Notify other components
                     NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
                 }
             } catch {
                 print("❌ Failed to update protein target: \(error)")
                 errorMessage = "Failed to update protein target: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
+    }
+
+    func updateCarbsTarget(_ carbsInGrams: Double) async {
+        print("🥕 Updating carbs target to: \(carbsInGrams)g")
+
+        // Update the display value based on current unit system
+        let dataService = DataService.shared
+        if let user = try? await dataService.fetchUser() {
+            let currentUnitSystem = UnitSystem(rawValue: UserDefaults.standard.string(forKey: "UnitSystem") ?? "metric") ?? .metric
+            let displayValue = currentUnitSystem == .metric ? carbsInGrams : carbsInGrams / 28.35
+            dailyCarbsTarget = String(format: "%.0f", displayValue)
+        }
+
+        // Update current goal if it exists
+        if var goal = currentGoal {
+            goal.dailyCarbsTarget = carbsInGrams
+
+            do {
+                let user = try await dataService.fetchUser()
+                if let user = user {
+                    try await dataService.saveGoal(goal, for: user)
+                    currentGoal = goal
+                    print("✅ Carbs target updated successfully")
+
+                    // Notify other components
+                    NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+                }
+            } catch {
+                print("❌ Failed to update carbs target: \(error)")
+                errorMessage = "Failed to update carbs target: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
+    }
+
+    func updateFatsTarget(_ fatsInGrams: Double) async {
+        print("🥑 Updating fats target to: \(fatsInGrams)g")
+
+        // Update the display value based on current unit system
+        let dataService = DataService.shared
+        if let user = try? await dataService.fetchUser() {
+            let currentUnitSystem = UnitSystem(rawValue: UserDefaults.standard.string(forKey: "UnitSystem") ?? "metric") ?? .metric
+            let displayValue = currentUnitSystem == .metric ? fatsInGrams : fatsInGrams / 28.35
+            dailyFatsTarget = String(format: "%.0f", displayValue)
+        }
+
+        // Update current goal if it exists
+        if var goal = currentGoal {
+            goal.dailyFatsTarget = fatsInGrams
+
+            do {
+                let user = try await dataService.fetchUser()
+                if let user = user {
+                    try await dataService.saveGoal(goal, for: user)
+                    currentGoal = goal
+                    print("✅ Fats target updated successfully")
+
+                    // Notify other components
+                    NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+                }
+            } catch {
+                print("❌ Failed to update fats target: \(error)")
+                errorMessage = "Failed to update fats target: \(error.localizedDescription)"
                 showingError = true
             }
         }

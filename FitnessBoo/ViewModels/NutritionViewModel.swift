@@ -343,12 +343,8 @@ class NutritionViewModel: ObservableObject {
             return (calories: totalEnergy > 0 ? totalEnergy : 2000, protein: proteinTarget, carbs: carbsTarget, fats: fatsTarget, water: 2000)
         }
 
-        // Calculate carbs and fats from goal if not already set
-        let carbsTarget = calculationService.calculateCarbGoal(for: nil)
-        let fatsTarget = calculationService.calculateFatGoal(for: nil)
-
-        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget), carbs=\(carbsTarget), fats=\(fatsTarget), water=\(goal.dailyWaterTarget)")
-        return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget, carbs: carbsTarget, fats: fatsTarget, water: goal.dailyWaterTarget)
+        print("Using goal-based targets: calories=\(goal.dailyCalorieTarget), protein=\(goal.dailyProteinTarget), carbs=\(goal.dailyCarbsTarget), fats=\(goal.dailyFatsTarget), water=\(goal.dailyWaterTarget)")
+        return (calories: goal.dailyCalorieTarget, protein: goal.dailyProteinTarget, carbs: goal.dailyCarbsTarget, fats: goal.dailyFatsTarget, water: goal.dailyWaterTarget)
     }
 
     private func updateGoalBasedDeficitSurplus() async {

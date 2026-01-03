@@ -15,11 +15,13 @@ struct FitnessGoal: Codable, Identifiable {
     var weeklyWeightChangeGoal: Double
     var dailyCalorieTarget: Double
     var dailyProteinTarget: Double
+    var dailyCarbsTarget: Double
+    var dailyFatsTarget: Double
     var dailyWaterTarget: Double
     var isActive: Bool
     var createdAt: Date
     var updatedAt: Date
-    
+
     init(type: GoalType, targetWeight: Double? = nil, targetDate: Date? = nil, weeklyWeightChangeGoal: Double = 0, dailyWaterTarget: Double = 2000) {
         self.id = UUID()
         self.type = type
@@ -28,6 +30,8 @@ struct FitnessGoal: Codable, Identifiable {
         self.weeklyWeightChangeGoal = weeklyWeightChangeGoal
         self.dailyCalorieTarget = 0 // Will be calculated
         self.dailyProteinTarget = 0 // Will be calculated
+        self.dailyCarbsTarget = 0 // Will be calculated
+        self.dailyFatsTarget = 0 // Will be calculated
         self.dailyWaterTarget = dailyWaterTarget
         self.isActive = true
         self.createdAt = Date()
@@ -67,7 +71,28 @@ struct FitnessGoal: Codable, Identifiable {
         case .maintainWeight:
             dailyProteinTarget = currentWeight * 1.2 // Maintenance protein
         }
-        
+
+        // Calculate carbs and fats targets based on remaining calories
+        // Protein provides 4 calories per gram
+        let proteinCalories = dailyProteinTarget * 4
+        let remainingCalories = dailyCalorieTarget - proteinCalories
+
+        // Standard macro split: 40-50% carbs, 25-35% fats from remaining calories
+        switch type {
+        case .loseWeight:
+            // Lower carb for weight loss: 35% carbs, 30% fats (rest from protein)
+            dailyCarbsTarget = (remainingCalories * 0.45) / 4 // 4 cal/g for carbs
+            dailyFatsTarget = (remainingCalories * 0.55) / 9 // 9 cal/g for fats
+        case .gainWeight:
+            // Higher carb for weight gain: 50% carbs, 25% fats
+            dailyCarbsTarget = (remainingCalories * 0.55) / 4
+            dailyFatsTarget = (remainingCalories * 0.45) / 9
+        case .maintainWeight:
+            // Balanced: 45% carbs, 30% fats
+            dailyCarbsTarget = (remainingCalories * 0.50) / 4
+            dailyFatsTarget = (remainingCalories * 0.50) / 9
+        }
+
         updatedAt = Date()
     }
     
