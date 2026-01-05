@@ -60,18 +60,18 @@ struct DayView: View {
 
     private var backgroundGradient: some View {
         ZStack {
-            // Navy blue base
-            Color(red: 0.04, green: 0.08, blue: 0.15)
+            // Deep Premium Background
+            Color(red: 0.02, green: 0.05, blue: 0.1)
                 .ignoresSafeArea()
             
-            // Futuristic gradient overlays
+            // Premium Gradient Overlays
             LinearGradient(
                 colors: [
-                    Color.green.opacity(0.05),
+                    Color.premiumMint.opacity(0.1),
                     Color.clear,
-                    Color.cyan.opacity(0.04),
+                    Color.premiumIndigo.opacity(0.1),
                     Color.clear,
-                    Color.blue.opacity(0.03)
+                    Color.blue.opacity(0.05)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -120,95 +120,83 @@ struct DayView: View {
                 // Top row: Calories and Protein
                 HStack(spacing: 12) {
                     // Calories consumed
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.cyan.opacity(0.1))
-                            .blur(radius: 15)
+                    GlassCard(cornerRadius: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.premiumCoral.opacity(0.15))
+                                        .frame(width: 32, height: 32)
 
-                        GlassCard(cornerRadius: 20) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.cyan.opacity(0.2))
-                                            .frame(width: 32, height: 32)
-
-                                        Image(systemName: "bolt.fill")
-                                            .foregroundStyle(.cyan)
-                                            .font(.caption)
-                                    }
-
-                                    Spacer()
+                                    Image(systemName: "bolt.fill")
+                                        .foregroundStyle(Color.premiumCoral)
+                                        .font(.caption)
                                 }
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("CALORIES")
-                                        .font(.system(size: 9))
-                                        .fontWeight(.bold)
+                                Spacer()
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CALORIES")
+                                    .font(.system(size: 10))
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                    .tracking(0.5)
+
+                                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                    Text("\(Int(nutritionViewModel.totalCalories))")
+                                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Color.premiumCoral)
+
+                                    Text("kcal")
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
-                                        .tracking(0.8)
-
-                                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                        Text("\(Int(nutritionViewModel.totalCalories))")
-                                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                                            .foregroundStyle(.cyan)
-
-                                        Text("kcal")
-                                            .font(.system(size: 8))
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    Text("of \(Int(nutritionViewModel.dailyNutrition?.calorieTarget ?? 0))")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.tertiary)
                                 }
+
+                                Text("of \(Int(nutritionViewModel.dailyNutrition?.calorieTarget ?? 0))")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                     }
 
                     // Protein consumed
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.green.opacity(0.1))
-                            .blur(radius: 15)
+                    GlassCard(cornerRadius: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.premiumMint.opacity(0.15))
+                                        .frame(width: 32, height: 32)
 
-                        GlassCard(cornerRadius: 20) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.green.opacity(0.2))
-                                            .frame(width: 32, height: 32)
-
-                                        Image(systemName: "leaf.fill")
-                                            .foregroundStyle(.green)
-                                            .font(.caption)
-                                    }
-
-                                    Spacer()
+                                    Image(systemName: "leaf.fill")
+                                        .foregroundStyle(Color.premiumMint)
+                                        .font(.caption)
                                 }
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("PROTEIN")
-                                        .font(.system(size: 9))
-                                        .fontWeight(.bold)
+                                Spacer()
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("PROTEIN")
+                                    .font(.system(size: 10))
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                    .tracking(0.5)
+
+                                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                    Text("\(Int(nutritionViewModel.totalProtein))")
+                                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Color.premiumMint)
+
+                                    Text("g")
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
-                                        .tracking(0.8)
-
-                                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                        Text("\(Int(nutritionViewModel.totalProtein))")
-                                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                                            .foregroundStyle(.green)
-
-                                        Text("g")
-                                            .font(.system(size: 8))
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    Text("of \(Int(nutritionViewModel.dailyNutrition?.proteinTarget ?? 0))g")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.tertiary)
                                 }
+
+                                Text("of \(Int(nutritionViewModel.dailyNutrition?.proteinTarget ?? 0))g")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                     }
@@ -217,109 +205,97 @@ struct DayView: View {
                 // Bottom row: Carbs and Fats
                 HStack(spacing: 12) {
                     // Carbs consumed
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.yellow.opacity(0.1))
-                            .blur(radius: 15)
-
-                        GlassCard(cornerRadius: 20) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.yellow.opacity(0.2))
-                                            .frame(width: 32, height: 32)
-
-                                        Image(systemName: "carrot.fill")
-                                            .foregroundStyle(.yellow)
-                                            .font(.caption)
-                                    }
-
-                                    Spacer()
+                    GlassCard(cornerRadius: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.premiumSky.opacity(0.15))
+                                        .frame(width: 32, height: 32)
+                                    
+                                    Image(systemName: "carrot.fill")
+                                        .foregroundStyle(Color.premiumSky)
+                                        .font(.caption)
                                 }
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("CARBS")
-                                        .font(.system(size: 9))
-                                        .fontWeight(.bold)
+                                
+                                Spacer()
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("CARBS")
+                                    .font(.system(size: 10))
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                    .tracking(0.5)
+                                
+                                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                    Text("\(Int(nutritionViewModel.totalCarbs))")
+                                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Color.premiumSky)
+                                    
+                                    Text("g")
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
-                                        .tracking(0.8)
-
-                                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                        Text("\(Int(nutritionViewModel.totalCarbs))")
-                                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                                            .foregroundStyle(.yellow)
-
-                                        Text("g")
-                                            .font(.system(size: 8))
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    Text("of \(Int(nutritionViewModel.dailyNutrition?.carbsTarget ?? 0))g")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.tertiary)
                                 }
+                                
+                                Text("of \(Int(nutritionViewModel.dailyNutrition?.carbsTarget ?? 0))g")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.tertiary)
                             }
                         }
                     }
 
                     // Fats consumed
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.pink.opacity(0.1))
-                            .blur(radius: 15)
-
-                        GlassCard(cornerRadius: 20) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.pink.opacity(0.2))
-                                            .frame(width: 32, height: 32)
-
-                                        Image(systemName: "drop.fill")
-                                            .foregroundStyle(.pink)
-                                            .font(.caption)
-                                    }
-
-                                    Spacer()
+                    GlassCard(cornerRadius: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.premiumIndigo.opacity(0.15))
+                                        .frame(width: 32, height: 32)
+                                    
+                                    Image(systemName: "drop.fill")
+                                        .foregroundStyle(Color.premiumIndigo)
+                                        .font(.caption)
                                 }
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("FATS")
-                                        .font(.system(size: 9))
-                                        .fontWeight(.bold)
+                                
+                                Spacer()
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("FATS")
+                                    .font(.system(size: 10))
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                    .tracking(0.5)
+                                
+                                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                    Text("\(Int(nutritionViewModel.totalFats))")
+                                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                        .foregroundStyle(Color.premiumIndigo)
+                                    
+                                    Text("g")
+                                        .font(.system(size: 10))
                                         .foregroundStyle(.secondary)
-                                        .tracking(0.8)
-
-                                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                                        Text("\(Int(nutritionViewModel.totalFats))")
-                                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                                            .foregroundStyle(.pink)
-
-                                        Text("g")
+                                }
+                                
+                                HStack(spacing: 3) {
+                                    Text("of \(Int(nutritionViewModel.dailyNutrition?.fatsTarget ?? 0))g")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.tertiary)
+                                    
+                                    if nutritionViewModel.totalSaturatedFats > 0 {
+                                        Text("•")
                                             .font(.system(size: 8))
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    HStack(spacing: 3) {
-                                        Text("of \(Int(nutritionViewModel.dailyNutrition?.fatsTarget ?? 0))g")
-                                            .font(.system(size: 9))
                                             .foregroundStyle(.tertiary)
                                         
-                                        if nutritionViewModel.totalSaturatedFats > 0 {
-                                            Text("•")
-                                                .font(.system(size: 8))
-                                                .foregroundStyle(.tertiary)
-                                            
-                                            Image(systemName: "drop.triangle.fill")
-                                                .font(.system(size: 7))
-                                                .foregroundStyle(.red.opacity(0.8))
-                                            
-                                            Text("\(Int(nutritionViewModel.totalSaturatedFats))g sat")
-                                                .font(.system(size: 8))
-                                                .foregroundStyle(.red.opacity(0.9))
-                                        }
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .font(.system(size: 7))
+                                            .foregroundStyle(Color.premiumCoral.opacity(0.8))
+                                        
+                                        Text("\(Int(nutritionViewModel.totalSaturatedFats))g sat")
+                                            .font(.system(size: 8))
+                                            .foregroundStyle(Color.premiumCoral.opacity(0.9))
                                     }
                                 }
                             }
@@ -425,12 +401,12 @@ struct DayView: View {
                             // Water amount
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text(String(format: "%.1f", nutritionViewModel.totalWater / 1000))
-                                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                                    .foregroundStyle(Color.cyan)
+                                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Color.premiumSky)
                                 
                                 Text("L")
                                     .font(.title2)
-                                    .fontWeight(.semibold)
+                                    .fontWeight(.medium)
                                     .foregroundStyle(.secondary)
                             }
 
@@ -446,19 +422,19 @@ struct DayView: View {
                                 GeometryReader { geometry in
                                     ZStack(alignment: .leading) {
                                         Capsule()
-                                            .fill(Color.cyan.opacity(0.15))
+                                            .fill(Color.premiumSky.opacity(0.15))
                                             .frame(height: 8)
                                         
                                         Capsule()
                                             .fill(
                                                 LinearGradient(
-                                                    colors: [Color.cyan, Color.blue],
+                                                    colors: [Color.premiumSky, Color.premiumBlue],
                                                     startPoint: .leading,
                                                     endPoint: .trailing
                                                 )
                                             )
                                             .frame(width: geometry.size.width * min(nutritionViewModel.waterProgress, 1.0), height: 8)
-                                            .shadow(color: Color.cyan.opacity(0.5), radius: 4, x: 0, y: 0)
+                                            .shadow(color: Color.premiumSky.opacity(0.3), radius: 4, x: 0, y: 0)
                                     }
                                 }
                                 .frame(height: 8)
@@ -475,25 +451,25 @@ struct DayView: View {
                         ZStack {
                             // Background ring
                             Circle()
-                                .stroke(Color.cyan.opacity(0.15), lineWidth: 16)
-                                .frame(width: 110, height: 110)
+                                .stroke(Color.premiumSky.opacity(0.15), lineWidth: 12)
+                                .frame(width: 100, height: 100)
 
                             // Progress ring with glow
                             Circle()
                                 .trim(from: 0, to: min(nutritionViewModel.waterProgress, 1.0))
                                 .stroke(
-                                    Color.cyan,
-                                    style: StrokeStyle(lineWidth: 16, lineCap: .round)
+                                    Color.premiumSky,
+                                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
                                 )
-                                .frame(width: 110, height: 110)
+                                .frame(width: 100, height: 100)
                                 .rotationEffect(.degrees(-90))
-                                .shadow(color: Color.cyan.opacity(0.5), radius: 10, x: 0, y: 0)
+                                .shadow(color: Color.premiumSky.opacity(0.3), radius: 8, x: 0, y: 0)
                                 .animation(.easeInOut(duration: 0.8), value: nutritionViewModel.waterProgress)
 
                             // Center icon
                             Image(systemName: "drop.fill")
                                 .font(.system(size: 32))
-                                .foregroundStyle(Color.cyan)
+                                .foregroundStyle(Color.premiumSky)
                         }
                     }
                 }
@@ -798,10 +774,10 @@ struct EnhancedFoodRow: View {
 
     private func mealColor(for type: MealType) -> Color {
         switch type {
-        case .breakfast: return Color(red: 0.0, green: 0.9, blue: 0.7) // Turquoise
-        case .lunch: return colorScheme == .dark ? Color.neonGreen : .green
-        case .dinner: return .cyan
-        case .snack: return Color(red: 0.4, green: 0.7, blue: 1.0) // Sky blue
+        case .breakfast: return Color.premiumTeal
+        case .lunch: return Color.premiumMint
+        case .dinner: return Color.premiumIndigo
+        case .snack: return Color.premiumSky
         }
     }
 }

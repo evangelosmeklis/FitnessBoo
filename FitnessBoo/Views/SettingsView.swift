@@ -78,18 +78,18 @@ struct SettingsView: View {
 
     private var backgroundGradient: some View {
         ZStack {
-            // Navy blue base
-            Color(red: 0.04, green: 0.08, blue: 0.15)
+            // Deep Premium Background
+            Color(red: 0.02, green: 0.05, blue: 0.1)
                 .ignoresSafeArea()
             
-            // Futuristic gradient overlays
+            // Premium Gradient Overlays
             LinearGradient(
                 colors: [
-                    Color.blue.opacity(0.05),
+                    Color.premiumBlue.opacity(0.1),
                     Color.clear,
-                    Color.cyan.opacity(0.04),
+                    Color.premiumTeal.opacity(0.1),
                     Color.clear,
-                    Color.green.opacity(0.02)
+                    Color.premiumMint.opacity(0.05)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -120,11 +120,11 @@ struct SettingsView: View {
                         HStack(spacing: 12) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.blue.opacity(0.15))
+                                    .fill(Color.premiumBlue.opacity(0.15))
                                     .frame(width: 40, height: 40)
 
                                 Image(systemName: "bell.badge.fill")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color.premiumBlue)
                             }
 
                             Text("Enable Notifications")
@@ -142,7 +142,7 @@ struct SettingsView: View {
                     notificationToggle(
                         title: "Calorie Progress",
                         icon: "bolt.fill",
-                        color: .cyan,
+                        color: Color.premiumCoral,
                         isEnabled: $calorieNotificationsEnabled,
                         times: calorieNotificationTimes,
                         onToggle: { enabled in
@@ -157,7 +157,7 @@ struct SettingsView: View {
                     notificationToggle(
                         title: "Water Reminders",
                         icon: "drop.fill",
-                        color: Color(red: 0.0, green: 0.8, blue: 0.8),
+                        color: Color.premiumSky,
                         isEnabled: $waterNotificationsEnabled,
                         times: waterNotificationTimes,
                         onToggle: { enabled in
@@ -172,7 +172,7 @@ struct SettingsView: View {
                     notificationToggle(
                         title: "Protein Check",
                         icon: "leaf.fill",
-                        color: .green,
+                        color: Color.premiumMint,
                         isEnabled: $proteinNotificationsEnabled,
                         times: proteinNotificationTimes,
                         onToggle: { enabled in
@@ -289,12 +289,12 @@ struct SettingsView: View {
                         HStack(spacing: 14) {
                             ZStack {
                                 Circle()
-                                    .fill(Color.green.opacity(0.15))
+                                    .fill(Color.premiumMint.opacity(0.15))
                                     .frame(width: 40, height: 40)
 
                                 Image(systemName: unitSystem == .metric ? "123.circle.fill" : "textformat.abc")
                                     .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(Color.premiumMint)
                             }
 
                             VStack(alignment: .leading, spacing: 4) {
@@ -311,7 +311,7 @@ struct SettingsView: View {
 
                             if selectedUnitSystem == unitSystem {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(Color.premiumBlue)
                                     .font(.title3)
                             }
                         }
@@ -557,7 +557,7 @@ struct TimePickerSheet: View {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Image(systemName: "clock.badge.plus")
-                                .foregroundStyle(.cyan)
+                                .foregroundStyle(Color.premiumSky)
                             Text("Add Reminder Time")
                                 .font(.headline)
                         }
@@ -574,10 +574,10 @@ struct TimePickerSheet: View {
                                         Text("Add Reminder")
                                             .fontWeight(.semibold)
                                     }
-                                    .foregroundStyle(.black)
+                                    .foregroundStyle(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 12)
-                                    .background(Color.cyan)
+                                    .background(Color.premiumIndigo)
                                     .cornerRadius(12)
                                 }
                             }
@@ -590,7 +590,7 @@ struct TimePickerSheet: View {
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
                                 Image(systemName: "list.bullet.rectangle")
-                                    .foregroundStyle(.green)
+                                    .foregroundStyle(Color.premiumMint)
                                 Text("Scheduled Reminders (\(times.count))")
                                     .font(.headline)
                             }
@@ -602,11 +602,11 @@ struct TimePickerSheet: View {
                                         HStack(spacing: 16) {
                                             ZStack {
                                                 Circle()
-                                                    .fill(Color.cyan.opacity(0.2))
+                                                    .fill(Color.premiumSky.opacity(0.2))
                                                     .frame(width: 44, height: 44)
                                                 
                                                 Image(systemName: "clock.fill")
-                                                    .foregroundStyle(.cyan)
+                                                    .foregroundStyle(Color.premiumSky)
                                                     .font(.system(size: 18))
                                             }
 
@@ -666,15 +666,15 @@ struct TimePickerSheet: View {
             .background(
                 ZStack {
                     // Navy blue base
-                    Color(red: 0.04, green: 0.08, blue: 0.15)
+                    Color(red: 0.02, green: 0.05, blue: 0.1)
                         .ignoresSafeArea()
                     
                     // Subtle gradient overlays
                     LinearGradient(
                         colors: [
-                            Color.cyan.opacity(0.05),
+                            Color.premiumSky.opacity(0.05),
                             Color.clear,
-                            Color.blue.opacity(0.03)
+                            Color.premiumIndigo.opacity(0.03)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -689,7 +689,7 @@ struct TimePickerSheet: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(Color.premiumSky)
                 }
             }
         }

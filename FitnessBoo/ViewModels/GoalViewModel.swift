@@ -19,6 +19,7 @@ class GoalViewModel: ObservableObject {
     @Published var dailyProteinTarget: String = ""
     @Published var dailyCarbsTarget: String = ""
     @Published var dailyFatsTarget: String = ""
+    @Published var dailySaturatedFatsTarget: String = ""
     @Published var currentGoal: FitnessGoal?
     @Published var activeGoals: [FitnessGoal] = []
     @Published var isLoading = false
@@ -301,6 +302,9 @@ class GoalViewModel: ObservableObject {
 
                 let displayFats = currentUnitSystem == .metric ? goal.dailyFatsTarget : goal.dailyFatsTarget / 28.35
                 dailyFatsTarget = String(format: "%.0f", displayFats)
+
+                let displaySaturatedFats = currentUnitSystem == .metric ? goal.dailySaturatedFatsTarget : goal.dailySaturatedFatsTarget / 28.35
+                dailySaturatedFatsTarget = String(format: "%.0f", displaySaturatedFats)
             }
             
         } catch {
@@ -488,6 +492,39 @@ class GoalViewModel: ObservableObject {
             } catch {
                 print("❌ Failed to update fats target: \(error)")
                 errorMessage = "Failed to update fats target: \(error.localizedDescription)"
+                showingError = true
+            }
+        }
+    }
+
+    func updateSaturatedFatsTarget(_ saturatedFatsInGrams: Double) async {
+        print("🔴 Updating saturated fats target to: \(saturatedFatsInGrams)g")
+
+        // Update the display value based on current unit system
+        let dataService = DataService.shared
+        if let user = try? await dataService.fetchUser() {
+            let currentUnitSystem = UnitSystem(rawValue: UserDefaults.standard.string(forKey: "UnitSystem") ?? "metric") ?? .metric
+            let displayValue = currentUnitSystem == .metric ? saturatedFatsInGrams : saturatedFatsInGrams / 28.35
+            dailySaturatedFatsTarget = String(format: "%.0f", displayValue)
+        }
+
+        // Update current goal if it exists
+        if var goal = currentGoal {
+            goal.dailySaturatedFatsTarget = saturatedFatsInGrams
+
+            do {
+                let user = try await dataService.fetchUser()
+                if let user = user {
+                    try await dataService.saveGoal(goal, for: user)
+                    currentGoal = goal
+                    print("✅ Saturated fats target updated successfully")
+
+                    // Notify other components
+                    NotificationCenter.default.post(name: NSNotification.Name("GoalUpdated"), object: nil)
+                }
+            } catch {
+                print("❌ Failed to update saturated fats target: \(error)")
+                errorMessage = "Failed to update saturated fats target: \(error.localizedDescription)"
                 showingError = true
             }
         }

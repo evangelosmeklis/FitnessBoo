@@ -66,7 +66,7 @@ struct NutritionDashboardView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 // Floating Action Button with Glass Effect
-                GlassButton("Add Food", icon: "plus", style: .blue) {
+                GlassButton("Add Food", icon: "plus", style: .primary) {
                     showingAddFood = true
                 }
                 .padding(.trailing, 20)
@@ -388,7 +388,7 @@ struct NutritionDashboardView: View {
 
                     Divider()
 
-                    GlassButton("Log Water", icon: "drop.fill", style: .blue) {
+                    GlassButton("Log Water", icon: "drop.fill", style: .primary) {
                         showingWaterOptions = true
                     }
                 }

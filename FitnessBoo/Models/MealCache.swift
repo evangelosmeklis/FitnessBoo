@@ -12,21 +12,30 @@ struct CachedMeal: Codable, Identifiable, Hashable {
     let name: String
     let calories: Double
     let protein: Double?
+    let carbs: Double?
+    let fats: Double?
+    let saturatedFats: Double?
     let lastUsed: Date
 
-    init(name: String, calories: Double, protein: Double? = nil) {
+    init(name: String, calories: Double, protein: Double? = nil, carbs: Double? = nil, fats: Double? = nil, saturatedFats: Double? = nil) {
         self.id = UUID()
         self.name = name
         self.calories = calories
         self.protein = protein
+        self.carbs = carbs
+        self.fats = fats
+        self.saturatedFats = saturatedFats
         self.lastUsed = Date()
     }
 
-    init(id: UUID, name: String, calories: Double, protein: Double?, lastUsed: Date) {
+    init(id: UUID, name: String, calories: Double, protein: Double?, carbs: Double?, fats: Double?, saturatedFats: Double?, lastUsed: Date) {
         self.id = id
         self.name = name
         self.calories = calories
         self.protein = protein
+        self.carbs = carbs
+        self.fats = fats
+        self.saturatedFats = saturatedFats
         self.lastUsed = lastUsed
     }
 
@@ -36,6 +45,9 @@ struct CachedMeal: Codable, Identifiable, Hashable {
             name: self.name,
             calories: self.calories,
             protein: self.protein,
+            carbs: self.carbs,
+            fats: self.fats,
+            saturatedFats: self.saturatedFats,
             lastUsed: Date()
         )
     }
@@ -51,7 +63,7 @@ class MealCacheService: ObservableObject {
         loadCachedMeals()
     }
 
-    func addMeal(name: String, calories: Double, protein: Double?) {
+    func addMeal(name: String, calories: Double, protein: Double?, carbs: Double? = nil, fats: Double? = nil, saturatedFats: Double? = nil) {
         guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -65,12 +77,15 @@ class MealCacheService: ObservableObject {
                 name: trimmedName,
                 calories: calories,
                 protein: protein,
+                carbs: carbs,
+                fats: fats,
+                saturatedFats: saturatedFats,
                 lastUsed: Date()
             )
             cachedMeals[existingIndex] = updatedMeal
         } else {
             // Add new meal
-            let newMeal = CachedMeal(name: trimmedName, calories: calories, protein: protein)
+            let newMeal = CachedMeal(name: trimmedName, calories: calories, protein: protein, carbs: carbs, fats: fats, saturatedFats: saturatedFats)
             cachedMeals.insert(newMeal, at: 0)
         }
 

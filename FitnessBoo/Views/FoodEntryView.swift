@@ -62,287 +62,19 @@ struct FoodEntryView: View {
                     }
 
                     // Food Details Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Food Details")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        GlassCard {
-                            VStack(spacing: 16) {
-                                // Calories input
-                                HStack {
-                                    Image(systemName: "flame.fill")
-                                        .font(.title2)
-                                        .foregroundStyle(.orange)
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text("Calories")
-                                        .font(.subheadline)
-                                    
-                                    Spacer()
-                                    
-                                    TextField("0", text: $calories)
-                                        .keyboardType(.numberPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(width: 80)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
-                                    
-                                    Text("kcal")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                                Divider()
-
-                                // Protein input (optional)
-                                HStack {
-                                    Image(systemName: "leaf.fill")
-                                        .font(.title2)
-                                        .foregroundStyle(.green)
-                                        .frame(width: 24, height: 24)
-
-                                    Text("Protein")
-                                        .font(.subheadline)
-
-                                    Spacer()
-
-                                    TextField("Optional", text: $protein)
-                                        .keyboardType(.decimalPad)
-                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(width: 80)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
-                                        .onChange(of: protein) { newValue in
-                                            // Replace comma with period for decimal input
-                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
-                                            if correctedValue != newValue {
-                                                protein = correctedValue
-                                            }
-                                        }
-
-                                    Text(currentUnitSystem == .metric ? "g" : "oz")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Divider()
-
-                                // Carbs input (optional)
-                                HStack {
-                                    Image(systemName: "carrot.fill")
-                                        .font(.title2)
-                                        .foregroundStyle(.yellow)
-                                        .frame(width: 24, height: 24)
-
-                                    Text("Carbs")
-                                        .font(.subheadline)
-
-                                    Spacer()
-
-                                    TextField("Optional", text: $carbs)
-                                        .keyboardType(.decimalPad)
-                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(width: 80)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
-                                        .onChange(of: carbs) { newValue in
-                                            // Replace comma with period for decimal input
-                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
-                                            if correctedValue != newValue {
-                                                carbs = correctedValue
-                                            }
-                                        }
-
-                                    Text(currentUnitSystem == .metric ? "g" : "oz")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Divider()
-
-                                // Fats input (optional)
-                                HStack {
-                                    Image(systemName: "drop.fill")
-                                        .font(.title2)
-                                        .foregroundStyle(.pink)
-                                        .frame(width: 24, height: 24)
-
-                                    Text("Fats")
-                                        .font(.subheadline)
-
-                                    Spacer()
-
-                                    TextField("Optional", text: $fats)
-                                        .keyboardType(.decimalPad)
-                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(width: 80)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
-                                        .onChange(of: fats) { newValue in
-                                            // Replace comma with period for decimal input
-                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
-                                            if correctedValue != newValue {
-                                                fats = correctedValue
-                                            }
-                                        }
-
-                                    Text(currentUnitSystem == .metric ? "g" : "oz")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Divider()
-
-                                // Saturated Fats input (optional, subcategory of fats)
-                                HStack {
-                                    Image(systemName: "drop.triangle.fill")
-                                        .font(.title2)
-                                        .foregroundStyle(.red)
-                                        .frame(width: 24, height: 24)
-
-                                    Text("Sat. Fats")
-                                        .font(.subheadline)
-
-                                    Spacer()
-
-                                    TextField("Optional", text: $saturatedFats)
-                                        .keyboardType(.decimalPad)
-                                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(width: 80)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
-                                        .onChange(of: saturatedFats) { newValue in
-                                            // Replace comma with period for decimal input
-                                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
-                                            if correctedValue != newValue {
-                                                saturatedFats = correctedValue
-                                            }
-                                        }
-
-                                    Text(currentUnitSystem == .metric ? "g" : "oz")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Divider()
-
-                                // Meal name input
-                                HStack {
-                                    Image(systemName: "tag.fill")
-                                        .font(.title2)
-                                        .foregroundStyle(.blue)
-                                        .frame(width: 24, height: 24)
-
-                                    Text("Meal Name")
-                                        .font(.subheadline)
-
-                                    Spacer()
-
-                                    TextField("e.g., Coffee, Chicken Salad", text: $mealName)
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(maxWidth: 150)
-                                }
-                            }
-                        }
-                    }
+                    foodDetailsSection
                     
                     // Meal Type Section
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Meal Type")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                        
-                        GlassCard {
-                            VStack(spacing: 12) {
-                                ForEach(MealType.allCases, id: \.self) { mealType in
-                                    HStack {
-                                        Image(systemName: mealType.icon)
-                                            .font(.title2)
-                                            .foregroundStyle(selectedMealType == mealType ? .blue : .secondary)
-                                            .frame(width: 24, height: 24)
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(mealType.displayName)
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        if selectedMealType == mealType {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundStyle(.blue)
-                                                .font(.title2)
-                                        }
-                                    }
-                                    .padding(.vertical, 8)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture {
-                                        selectedMealType = mealType
-                                    }
-                                    
-                                    if mealType != MealType.allCases.last {
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    mealTypeSelectionSection
                     
                     // Save Meal Toggle Section
                     if !isEditing && !mealName.isEmpty {
-                        VStack(alignment: .leading, spacing: 16) {
-                            GlassCard {
-                                Toggle(isOn: $saveMeal) {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "bookmark.fill")
-                                            .font(.title3)
-                                            .foregroundStyle(.blue)
-                                            .frame(width: 24, height: 24)
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("Save for later")
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                            
-                                            Text("Quick add '\(mealName)' in the future")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
+                        saveMealSection
                     }
                     
                     // Delete Button for Editing
                     if isEditing {
-                        GlassCard {
-                            Button("Delete Entry") {
-                                deleteEntry()
-                            }
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                        }
+                        deleteButtonSection
                     }
                 }
                 .padding()
@@ -381,7 +113,7 @@ struct FoodEntryView: View {
                         isEditing ? "Update" : "Add",
                         icon: isEditing ? "checkmark.circle.fill" : "plus.circle.fill",
                         isLoading: isLoading,
-                        style: .blue
+                        style: .primary
                     ) {
                         saveEntry()
                     }
@@ -447,7 +179,7 @@ struct FoodEntryView: View {
 
                 // Cache the meal only if user wants to save it and it has a name
                 if saveMeal && !trimmedMealName.isEmpty {
-                    mealCacheService.addMeal(name: trimmedMealName, calories: caloriesValue, protein: proteinValue)
+                    mealCacheService.addMeal(name: trimmedMealName, calories: caloriesValue, protein: proteinValue, carbs: carbsValue, fats: fatsValue, saturatedFats: saturatedFatsValue)
                 }
 
                 await MainActor.run {
@@ -464,6 +196,292 @@ struct FoodEntryView: View {
                     showingValidationError = true
                 }
             }
+        }
+    }
+
+    // MARK: - Extracted Sections to Fix Compiler Timeout
+
+    private var foodDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Food Details")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                VStack(spacing: 16) {
+                    // Calories input
+                    HStack {
+                        Image(systemName: "flame.fill")
+                            .font(.title2)
+                            .foregroundStyle(.orange)
+                            .frame(width: 24, height: 24)
+                        
+                        Text("Calories")
+                            .font(.subheadline)
+                        
+                        Spacer()
+                        
+                        TextField("0", text: $calories)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                        
+                        Text("kcal")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Divider()
+
+                    // Protein input (optional)
+                    HStack {
+                        Image(systemName: "leaf.fill")
+                            .font(.title2)
+                            .foregroundStyle(.green)
+                            .frame(width: 24, height: 24)
+
+                        Text("Protein")
+                            .font(.subheadline)
+
+                        Spacer()
+
+                        TextField("Optional", text: $protein)
+                            .keyboardType(.decimalPad)
+                            .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .onChange(of: protein) { newValue in
+                                // Replace comma with period for decimal input
+                                let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                if correctedValue != newValue {
+                                    protein = correctedValue
+                                }
+                            }
+
+                        Text(currentUnitSystem == .metric ? "g" : "oz")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    // Carbs input (optional)
+                    HStack {
+                        Image(systemName: "carrot.fill")
+                            .font(.title2)
+                            .foregroundStyle(.yellow)
+                            .frame(width: 24, height: 24)
+
+                        Text("Carbs")
+                            .font(.subheadline)
+
+                        Spacer()
+
+                        TextField("Optional", text: $carbs)
+                            .keyboardType(.decimalPad)
+                            .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .onChange(of: carbs) { newValue in
+                                // Replace comma with period for decimal input
+                                let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                if correctedValue != newValue {
+                                    carbs = correctedValue
+                                }
+                            }
+
+                        Text(currentUnitSystem == .metric ? "g" : "oz")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    // Fats input (optional)
+                    HStack {
+                        Image(systemName: "drop.fill")
+                            .font(.title2)
+                            .foregroundStyle(.pink)
+                            .frame(width: 24, height: 24)
+
+                        Text("Fats")
+                            .font(.subheadline)
+
+                        Spacer()
+
+                        TextField("Optional", text: $fats)
+                            .keyboardType(.decimalPad)
+                            .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .onChange(of: fats) { newValue in
+                                // Replace comma with period for decimal input
+                                let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                if correctedValue != newValue {
+                                    fats = correctedValue
+                                }
+                            }
+
+                        Text(currentUnitSystem == .metric ? "g" : "oz")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    // Saturated Fats input (optional, subcategory of fats)
+                    HStack {
+                        Image(systemName: "drop.triangle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.red)
+                            .frame(width: 24, height: 24)
+
+                        Text("Sat. Fats")
+                            .font(.subheadline)
+
+                        Spacer()
+
+                        TextField("Optional", text: $saturatedFats)
+                            .keyboardType(.decimalPad)
+                            .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 80)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                            .onChange(of: saturatedFats) { newValue in
+                                // Replace comma with period for decimal input
+                                let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                                if correctedValue != newValue {
+                                    saturatedFats = correctedValue
+                                }
+                            }
+
+                        Text(currentUnitSystem == .metric ? "g" : "oz")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    // Meal name input
+                    HStack {
+                        Image(systemName: "tag.fill")
+                            .font(.title2)
+                            .foregroundStyle(.blue)
+                            .frame(width: 24, height: 24)
+
+                        Text("Meal Name")
+                            .font(.subheadline)
+
+                        Spacer()
+
+                        TextField("e.g., Coffee, Chicken Salad", text: $mealName)
+                            .multilineTextAlignment(.trailing)
+                            .frame(maxWidth: 150)
+                    }
+                }
+            }
+        }
+    }
+
+    private var mealTypeSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Meal Type")
+                .font(.headline)
+                .fontWeight(.semibold)
+            
+            GlassCard {
+                VStack(spacing: 12) {
+                    ForEach(MealType.allCases, id: \.self) { mealType in
+                        HStack {
+                            Image(systemName: mealType.icon)
+                                .font(.title2)
+                                .foregroundStyle(selectedMealType == mealType ? .blue : .secondary)
+                                .frame(width: 24, height: 24)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(mealType.displayName)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                            
+                            Spacer()
+                            
+                            if selectedMealType == mealType {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.blue)
+                                    .font(.title2)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedMealType = mealType
+                        }
+                        
+                        if mealType != MealType.allCases.last {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private var saveMealSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            GlassCard {
+                Toggle(isOn: $saveMeal) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bookmark.fill")
+                            .font(.title3)
+                            .foregroundStyle(.blue)
+                            .frame(width: 24, height: 24)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Save for later")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            Text("Quick add '\(mealName)' in the future")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        }
+    }
+    
+    private var deleteButtonSection: some View {
+        GlassCard {
+            Button("Delete Entry") {
+                deleteEntry()
+            }
+            .font(.subheadline)
+            .fontWeight(.medium)
+            .foregroundColor(.red)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         }
     }
 
@@ -568,9 +586,21 @@ struct FoodEntryView: View {
         } else {
             protein = ""
         }
-        // Note: CachedMeal doesn't have carbs and fats yet, so leave them empty
-        carbs = ""
-        fats = ""
+        if let carbsValue = updatedMeal.carbs {
+            carbs = String(format: "%.1f", carbsValue)
+        } else {
+            carbs = ""
+        }
+        if let fatsValue = updatedMeal.fats {
+            fats = String(format: "%.1f", fatsValue)
+        } else {
+            fats = ""
+        }
+        if let saturatedFatsValue = updatedMeal.saturatedFats {
+            saturatedFats = String(format: "%.1f", saturatedFatsValue)
+        } else {
+            saturatedFats = ""
+        }
         mealName = updatedMeal.name
         saveMeal = true  // Automatically enable save for meals from cache
 

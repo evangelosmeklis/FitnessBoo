@@ -22,6 +22,7 @@ struct GoalSettingView: View {
     @FocusState private var isProteinTargetFocused: Bool
     @FocusState private var isCarbsTargetFocused: Bool
     @FocusState private var isFatsTargetFocused: Bool
+    @FocusState private var isSaturatedFatsTargetFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     // Debounced weight update
@@ -59,6 +60,8 @@ struct GoalSettingView: View {
 
                     dailyFatsTargetSection
 
+                    dailySaturatedFatsTargetSection
+
                     dailyCalorieAdjustmentSection
 
                     if !viewModel.errorMessage.isNilOrEmpty {
@@ -88,6 +91,7 @@ struct GoalSettingView: View {
                 isProteinTargetFocused = false
                 isCarbsTargetFocused = false
                 isFatsTargetFocused = false
+                isSaturatedFatsTargetFocused = false
             }
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
@@ -121,6 +125,9 @@ struct GoalSettingView: View {
             .onChange(of: viewModel.dailyFatsTarget) { _ in
                 handleGoalParameterChange()
             }
+            .onChange(of: viewModel.dailySaturatedFatsTarget) { _ in
+                handleGoalParameterChange()
+            }
             .onChange(of: viewModel.currentWeight) { newWeight in
                 handleWeightChange(newWeight)
             }
@@ -143,18 +150,18 @@ struct GoalSettingView: View {
     
     private var backgroundGradient: some View {
         ZStack {
-            // Navy blue base
-            Color(red: 0.04, green: 0.08, blue: 0.15)
+            // Deep Premium Background
+            Color(red: 0.02, green: 0.05, blue: 0.1)
                 .ignoresSafeArea()
             
-            // Futuristic gradient overlays
+            // Premium Gradient Overlays
             LinearGradient(
                 colors: [
-                    Color.cyan.opacity(0.05),
+                    Color.premiumTeal.opacity(0.05),
                     Color.clear,
-                    Color.blue.opacity(0.04),
+                    Color.premiumBlue.opacity(0.04),
                     Color.clear,
-                    Color.green.opacity(0.03)
+                    Color.premiumMint.opacity(0.03)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -166,7 +173,7 @@ struct GoalSettingView: View {
     // MARK: - View Components
     
     private var saveButton: some View {
-        GlassButton("Save", icon: "target", isLoading: viewModel.isLoading, style: .blue) {
+        GlassButton("Save", icon: "target", isLoading: viewModel.isLoading, style: .primary) {
             Task {
                 await performSaveAction()
             }
@@ -252,6 +259,9 @@ struct GoalSettingView: View {
         if isFatsTargetFocused {
             isFatsTargetFocused = false
         }
+        if isSaturatedFatsTargetFocused {
+            isSaturatedFatsTargetFocused = false
+        }
     }
     
     private func performSaveAction() async {
@@ -331,7 +341,7 @@ struct GoalSettingView: View {
                     Spacer()
                     
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.premiumBlue)
                         .font(.title2)
                 }
             }
@@ -348,7 +358,7 @@ struct GoalSettingView: View {
                 HStack {
                     Image(systemName: "scalemass.fill")
                         .font(.title2)
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(Color.premiumIndigo)
                         .frame(width: 24, height: 24)
                     
                     Text("Current Weight")
@@ -400,7 +410,7 @@ struct GoalSettingView: View {
                 HStack {
                     Image(systemName: "target")
                         .font(.title2)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.premiumBlue)
                         .frame(width: 24, height: 24)
                     
                     Text("Target Weight")
@@ -468,7 +478,7 @@ struct GoalSettingView: View {
                 HStack {
                     Image(systemName: "drop.fill")
                         .font(.title2)
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(Color.premiumSky)
                         .frame(width: 24, height: 24)
                     
                     Text("Daily Water Target")
@@ -508,7 +518,7 @@ struct GoalSettingView: View {
                 HStack {
                     Image(systemName: "leaf.fill")
                         .font(.title2)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.premiumMint)
                         .frame(width: 24, height: 24)
 
                     Text("Daily Protein Target")
@@ -562,7 +572,7 @@ struct GoalSettingView: View {
                 HStack {
                     Image(systemName: "carrot.fill")
                         .font(.title2)
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(Color.premiumSky)
                         .frame(width: 24, height: 24)
 
                     Text("Daily Carbs Target")
@@ -616,7 +626,7 @@ struct GoalSettingView: View {
                 HStack {
                     Image(systemName: "drop.fill")
                         .font(.title2)
-                        .foregroundStyle(.pink)
+                        .foregroundStyle(Color.premiumIndigo)
                         .frame(width: 24, height: 24)
 
                     Text("Daily Fats Target")
@@ -646,6 +656,60 @@ struct GoalSettingView: View {
 
                 // Show validation message if needed
                 if let validationMessage = getFatsValidationMessage() {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                        Text(validationMessage)
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+
+    private var dailySaturatedFatsTargetSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Daily Saturated Fats Goal")
+                .font(.headline)
+                .fontWeight(.semibold)
+
+            GlassCard {
+                HStack {
+                    Image(systemName: "drop.triangle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.red)
+                        .frame(width: 24, height: 24)
+
+                    Text("Daily Saturated Fats Target")
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    TextField("Enter amount", text: $viewModel.dailySaturatedFatsTarget)
+                        .keyboardType(.decimalPad)
+                        .environment(\.locale, Locale(identifier: "en_US_POSIX"))
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 80)
+                        .focused($isSaturatedFatsTargetFocused)
+                        .onChange(of: viewModel.dailySaturatedFatsTarget) { newValue in
+                            // Replace comma with period for decimal input
+                            let correctedValue = newValue.replacingOccurrences(of: ",", with: ".")
+                            if correctedValue != newValue {
+                                viewModel.dailySaturatedFatsTarget = correctedValue
+                            }
+                            validateSaturatedFatsTarget(correctedValue)
+                        }
+
+                    Text(currentUnitSystem == .metric ? "g" : "oz")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Show validation message if needed
+                if let validationMessage = getSaturatedFatsValidationMessage() {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange)
@@ -720,8 +784,7 @@ struct GoalSettingView: View {
             let adjustment = viewModel.calculatedDailyCalorieAdjustment
             let sign = adjustment >= 0 ? "+" : ""
             Text("\(sign)\(Int(adjustment))")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.system(.title2, design: .rounded, weight: .bold))
                 .foregroundColor(adjustment < 0 ? .red : .green)
             Text("cal/day")
                 .font(.caption)
@@ -745,8 +808,7 @@ struct GoalSettingView: View {
                 let weeklyChange = viewModel.calculatedWeeklyChange
                 let sign = weeklyChange >= 0 ? "+" : ""
                 Text("\(sign)\(weeklyChange, specifier: "%.2f") \(weightUnit)/week")
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(.system(.caption, design: .rounded, weight: .medium))
                     .foregroundColor(weeklyChange < 0 ? .red : .green)
             }
             
@@ -761,8 +823,7 @@ struct GoalSettingView: View {
                         .foregroundColor(.secondary)
                     Spacer()
                     Text("\(Int(daysToGoal)) days")
-                        .font(.caption)
-                        .fontWeight(.medium)
+                        .font(.system(.caption, design: .rounded, weight: .medium))
                 }
                 
                 HStack {
@@ -772,8 +833,7 @@ struct GoalSettingView: View {
                     Spacer()
                     let sign = totalWeightChange >= 0 ? "+" : ""
                     Text("\(sign)\(totalWeightChange, specifier: "%.1f") \(weightUnit)")
-                        .font(.caption)
-                        .fontWeight(.medium)
+                        .font(.system(.caption, design: .rounded, weight: .medium))
                         .foregroundColor(totalWeightChange < 0 ? .red : .green)
                 }
             }
@@ -1081,6 +1141,50 @@ struct GoalSettingView: View {
             return "Fat goal is below recommended minimum (\(Int(minFats))g for your weight)"
         } else if fatsInGrams > 250 {
             return "Fats goal seems very high. Ensure this aligns with your dietary plan"
+        }
+
+        return nil
+    }
+
+    private func validateSaturatedFatsTarget(_ value: String) {
+        guard !value.isEmpty, let saturatedFatsValue = Double(value) else { return }
+
+        // Convert to grams if using imperial
+        let saturatedFatsInGrams = currentUnitSystem == .metric ? saturatedFatsValue : saturatedFatsValue * 28.35
+
+        // Save to goal model
+        if let user = user {
+            Task {
+                await viewModel.updateSaturatedFatsTarget(saturatedFatsInGrams)
+            }
+        }
+    }
+
+    private func getSaturatedFatsValidationMessage() -> String? {
+        guard !viewModel.dailySaturatedFatsTarget.isEmpty, let saturatedFatsValue = Double(viewModel.dailySaturatedFatsTarget) else { return nil }
+
+        // Convert to grams if using imperial
+        let saturatedFatsInGrams = currentUnitSystem == .metric ? saturatedFatsValue : saturatedFatsValue * 28.35
+
+        // Saturated fats recommendations:
+        // WHO recommends: Less than 10% of total energy intake (~22g on a 2000 cal diet)
+        // American Heart Association: Aim for 5-6% of total calories
+        // Maximum safe: ~30g/day for most people
+
+        if saturatedFatsInGrams > 30 {
+            return "Saturated fats goal is high. WHO recommends less than 22g/day"
+        } else if saturatedFatsInGrams > 22 {
+            return "Consider lowering saturated fats. Health guidelines recommend less than 22g/day"
+        }
+
+        // Check if saturated fats exceed total fats (if both are set)
+        if !viewModel.dailyFatsTarget.isEmpty, let totalFatsValue = Double(viewModel.dailyFatsTarget) {
+            let totalFatsInGrams = currentUnitSystem == .metric ? totalFatsValue : totalFatsValue * 28.35
+            if saturatedFatsInGrams > totalFatsInGrams {
+                return "Saturated fats cannot exceed total fats (\(Int(totalFatsInGrams))g)"
+            } else if saturatedFatsInGrams > totalFatsInGrams * 0.5 {
+                return "Saturated fats are high relative to total fats. Consider healthier fat sources"
+            }
         }
 
         return nil

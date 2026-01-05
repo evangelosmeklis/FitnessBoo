@@ -36,45 +36,10 @@ struct LiquidGlassTabBar: View {
     }
     
     private var liquidGlassBackground: some View {
-        ZStack {
-            // Dark base with slight transparency
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.black.opacity(0.6))
-            
-            // Frosted glass effect
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.5)
-            
-            // Subtle gradient overlay
-            RoundedRectangle(cornerRadius: 24)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.08),
-                            Color.white.opacity(0.02),
-                            Color.clear
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-            
-            // Elegant border
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.3),
-                            Color.white.opacity(0.1),
-                            Color.clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        }
+        RoundedRectangle(cornerRadius: 24)
+            .fill(Color.white.opacity(0.1)) // Slightly more opaque for tab bar
+            .premiumGlassBackground(cornerRadius: 24)
+            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
     }
 }
 
@@ -88,25 +53,23 @@ struct TabBarButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 ZStack {
-                    // Neon glow effect for selected tab in dark mode
-                    if isSelected && colorScheme == .dark {
+                    // Premium selection indicator
+                    if isSelected {
                         Circle()
-                            .fill(Color.cyan)
-                            .frame(width: 24, height: 24)
-                            .blur(radius: 12)
-                            .opacity(0.6)
+                            .fill(Color.premiumIndigo.opacity(0.15))
+                            .frame(width: 32, height: 32)
                     }
                     
                     Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
                         .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(isSelected ? (colorScheme == .dark ? Color.cyan : .blue) : .secondary)
-                        .scaleEffect(isSelected ? 1.15 : 1.0)
+                        .foregroundStyle(isSelected ? Color.premiumIndigo : .secondary)
+                        .scaleEffect(isSelected ? 1.05 : 1.0)
                 }
                 
                 Text(tab.title)
                     .font(.caption2)
-                    .fontWeight(isSelected ? .bold : .medium)
-                    .foregroundStyle(isSelected ? (colorScheme == .dark ? Color.cyan : .blue) : .secondary)
+                    .fontWeight(isSelected ? .semibold : .medium)
+                    .foregroundStyle(isSelected ? Color.premiumIndigo : .secondary)
             }
             .frame(height: 56)
         }

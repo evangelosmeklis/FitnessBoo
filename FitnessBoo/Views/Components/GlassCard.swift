@@ -10,51 +10,16 @@ import SwiftUI
 struct GlassCard<Content: View>: View {
     let content: Content
     let cornerRadius: CGFloat
-    let opacity: Double
-    @Environment(\.colorScheme) private var colorScheme
-
-    init(cornerRadius: CGFloat = 16, opacity: Double = 0.1, @ViewBuilder content: () -> Content) {
+    
+    init(cornerRadius: CGFloat = 16, @ViewBuilder content: () -> Content) {
         self.cornerRadius = cornerRadius
-        self.opacity = opacity
         self.content = content()
     }
 
     var body: some View {
         content
-            .padding()
-            .background(
-                ZStack {
-                    if colorScheme == .dark {
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(Color.white.opacity(0.05))
-                    } else {
-                        RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(.ultraThinMaterial)
-                    }
-                    
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    adaptiveStrokeColor.opacity(colorScheme == .dark ? 0.2 : 0.6),
-                                    adaptiveStrokeColor.opacity(0.05)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                }
-            )
-            .shadow(color: adaptiveShadowColor.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 15, x: 0, y: 8)
-    }
-
-    private var adaptiveStrokeColor: Color {
-        colorScheme == .dark ? Color.white : Color.white
-    }
-
-    private var adaptiveShadowColor: Color {
-        colorScheme == .dark ? Color.black : Color.black
+            .padding(20)
+            .premiumGlassBackground(cornerRadius: cornerRadius)
     }
 }
 
@@ -66,40 +31,38 @@ struct MetricCard: View {
     let color: Color
     let progress: Double?
     
-    init(title: String, value: String, subtitle: String? = nil, icon: String, color: Color, progress: Double? = nil) {
-        self.title = title
-        self.value = value
-        self.subtitle = subtitle
-        self.icon = icon
-        self.color = color
-        self.progress = progress
-    }
-    
     var body: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Image(systemName: icon)
-                        .font(.title2)
-                        .foregroundStyle(color)
-                        .frame(width: 24, height: 24)
+                    ZStack {
+                        // Subtle background for icon instead of glow
+                        Circle()
+                            .fill(color.opacity(0.1))
+                            .frame(width: 36, height: 36)
+                        
+                        Image(systemName: icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(color)
+                    }
                     
                     Spacer()
                     
                     if let progress = progress {
-                        CircularProgressView(progress: progress, color: color)
-                            .frame(width: 32, height: 32)
+                        CircularProgressView(progress: progress, color: color, lineWidth: 4)
+                            .frame(width: 36, height: 36)
                     }
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.caption)
+                        .fontWeight(.medium)
                         .foregroundStyle(.secondary)
+                        .tracking(0.5) // Reduced tracking
                     
                     Text(value)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 24, weight: .medium, design: .rounded)) // Clean rounded font
                         .foregroundStyle(.primary)
                     
                     if let subtitle = subtitle {
@@ -127,7 +90,7 @@ struct CircularProgressView: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(color.opacity(0.2), lineWidth: lineWidth)
+                .stroke(color.opacity(0.1), lineWidth: lineWidth)
             
             Circle()
                 .trim(from: 0, to: min(progress, 1.0))
@@ -136,12 +99,12 @@ struct CircularProgressView: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.5), value: progress)
+                .animation(.easeInOut(duration: 0.8), value: progress)
         }
     }
 }
 
-// MARK: - Large Circular Metric Card (like in screenshot)
+// MARK: - Large Circular Metric Card (Premium Update)
 struct LargeCircularMetricCard: View {
     let title: String
     let value: String
@@ -149,27 +112,17 @@ struct LargeCircularMetricCard: View {
     let progress: Double
     let color: Color
     let icon: String?
-    @Environment(\.colorScheme) private var colorScheme
-    
-    init(title: String, value: String, subtitle: String, progress: Double, color: Color, icon: String? = nil) {
-        self.title = title
-        self.value = value
-        self.subtitle = subtitle
-        self.progress = progress
-        self.color = color
-        self.icon = icon
-    }
     
     var body: some View {
-        GlassCard(cornerRadius: 20) {
-            VStack(spacing: 20) {
+        GlassCard(cornerRadius: 24) {
+            VStack(spacing: 24) {
                 // Header
                 HStack {
                     Text(title.uppercased())
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
-                        .tracking(1.2)
+                        .tracking(1.0)
                     Spacer()
                 }
                 
@@ -178,45 +131,44 @@ struct LargeCircularMetricCard: View {
                     // Background ring
                     Circle()
                         .stroke(
-                            color.opacity(colorScheme == .dark ? 0.15 : 0.2),
-                            lineWidth: 12
+                            color.opacity(0.1),
+                            lineWidth: 16
                         )
                     
-                    // Progress ring with glow
+                    // Progress ring
                     Circle()
                         .trim(from: 0, to: min(progress, 1.0))
                         .stroke(
                             color,
-                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                            style: StrokeStyle(lineWidth: 16, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
-                        .shadow(color: color.opacity(0.5), radius: 8, x: 0, y: 0)
+                        .shadow(color: color.opacity(0.2), radius: 10, x: 0, y: 0) // Soft sheen
                     
                     // Center content
                     VStack(spacing: 4) {
                         Text(value)
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .font(.system(size: 44, weight: .medium, design: .rounded))
                             .foregroundStyle(color)
                         
                         if let icon = icon {
                             Image(systemName: icon)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.body)
+                                .foregroundStyle(color.opacity(0.7))
                         }
                     }
                 }
-                .frame(height: 180)
+                .frame(height: 200)
                 .animation(.easeInOut(duration: 0.8), value: progress)
                 
                 // Footer
                 VStack(spacing: 4) {
                     Text(subtitle)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                        .font(.body)
                         .foregroundStyle(.primary)
                     
-                    Text("\(Int(progress * 100))%")
-                        .font(.caption)
+                    Text("\(Int(progress * 100))% Goal")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -224,45 +176,43 @@ struct LargeCircularMetricCard: View {
     }
 }
 
-// MARK: - Compact Stat Card (Enhanced)
+// MARK: - Compact Stat Card (Premium Update)
 struct CompactStatCard: View {
     let title: String
     let value: String
     let subtitle: String
     let icon: String
     let color: Color
-    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         GlassCard(cornerRadius: 16) {
-            HStack(spacing: 12) {
-                // Icon with neon glow
+            HStack(spacing: 16) {
+                // Icon
                 ZStack {
                     Circle()
-                        .fill(color.opacity(colorScheme == .dark ? 0.2 : 0.15))
-                        .frame(width: 44, height: 44)
+                        .fill(color.opacity(0.1))
+                        .frame(width: 48, height: 48)
                     
                     Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 20, weight: .medium))
                         .foregroundStyle(color)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
+                    Text(title.uppercased())
                         .font(.caption)
+                        .fontWeight(.medium)
                         .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
                         .tracking(0.5)
                     
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(value)
-                            .font(.title3)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.primary)
+                            .font(.system(.title3, design: .rounded, weight: .semibold))
+                            .foregroundStyle(Color.primary)
                         
                         Text(subtitle)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 
@@ -282,7 +232,7 @@ struct GlassButton: View {
 
     enum GlassButtonStyle {
         case `default`
-        case blue
+        case primary
     }
 
     init(_ title: String, icon: String? = nil, isLoading: Bool = false, style: GlassButtonStyle = .default, action: @escaping () -> Void) {
@@ -302,19 +252,19 @@ struct GlassButton: View {
                         .tint(.white)
                 } else if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: 16, weight: .semibold))
                 }
 
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 16, weight: .semibold))
             }
             .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 14)
             .background(backgroundView)
         }
         .disabled(isLoading)
-        .scaleEffect(isLoading ? 0.95 : 1.0)
+        .scaleEffect(isLoading ? 0.98 : 1.0)
         .animation(.easeInOut(duration: 0.1), value: isLoading)
     }
 
@@ -322,85 +272,20 @@ struct GlassButton: View {
     private var backgroundView: some View {
         switch style {
         case .default:
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.white.opacity(0.1))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    adaptiveStrokeColor.opacity(0.4),
-                                    adaptiveStrokeColor.opacity(0.1)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
                 )
-        case .blue:
-            RoundedRectangle(cornerRadius: 12)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.blue.opacity(0.8),
-                            Color.blue.opacity(0.6)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+        case .primary:
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.premiumIndigo) // Use premium color
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.ultraThinMaterial.opacity(0.3))
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    adaptiveStrokeColor.opacity(0.6),
-                                    Color.blue.opacity(0.3)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
-                .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.premiumIndigo.opacity(0.3), radius: 8, x: 0, y: 4)
         }
-    }
-
-    private var adaptiveStrokeColor: Color {
-        colorScheme == .dark ? Color.white : Color.white
-    }
-}
-
-// MARK: - Preview
-struct GlassCard_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack(spacing: 20) {
-            MetricCard(
-                title: "Calories",
-                value: "1,847",
-                subtitle: "423 remaining",
-                icon: "flame.fill",
-                color: .orange,
-                progress: 0.7
-            )
-            
-            GlassButton("Save Goal", icon: "target") {
-                // Action
-            }
-        }
-        .padding()
-        .background(
-            LinearGradient(
-                colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
     }
 }
