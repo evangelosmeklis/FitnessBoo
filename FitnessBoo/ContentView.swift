@@ -8,9 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @AppStorage("appearanceMode") private var appearanceMode: String = AppearanceMode.dark.rawValue
+
     var body: some View {
         LiquidGlassTabContainer()
-            .preferredColorScheme(.dark) // Always use dark mode
+            .preferredColorScheme(colorSchemeForAppearanceMode)
+    }
+
+    private var colorSchemeForAppearanceMode: ColorScheme? {
+        guard let mode = AppearanceMode(rawValue: appearanceMode) else {
+            return .dark
+        }
+        return mode.colorScheme
     }
 }
 

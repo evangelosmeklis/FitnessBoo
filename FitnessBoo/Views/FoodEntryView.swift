@@ -80,23 +80,8 @@ struct FoodEntryView: View {
                 .padding()
             }
             .background(
-                ZStack {
-                    // Navy blue base
-                    Color(red: 0.04, green: 0.08, blue: 0.15)
-                        .ignoresSafeArea()
-                    
-                    // Subtle gradient overlays for depth
-                    LinearGradient(
-                        colors: [
-                            Color.orange.opacity(0.03),
-                            Color.clear,
-                            Color.red.opacity(0.02)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                Color.premiumMainBackground
                     .ignoresSafeArea()
-                }
             )
             .navigationTitle(isEditing ? "Edit Food Entry" : "Add Food Entry")
             .navigationBarTitleDisplayMode(.inline)
@@ -227,7 +212,7 @@ struct FoodEntryView: View {
                             .frame(width: 80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
+                            .background(Color.premiumElevatedBackground)
                             .cornerRadius(8)
                         
                         Text("kcal")
@@ -256,7 +241,7 @@ struct FoodEntryView: View {
                             .frame(width: 80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
+                            .background(Color.premiumElevatedBackground)
                             .cornerRadius(8)
                             .onChange(of: protein) { newValue in
                                 // Replace comma with period for decimal input
@@ -292,7 +277,7 @@ struct FoodEntryView: View {
                             .frame(width: 80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
+                            .background(Color.premiumElevatedBackground)
                             .cornerRadius(8)
                             .onChange(of: carbs) { newValue in
                                 // Replace comma with period for decimal input
@@ -328,7 +313,7 @@ struct FoodEntryView: View {
                             .frame(width: 80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
+                            .background(Color.premiumElevatedBackground)
                             .cornerRadius(8)
                             .onChange(of: fats) { newValue in
                                 // Replace comma with period for decimal input
@@ -364,7 +349,7 @@ struct FoodEntryView: View {
                             .frame(width: 80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
+                            .background(Color.premiumElevatedBackground)
                             .cornerRadius(8)
                             .onChange(of: saturatedFats) { newValue in
                                 // Replace comma with period for decimal input

@@ -104,7 +104,7 @@ struct CircularProgressView: View {
     }
 }
 
-// MARK: - Large Circular Metric Card (Premium Update)
+// MARK: - Large Circular Metric Card (Whoop-style)
 struct LargeCircularMetricCard: View {
     let title: String
     let value: String
@@ -112,65 +112,53 @@ struct LargeCircularMetricCard: View {
     let progress: Double
     let color: Color
     let icon: String?
-    
+
     var body: some View {
         GlassCard(cornerRadius: 24) {
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 // Header
                 HStack {
                     Text(title.uppercased())
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.caption)
+                        .fontWeight(.bold)
                         .foregroundStyle(.secondary)
-                        .tracking(1.0)
+                        .tracking(1.2)
                     Spacer()
                 }
-                
-                // Large circular progress
+
+                // Large circular progress - Whoop style
                 ZStack {
                     // Background ring
                     Circle()
                         .stroke(
-                            color.opacity(0.1),
-                            lineWidth: 16
+                            color.opacity(0.15),
+                            lineWidth: 18
                         )
-                    
-                    // Progress ring
+
+                    // Progress ring with gradient
                     Circle()
                         .trim(from: 0, to: min(progress, 1.0))
                         .stroke(
                             color,
-                            style: StrokeStyle(lineWidth: 16, lineCap: .round)
+                            style: StrokeStyle(lineWidth: 18, lineCap: .round)
                         )
                         .rotationEffect(.degrees(-90))
-                        .shadow(color: color.opacity(0.2), radius: 10, x: 0, y: 0) // Soft sheen
-                    
+
                     // Center content
-                    VStack(spacing: 4) {
+                    VStack(spacing: 6) {
                         Text(value)
-                            .font(.system(size: 44, weight: .medium, design: .rounded))
-                            .foregroundStyle(color)
-                        
-                        if let icon = icon {
-                            Image(systemName: icon)
-                                .font(.body)
-                                .foregroundStyle(color.opacity(0.7))
-                        }
+                            .font(.system(size: 56, weight: .medium, design: .rounded))
+                            .foregroundStyle(.primary)
+
+                        Text(subtitle.uppercased())
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .tracking(0.8)
                     }
                 }
-                .frame(height: 200)
+                .frame(height: 220)
                 .animation(.easeInOut(duration: 0.8), value: progress)
-                
-                // Footer
-                VStack(spacing: 4) {
-                    Text(subtitle)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                    
-                    Text("\(Int(progress * 100))% Goal")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
             }
         }
     }
@@ -219,6 +207,82 @@ struct CompactStatCard: View {
                 Spacer(minLength: 0)
             }
         }
+    }
+}
+
+// MARK: - Horizontal Metric Row (Whoop-style)
+struct HorizontalMetricRow: View {
+    let icon: String
+    let label: String
+    let value: String
+    let unit: String?
+    let progress: Double?
+    let color: Color
+
+    init(icon: String, label: String, value: String, unit: String? = nil, progress: Double? = nil, color: Color) {
+        self.icon = icon
+        self.label = label
+        self.value = value
+        self.unit = unit
+        self.progress = progress
+        self.color = color
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                // Icon
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Image(systemName: icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(color)
+                    )
+
+                // Label
+                Text(label.uppercased())
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .tracking(0.5)
+
+                Spacer()
+
+                // Value
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(.body)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.primary)
+
+                    if let unit = unit {
+                        Text(unit)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            // Progress bar if provided
+            if let progress = progress {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(color.opacity(0.15))
+                            .frame(height: 4)
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(color)
+                            .frame(width: geometry.size.width * min(progress, 1.0), height: 4)
+                            .animation(.easeInOut(duration: 0.5), value: progress)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .padding(.vertical, 8)
     }
 }
 
@@ -273,19 +337,19 @@ struct GlassButton: View {
         switch style {
         case .default:
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.white.opacity(0.1))
+                .fill(Color.premiumElevatedBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(Color.premiumBorder.opacity(0.6), lineWidth: 1)
                 )
         case .primary:
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color.premiumIndigo) // Use premium color
+                .fill(Color.premiumIndigo)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        .stroke(Color.premiumBorder.opacity(0.35), lineWidth: 1)
                 )
-                .shadow(color: Color.premiumIndigo.opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: Color.premiumIndigo.opacity(0.35), radius: 8, x: 0, y: 4)
         }
     }
 }

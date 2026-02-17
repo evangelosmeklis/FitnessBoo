@@ -9,9 +9,31 @@ import SwiftUI
 import Combine
 import HealthKit
 
+enum AppearanceMode: String, CaseIterable {
+    case light = "Light"
+    case dark = "Dark"
+    case system = "System"
+
+    var displayName: String {
+        return self.rawValue
+    }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        case .system:
+            return nil
+        }
+    }
+}
+
 struct SettingsView: View {
     @StateObject private var goalViewModel: GoalViewModel
     @State private var selectedUnitSystem: UnitSystem = .metric
+    @AppStorage("appearanceMode") private var selectedAppearanceMode: String = AppearanceMode.dark.rawValue
     @State private var showSuccessMessage = false
     @State private var user: User?
 
@@ -41,6 +63,9 @@ struct SettingsView: View {
         NavigationView {
             ScrollView {
                 LazyVStack(spacing: 24) {
+                    // Appearance Section
+                    appearanceSection
+
                     // Notifications Section
                     notificationsSection
 
@@ -77,29 +102,87 @@ struct SettingsView: View {
     // MARK: - Background
 
     private var backgroundGradient: some View {
-        ZStack {
-            // Deep Premium Background
-            Color(red: 0.02, green: 0.05, blue: 0.1)
-                .ignoresSafeArea()
-            
-            // Premium Gradient Overlays
-            LinearGradient(
-                colors: [
-                    Color.premiumBlue.opacity(0.1),
-                    Color.clear,
-                    Color.premiumTeal.opacity(0.1),
-                    Color.clear,
-                    Color.premiumMint.opacity(0.05)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        Color.premiumMainBackground
             .ignoresSafeArea()
-        }
     }
 
     // MARK: - Appearance Section
 
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "paintbrush.fill")
+                    .foregroundStyle(.purple)
+                Text("Appearance")
+                    .font(.title3)
+                    .fontWeight(.bold)
+            }
+
+            VStack(spacing: 12) {
+                ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                    GlassCard(cornerRadius: 16) {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.premiumIndigo.opacity(0.15))
+                                    .frame(width: 40, height: 40)
+
+                                Image(systemName: iconForAppearanceMode(mode))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(Color.premiumIndigo)
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(mode.displayName)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+
+                                Text(descriptionForAppearanceMode(mode))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            if selectedAppearanceMode == mode.rawValue {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.premiumBlue)
+                                    .font(.title3)
+                            }
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if selectedAppearanceMode != mode.rawValue {
+                            selectedAppearanceMode = mode.rawValue
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func iconForAppearanceMode(_ mode: AppearanceMode) -> String {
+        switch mode {
+        case .light:
+            return "sun.max.fill"
+        case .dark:
+            return "moon.fill"
+        case .system:
+            return "sparkles"
+        }
+    }
+
+    private func descriptionForAppearanceMode(_ mode: AppearanceMode) -> String {
+        switch mode {
+        case .light:
+            return "Always use light mode"
+        case .dark:
+            return "Always use dark mode"
+        case .system:
+            return "Match system settings"
+        }
+    }
 
     // MARK: - Notifications Section
 
@@ -665,10 +748,10 @@ struct TimePickerSheet: View {
             }
             .background(
                 ZStack {
-                    // Navy blue base
-                    Color(red: 0.02, green: 0.05, blue: 0.1)
+                    // Adaptive Premium Background
+                    Color.premiumMainBackground
                         .ignoresSafeArea()
-                    
+
                     // Subtle gradient overlays
                     LinearGradient(
                         colors: [

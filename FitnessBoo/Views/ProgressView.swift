@@ -125,11 +125,11 @@ struct ProgressView: View {
                 }
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color.premiumCardBackground)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(.systemGray4), lineWidth: 1)
+                    .stroke(Color.premiumBorder, lineWidth: 1)
             )
         }
     }
@@ -200,11 +200,11 @@ struct ProgressView: View {
                     .multilineTextAlignment(.center)
             }
             .padding()
-            .background(Color(.systemBackground))
+            .background(Color.premiumCardBackground)
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(.systemGray4), lineWidth: 1)
+                    .stroke(Color.premiumBorder, lineWidth: 1)
             )
         }
     }
@@ -256,11 +256,11 @@ struct ProgressView: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color.premiumCardBackground)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray4), lineWidth: 1)
+                .stroke(Color.premiumBorder, lineWidth: 1)
         )
     }
     
@@ -289,7 +289,7 @@ struct ProgressView: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(Color.premiumElevatedBackground)
             .cornerRadius(8)
         }
     }

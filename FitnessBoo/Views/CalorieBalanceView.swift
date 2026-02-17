@@ -55,163 +55,158 @@ struct CalorieBalanceView: View {
     
     // MARK: - Balance Card Section
     private func balanceCardSection(balance: CalorieBalance) -> some View {
-        VStack(spacing: 12) {
-            // Main balance display
-            VStack(spacing: 4) {
-                Text(balance.formattedBalance)
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(balance.isPositiveBalance ? .orange : .green)
-                
-                Text(balance.balanceDescription)
-                    .font(.headline)
-                    .foregroundColor(.secondary)
+        GlassCard(cornerRadius: 20) {
+            VStack(spacing: 16) {
+                // Main balance display
+                VStack(spacing: 8) {
+                    Text(balance.balanceDescription.uppercased())
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.secondary)
+                        .tracking(1.2)
+
+                    Text(balance.formattedBalance)
+                        .font(.system(size: 44, weight: .medium, design: .rounded))
+                        .foregroundColor(balance.isPositiveBalance ? .premiumCoral : .premiumMint)
+                }
+
+                Divider()
+                    .overlay(Color.white.opacity(0.08))
+
+                // Balance equation
+                HStack(spacing: 8) {
+                    VStack(spacing: 4) {
+                        Text("\(Int(balance.caloriesConsumed))")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text("Consumed")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Text("−")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+
+                    VStack(spacing: 4) {
+                        Text("\(Int(balance.totalEnergyExpended))")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        Text("Burned")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Text("=")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
+
+                    VStack(spacing: 4) {
+                        Text("\(Int(balance.balance))")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(balance.isPositiveBalance ? .premiumCoral : .premiumMint)
+                        Text("Balance")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
             }
-            
-            // Balance equation
-            HStack(spacing: 8) {
-                VStack {
-                    Text("\(Int(balance.caloriesConsumed))")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Text("Consumed")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                
-                Text("−")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                
-                VStack {
-                    Text("\(Int(balance.totalEnergyExpended))")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                    Text("Burned")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                
-                Text("=")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                
-                VStack {
-                    Text("\(Int(balance.balance))")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(balance.isPositiveBalance ? .orange : .green)
-                    Text("Balance")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
         }
-        .padding()
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
     }
     
     // MARK: - Energy Breakdown Section
     private func energyBreakdownSection(balance: CalorieBalance) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Energy Breakdown")
-                .font(.headline)
-                .fontWeight(.semibold)
-            
-            VStack(spacing: 8) {
-                energyRow(
-                    title: "Resting Energy",
-                    value: balance.restingEnergyBurned,
-                    color: .blue,
-                    icon: "bed.double.fill"
-                )
-                
-                energyRow(
-                    title: "Active Energy",
-                    value: balance.activeEnergyBurned,
-                    color: .red,
-                    icon: "flame.fill"
-                )
-                
-                Divider()
-                
-                energyRow(
-                    title: "Total Burned",
-                    value: balance.totalEnergyExpended,
-                    color: .primary,
-                    icon: "sum",
-                    isTotal: true
-                )
+            Text("ENERGY BREAKDOWN")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(.secondary)
+                .tracking(1.5)
+
+            GlassCard(cornerRadius: 20) {
+                VStack(spacing: 0) {
+                    HorizontalMetricRow(
+                        icon: "moon.stars.fill",
+                        label: "Resting",
+                        value: "\(Int(balance.restingEnergyBurned))",
+                        unit: "kcal",
+                        progress: nil,
+                        color: .premiumSky
+                    )
+
+                    Divider()
+                        .overlay(Color.white.opacity(0.08))
+                        .padding(.vertical, 8)
+
+                    HorizontalMetricRow(
+                        icon: "figure.run",
+                        label: "Active",
+                        value: "\(Int(balance.activeEnergyBurned))",
+                        unit: "kcal",
+                        progress: nil,
+                        color: .premiumMint
+                    )
+
+                    Divider()
+                        .overlay(Color.white.opacity(0.08))
+                        .padding(.vertical, 8)
+
+                    HorizontalMetricRow(
+                        icon: "flame.fill",
+                        label: "Total",
+                        value: "\(Int(balance.totalEnergyExpended))",
+                        unit: "kcal",
+                        progress: nil,
+                        color: .premiumCoral
+                    )
+                }
             }
-        }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
-    }
-    
-    private func energyRow(title: String, value: Double, color: Color, icon: String, isTotal: Bool = false) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 20)
-            
-            Text(title)
-                .font(isTotal ? .headline : .body)
-                .fontWeight(isTotal ? .semibold : .regular)
-            
-            Spacer()
-            
-            Text("\(Int(value)) kcal")
-                .font(isTotal ? .headline : .body)
-                .fontWeight(isTotal ? .semibold : .medium)
-                .foregroundColor(color)
         }
     }
     
     // MARK: - Data Source Section
     private func dataSourceSection(balance: CalorieBalance) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: balance.isUsingHealthKitData ? "heart.fill" : "calculator")
-                    .foregroundColor(balance.isUsingHealthKitData ? .red : .blue)
-                
-                Text("Data Source")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                
-                Spacer()
-            }
-            
-            Text(balance.energySourceDescription)
-                .font(.body)
-                .foregroundColor(.secondary)
-            
-            if balance.isUsingHealthKitData {
-                Text("Using real-time data from Health app for maximum accuracy")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Using calculated BMR (Calculated: \(Int(balance.calculatedBMR)) kcal)")
+        GlassCard(cornerRadius: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(balance.isUsingHealthKitData ? Color.green.opacity(0.15) : Color.blue.opacity(0.15))
+                        .frame(width: 32, height: 32)
+                        .overlay(
+                            Image(systemName: balance.isUsingHealthKitData ? "heart.fill" : "calculator")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(balance.isUsingHealthKitData ? .green : .blue)
+                        )
+
+                    Text("DATA SOURCE")
                         .font(.caption)
-                        .foregroundColor(.orange)
-                    
-                    Text("Connect to Health app for more accurate tracking")
+                        .fontWeight(.bold)
+                        .foregroundStyle(.secondary)
+                        .tracking(1.2)
+                }
+
+                Text(balance.energySourceDescription)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+
+                if balance.isUsingHealthKitData {
+                    Text("Using real-time data from Health app")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("BMR: \(Int(balance.calculatedBMR)) kcal")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
         }
-        .padding()
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
     }
     
     // MARK: - Loading Section

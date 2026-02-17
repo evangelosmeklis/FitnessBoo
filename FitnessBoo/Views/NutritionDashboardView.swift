@@ -136,23 +136,8 @@ struct NutritionDashboardView: View {
     // MARK: - Background
     
     private var backgroundGradient: some View {
-        ZStack {
-            // Navy blue base
-            Color(red: 0.04, green: 0.08, blue: 0.15)
-                .ignoresSafeArea()
-            
-            // Subtle gradient overlays
-            LinearGradient(
-                colors: [
-                    Color.green.opacity(0.05),
-                    Color.clear,
-                    Color.cyan.opacity(0.03)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        Color.premiumMainBackground
             .ignoresSafeArea()
-        }
     }
     
     // MARK: - Daily Progress Section
@@ -545,7 +530,7 @@ struct ProgressCard: View {
             }
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color.premiumCardBackground)
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
@@ -714,7 +699,7 @@ struct EnhancedFoodEntryRow: View {
                     .foregroundColor(.secondary)
             }
             .padding(12)
-            .background(Color(.systemBackground).opacity(0.5))
+            .background(Color.premiumCardBackground.opacity(0.5))
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -822,7 +807,7 @@ struct CaloricBalanceCard: View {
                 .foregroundColor(statusColor)
         }
         .padding()
-        .background(Color(.systemBackground))
+        .background(Color.premiumCardBackground)
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
@@ -1088,7 +1073,7 @@ struct WaterOptionsSheet: View {
             .background(
                 LinearGradient(
                     colors: [
-                        Color(.systemBackground),
+                        Color.premiumCardBackground,
                         Color.blue.opacity(0.05)
                     ],
                     startPoint: .top,

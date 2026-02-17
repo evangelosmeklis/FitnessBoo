@@ -123,80 +123,55 @@ struct DashboardView: View {
         }
     }
     
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Background
 
     private var backgroundGradient: some View {
-        ZStack {
-            // Deep Premium Background
-            Color(red: 0.02, green: 0.05, blue: 0.1) // Almost black blue
-                .ignoresSafeArea()
-            
-            // Premium Gradient Overlays
-            LinearGradient(
-                colors: [
-                    Color.premiumIndigo.opacity(0.15),
-                    Color.clear,
-                    Color.premiumTeal.opacity(0.1),
-                    Color.clear,
-                    Color.blue.opacity(0.05)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        Color.premiumMainBackground
             .ignoresSafeArea()
-        }
     }
 
     // MARK: - Quick Actions
 
     private var quickActionsSection: some View {
         HStack(spacing: 16) {
-            // Add Food Button - Premium Indigo
+            // Add Food Button
             Button(action: { showingAddFood = true }) {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                    
+                        .font(.system(size: 18, weight: .semibold))
+
                     Text("Add Food")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(Color.premiumIndigo)
-                        .shadow(color: Color.premiumIndigo.opacity(0.4), radius: 10, x: 0, y: 5)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
                 )
             }
             .buttonStyle(ScaleButtonStyle())
 
-            // Add Water Button - Premium Teal
+            // Add Water Button
             Button(action: { showingWaterOptions = true }) {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     Image(systemName: "drop.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                    
+                        .font(.system(size: 18, weight: .semibold))
+
                     Text("Add Water")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                 }
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 18)
+                    RoundedRectangle(cornerRadius: 16)
                         .fill(Color.premiumTeal)
-                        .shadow(color: Color.premiumTeal.opacity(0.4), radius: 10, x: 0, y: 5)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
                 )
             }
             .buttonStyle(ScaleButtonStyle())
@@ -249,21 +224,11 @@ struct DashboardView: View {
 
     private var energyBalanceSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("ENERGY")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
-                        .tracking(1.2)
-                    
-                    Text("Today's Breakdown")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                }
-                
-                Spacer()
-            }
+            Text("ENERGY")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(.secondary)
+                .tracking(1.5)
 
             if energyViewModel.isLoading {
                 GlassCard(cornerRadius: 20) {
@@ -321,21 +286,11 @@ struct DashboardView: View {
     
     private var calorieBalanceSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("BALANCE")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
-                        .tracking(1.2)
-                    
-                    Text("Caloric Status")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                }
-                
-                Spacer()
-            }
+            Text("BALANCE")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(.secondary)
+                .tracking(1.5)
 
             if let balance = currentBalance {
                 PremiumCalorieBalanceCard(balance: balance)
@@ -875,106 +830,94 @@ struct ScaleButtonStyle: ButtonStyle {
 struct PremiumCalorieBalanceCard: View {
     let balance: CalorieBalance
     @Environment(\.colorScheme) private var colorScheme
-    
+
     var body: some View {
-        let primaryColor: Color = balance.isPositiveBalance ? 
-            .premiumCoral : // Coral for surplus
-            .premiumMint // Mint for deficit (good/maintain)
-        
-        GlassCard(cornerRadius: 24) {
-            VStack(alignment: .leading, spacing: 20) {
-                // Header
-                HStack {
-                    Text(balance.balanceDescription.uppercased())
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .tracking(1)
-                    
-                    Spacer()
-                }
-                
+        let primaryColor: Color = balance.isPositiveBalance ?
+            .premiumCoral :
+            .premiumMint
+
+        GlassCard(cornerRadius: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 // Large balance number
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(balance.formattedBalance)
-                        .font(.system(size: 52, weight: .medium, design: .rounded))
-                        .foregroundStyle(primaryColor)
-                        .shadow(color: primaryColor.opacity(0.3), radius: 8, x: 0, y: 0) // Soft sheen
-                    
-                    Text("kcal")
-                        .font(.title3)
-                        .fontWeight(.medium)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(balance.balanceDescription.uppercased())
+                        .font(.caption)
+                        .fontWeight(.bold)
                         .foregroundStyle(.secondary)
+                        .tracking(1.2)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(balance.formattedBalance)
+                            .font(.system(size: 48, weight: .medium, design: .rounded))
+                            .foregroundStyle(primaryColor)
+
+                        Text("kcal")
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                
+
                 Divider()
-                    .overlay(Color.white.opacity(0.1))
-                
+                    .overlay(Color.white.opacity(0.08))
+
                 // Breakdown row
                 HStack(spacing: 0) {
                     // Consumed
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Circle()
-                                .fill(Color.premiumMint.opacity(0.2))
-                                .frame(width: 24, height: 24)
+                                .fill(Color.premiumMint.opacity(0.15))
+                                .frame(width: 28, height: 28)
                                 .overlay(
                                     Image(systemName: "fork.knife")
-                                        .font(.caption2)
+                                        .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(Color.premiumMint)
                                 )
                             Text("IN")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.secondary)
+                                .tracking(0.5)
                         }
-                        
+
                         Text("\(Int(balance.caloriesConsumed))")
                             .font(.title3)
                             .fontWeight(.semibold)
                             .foregroundStyle(Color.primary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     // Divider
                     Rectangle()
-                        .fill(Color.white.opacity(0.1))
-                        .frame(width: 1, height: 40)
-                    
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: 1, height: 50)
+
                     // Burned
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 6) {
                             Circle()
-                                .fill(Color.premiumCoral.opacity(0.2))
-                                .frame(width: 24, height: 24)
+                                .fill(Color.premiumCoral.opacity(0.15))
+                                .frame(width: 28, height: 28)
                                 .overlay(
                                     Image(systemName: "flame.fill")
-                                        .font(.caption2)
+                                        .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(Color.premiumCoral)
                                 )
                             Text("OUT")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.secondary)
+                                .tracking(0.5)
                         }
-                        
+
                         Text("\(Int(balance.totalEnergyBurned))")
                             .font(.title3)
                             .fontWeight(.semibold)
                             .foregroundStyle(Color.primary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 24)
-                }
-                
-                // Data source
-                HStack(spacing: 6) {
-                    Image(systemName: "link")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text("Source: \(balance.energySourceDescription)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .padding(.leading, 20)
                 }
             }
         }

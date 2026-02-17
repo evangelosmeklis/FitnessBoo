@@ -149,25 +149,8 @@ struct GoalSettingView: View {
     // MARK: - Background
     
     private var backgroundGradient: some View {
-        ZStack {
-            // Deep Premium Background
-            Color(red: 0.02, green: 0.05, blue: 0.1)
-                .ignoresSafeArea()
-            
-            // Premium Gradient Overlays
-            LinearGradient(
-                colors: [
-                    Color.premiumTeal.opacity(0.05),
-                    Color.clear,
-                    Color.premiumBlue.opacity(0.04),
-                    Color.clear,
-                    Color.premiumMint.opacity(0.03)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        Color.premiumMainBackground
             .ignoresSafeArea()
-        }
     }
     
     // MARK: - View Components

@@ -95,23 +95,8 @@ struct StatisticsView: View {
     // MARK: - Background
 
     private var backgroundGradient: some View {
-        ZStack {
-            // Navy blue base
-            Color(red: 0.04, green: 0.08, blue: 0.15)
-                .ignoresSafeArea()
-            
-            // Subtle gradient overlays
-            LinearGradient(
-                colors: [
-                    Color.purple.opacity(0.05),
-                    Color.clear,
-                    Color.blue.opacity(0.03)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        Color.premiumMainBackground
             .ignoresSafeArea()
-        }
     }
 
     // MARK: - Period Selector
@@ -137,7 +122,7 @@ struct StatisticsView: View {
                                 startPoint: .leading,
                                 endPoint: .trailing
                             ) : LinearGradient(
-                                colors: [Color(.systemGray6), Color(.systemGray6)],
+                                colors: [Color.premiumElevatedBackground, Color.premiumElevatedBackground],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )

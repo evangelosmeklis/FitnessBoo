@@ -6,38 +6,108 @@
 //
 
 import SwiftUI
+import UIKit
 
 extension Color {
-    // MARK: - Premium Color Palette
+    // MARK: - Whoop-Inspired Palette
     
-    /// Deep Royal Blue -> Light Blue Gradient Start
-    static let premiumBlue = Color(red: 0.05, green: 0.2, blue: 0.9)
+    /// Core blue accents
+    static let premiumBlue = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.35, green: 0.65, blue: 1.0, alpha: 1.0) :
+            UIColor(red: 0.47, green: 0.75, blue: 1.0, alpha: 1.0)
+    })
     
-    /// Fresh Mint - for positive indicators (replaces neon green)
-    static let premiumMint = Color(red: 0.2, green: 0.9, blue: 0.7)
+    /// Teal highlight for progress/positive states
+    static let premiumMint = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.0, green: 0.85, blue: 0.75, alpha: 1.0) :
+            UIColor(red: 0.0, green: 1.0, blue: 0.88, alpha: 1.0)
+    })
     
-    /// Deep Teal - for accents
-    static let premiumTeal = Color(red: 0.0, green: 0.5, blue: 0.6)
+    /// Green accent for secondary metrics
+    static let premiumTeal = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.18, green: 0.85, blue: 0.51, alpha: 1.0) :
+            UIColor(red: 0.34, green: 1.0, blue: 0.64, alpha: 1.0)
+    })
     
-    /// Soft Coral - for warm accents/calories
-    static let premiumCoral = Color(red: 1.0, green: 0.45, blue: 0.35)
+    /// Warm accent for alerts/calories
+    static let premiumCoral = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 1.0, green: 0.42, blue: 0.21, alpha: 1.0) :
+            UIColor(red: 1.0, green: 0.55, blue: 0.26, alpha: 1.0)
+    })
     
-    /// Electric Indigo - for primary actions
-    static let premiumIndigo = Color(red: 0.35, green: 0.3, blue: 1.0)
+    /// Primary action color
+    static let premiumIndigo = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.47, green: 0.75, blue: 1.0, alpha: 1.0) :
+            UIColor(red: 0.35, green: 0.65, blue: 1.0, alpha: 1.0)
+    })
     
-    /// Sky Blue - for calm metrics
-    static let premiumSky = Color(red: 0.4, green: 0.7, blue: 1.0)
+    /// Aqua accent for calm metrics
+    static let premiumSky = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.0, green: 1.0, blue: 0.88, alpha: 1.0) :
+            UIColor(red: 0.0, green: 0.85, blue: 0.75, alpha: 1.0)
+    })
+    
+    /// Main background - dark charcoal like Whoop
+    static let premiumMainBackground = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.11, green: 0.12, blue: 0.13, alpha: 1.0) :
+            UIColor(red: 0.95, green: 0.95, blue: 0.97, alpha: 1.0)
+    })
+
+    /// Layered surfaces - card backgrounds
+    static let premiumCardBackground = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.15, green: 0.16, blue: 0.18, alpha: 1.0) :
+            UIColor(white: 1.0, alpha: 1.0)
+    })
+
+    static let premiumElevatedBackground = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.19, green: 0.20, blue: 0.22, alpha: 1.0) :
+            UIColor(red: 0.97, green: 0.97, blue: 0.98, alpha: 1.0)
+    })
+
+    static let premiumBorder = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.25, green: 0.27, blue: 0.29, alpha: 1.0) :
+            UIColor(red: 0.85, green: 0.85, blue: 0.87, alpha: 1.0)
+    })
+    
+    /// Text tones - adaptive for light and dark
+    static let premiumTextPrimary = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.95, green: 0.96, blue: 0.97, alpha: 1.0) :
+            UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1.0)
+    })
+
+    static let premiumTextSecondary = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.60, green: 0.62, blue: 0.65, alpha: 1.0) :
+            UIColor(red: 0.45, green: 0.45, blue: 0.47, alpha: 1.0)
+    })
+
+    static let premiumTextTertiary = Color(UIColor { trait in
+        return trait.userInterfaceStyle == .dark ?
+            UIColor(red: 0.48, green: 0.50, blue: 0.54, alpha: 1.0) :
+            UIColor(red: 0.60, green: 0.60, blue: 0.62, alpha: 1.0)
+    })
     
     // MARK: - Gradients
     
     static let primaryGradient = LinearGradient(
-        colors: [Color.premiumIndigo, Color.premiumBlue],
+        colors: [Color.premiumMint, Color.premiumBlue],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
     
     static let accentGradient = LinearGradient(
-        colors: [Color.premiumMint, Color.premiumTeal],
+        colors: [Color.premiumTeal, Color.premiumMint],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
@@ -48,36 +118,27 @@ extension Color {
 struct PremiumGlassBackground: ViewModifier {
     let cornerRadius: CGFloat
     @Environment(\.colorScheme) private var colorScheme
-    
+
     func body(content: Content) -> some View {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(
-                        colorScheme == .dark ? 
-                            AnyShapeStyle(Color.white.opacity(0.08)) : 
-                            AnyShapeStyle(Material.ultraThinMaterial)
-                    )
+                    .fill(Color.premiumCardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.15), // Subtle frost
-                                        Color.white.opacity(0.02)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
+                                Color.premiumBorder.opacity(colorScheme == .dark ? 0.5 : 0.3),
                                 lineWidth: 1
                             )
                     )
             )
             .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.1),
-                radius: 12, // Reduced spread for cleaner look
+                color: colorScheme == .dark ?
+                    Color.black.opacity(0.4) :
+                    Color.black.opacity(0.08),
+                radius: colorScheme == .dark ? 10 : 6,
                 x: 0,
-                y: 6
+                y: colorScheme == .dark ? 5 : 2
             )
     }
 }

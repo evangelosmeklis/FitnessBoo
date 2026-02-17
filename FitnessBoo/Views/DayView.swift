@@ -59,25 +59,8 @@ struct DayView: View {
     // MARK: - Background
 
     private var backgroundGradient: some View {
-        ZStack {
-            // Deep Premium Background
-            Color(red: 0.02, green: 0.05, blue: 0.1)
-                .ignoresSafeArea()
-            
-            // Premium Gradient Overlays
-            LinearGradient(
-                colors: [
-                    Color.premiumMint.opacity(0.1),
-                    Color.clear,
-                    Color.premiumIndigo.opacity(0.1),
-                    Color.clear,
-                    Color.blue.opacity(0.05)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+        Color.premiumMainBackground
             .ignoresSafeArea()
-        }
     }
 
     // MARK: - Summary Section
